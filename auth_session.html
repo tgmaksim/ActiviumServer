@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Авторизация...</title>
+    <script>
+        if (window.location.hash != '') {
+            const hash = window.location.hash.substring(1);
+            window.location.hash = '';
+            location.replace('?' + hash);
+        } else {
+            location.replace('gmn://open');
+        }
+    </script>
+</head>
+<body>
+    Авторизация...
+</body>
+</html>

@@ -1,0 +1,6 @@
+starlette
+fastapi
+aiohttp
+asyncpg
+pydnevnikruapi
+orjson
