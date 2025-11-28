@@ -16,7 +16,7 @@ def get_bells_schedule(date: datetime):
             "12:10 - 13:35",
             "13:50 - 15:15"
         ]
-    elif date.weekday() == 6:  # Суббота
+    elif date.weekday() == 5:  # Суббота
         return [
             "08:00 - 09:25",
             "09:35 - 11:00",

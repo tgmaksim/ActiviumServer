@@ -115,3 +115,10 @@ async def get_person_schedule(
 
 
 AsyncDiaryAPI.get_person_schedule = get_person_schedule
+
+
+async def get_extracurricular_activities(group_id: int, weekday: int, day: str) -> list[dict]:
+    """Получает внеурочки класса в данный день и возвращает предмет и кабинет"""
+
+    sql = "SELECT subject, place FROM extracurricular_activities WHERE group_id = $1 AND weekday = $2 AND day = $3"
+    return await Database.fetch_all(sql, group_id, weekday, day)

@@ -3,6 +3,7 @@ import codecs
 import aiohttp
 import traceback
 
+from hashlib import md5
 from typing import Optional
 from fastapi.responses import JSONResponse
 from config import gymnasium_id, no_lessons
@@ -19,6 +20,7 @@ from api import (
     check_session,
     check_api_key,
     create_session,
+    get_extracurricular_activities,
 )
 
 
@@ -32,7 +34,7 @@ class ExceptionHandlerMiddleware(BaseHTTPMiddleware):
             return response
         except Exception as e:
             print(''.join(traceback.format_exception(e)))
-            return HTTPException(status_code=500, detail="Internal Server Error")
+            raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
 app.add_middleware(ExceptionHandlerMiddleware)
@@ -72,10 +74,10 @@ async def login(request: Request):
 
     except (json.JSONDecodeError, KeyError) as e:
         await log(request.client.host, 'login', None, f"400 Bad Request. {e.__class__.__name__}: {e}")
-        return HTTPException(status_code=400, detail="400 Bad Request")
+        raise HTTPException(status_code=400, detail="400 Bad Request")
     except AssertionError:
         await log(request.client.host, 'login', None, "403 Forbidden")
-        return HTTPException(status_code=403, detail="403 Forbidden")
+        raise HTTPException(status_code=403, detail="403 Forbidden")
 
     await log(request.client.host, 'login', None, "200 OK")
     return JSONResponse({'loginUrl': login_url, 'session': session})
@@ -109,7 +111,7 @@ async def authSession(request: Request):
         if token is None or session is None:
             await log(request.client.host, 'authSession', None,
                       f"400 Bad Request. token={token}, state={session}")
-            return HTTPException(status_code=400, detail="400 Bad Request")
+            raise HTTPException(status_code=400, detail="400 Bad Request")
 
         async with aiohttp.ClientSession() as http_client:
             dn = AsyncDiaryAPI(token=token)
@@ -126,12 +128,12 @@ async def authSession(request: Request):
             except (AsyncDiaryError, KeyError, AssertionError, IndexError, StopIteration) as e:
                 await log(request.client.host, 'authSession', session,
                           f"403 Forbidden. {e.__class__.__name__}: {e}")
-                return HTTPException(status_code=403, detail="403 Forbidden")
+                raise HTTPException(status_code=403, detail="403 Forbidden")
 
             if not await auth_session(session, token, person_id, group_id):  # Авторизация сессии
                 await log(request.client.host, 'authSession', session,
                           f"400 Bad Request. Unsuccessful authentication")
-                return HTTPException(status_code=400, detail="400 Bad Request")
+                raise HTTPException(status_code=400, detail="400 Bad Request")
 
             await log(request.client.host, 'authSession', session, "200 OK")
 
@@ -168,10 +170,10 @@ async def checkSession(request: Request):
     except (json.JSONDecodeError, KeyError) as e:
         await log(request.client.host, 'checkSession', None,
                   f"400 Bad Request. {e.__class__.__name__}: {e}")
-        return HTTPException(status_code=400, detail="400 Bad Request")
+        raise HTTPException(status_code=400, detail="400 Bad Request")
     except AssertionError:
         await log(request.client.host, 'checkSession', None, "403 Forbidden")
-        return HTTPException(status_code=403, detail="403 Forbidden")
+        raise HTTPException(status_code=403, detail="403 Forbidden")
 
     await log(request.client.host, 'checkSession', data['session'], f"exists={exists}, auth={auth}")
     return JSONResponse({'exists': exists, 'auth': auth})
@@ -198,6 +200,10 @@ async def getSchedule(request: Request):
                 place (String): кабинет
                 hours (String): время урока в формате HH:MM - HH:MM
                 homework (String): домашнее задание
+            hoursExtracurricularActivities (Integer/null): время проведения внеурочки
+            extracurricularActivities (Array, JSON): внеурочки у класса в этот день (проводятся одновременно)
+                subject (String): название предмета
+                place (String): кабинет
 
     Возможные ошибки:
         400 Bad Request: невалидные JSON-данные; отсутствие обязательных параметров
@@ -228,9 +234,18 @@ async def getSchedule(request: Request):
 
             # Период 2 недели (15 дней) с учетом часового пояса
             start_date = date.today()
-            end_date = (datetime.now(UTC).replace(tzinfo=None) + timedelta(days=15, hours=6)).date()
+            end_date = (datetime.now(UTC).replace(tzinfo=None) + timedelta(days=14, hours=6)).date()
+
+            # Расписание конкретно для пользователя
             schedule = await dn.get_person_schedule(
                 session.person_id,
+                session.group_id,
+                str(start_date),
+                str(end_date)
+            )
+
+            # Полное расписание всего класса (в том числе других профилей и подгрупп)
+            all_schedule = await dn.get_group_lessons_info(
                 session.group_id,
                 str(start_date),
                 str(end_date)
@@ -239,10 +254,10 @@ async def getSchedule(request: Request):
     except (json.JSONDecodeError, KeyError) as e:
         await log(request.client.host, 'getSchedule', None,
                   f"400 Bad Request. {e.__class__.__name__}: {e}")
-        return HTTPException(status_code=400, detail="400 Bad Request")
+        raise HTTPException(status_code=400, detail="400 Bad Request")
     except AssertionError:
         await log(request.client.host, 'getSchedule', data.get('session'), "403 Forbidden")
-        return HTTPException(status_code=403, detail="403 Forbidden")
+        raise HTTPException(status_code=403, detail="403 Forbidden")
     except AsyncDiaryError:
         await log(request.client.host, 'getSchedule', data.get('session'), "APIError")
         result['error'] = True
@@ -254,6 +269,9 @@ async def getSchedule(request: Request):
             lessons = []
             subjects = {}
 
+            day_date = datetime.strptime(day['date'], '%Y-%m-%dT%H:%M:%S')
+            bells_schedule = get_bells_schedule(day_date)
+
             for lesson in sorted(day['lessons'], key=lambda l: l['number']):
                 if lesson['subjectId'] in no_lessons:
                     continue  # Классные часы не входят в расписание уроков
@@ -263,24 +281,50 @@ async def getSchedule(request: Request):
                     continue  # Считается не каждый урок, а весь блок
                 subjects[lesson['id']] = lesson['subjectId']
 
-                lesson_date = datetime.strptime(day['date'], '%Y-%m-%dT%H:%M:%S')
-                first_class_hour = lesson_date.weekday() in (0, 3)
+                first_class_hour = day_date.weekday() in (0, 3)
 
                 lessons.append({
                     'number': (lesson['number'] - 1 - first_class_hour) // 2,
                     'subject': filter(lambda s: s['id'] == lesson['subjectId'],
                                       day['subjects']).__next__()['name'],
                     'place': lesson['place'],
-                    'hours': get_bells_schedule(lesson_date)[(lesson['number'] - 1 - first_class_hour) // 2],
+                    'hours': bells_schedule[(lesson['number'] - 1 - first_class_hour) // 2],
                     'homework': '\n'.join(list(
                         map(lambda h: h['text'],
                             filter(lambda h: h['subjectId'] == subjects[lesson['id']],
                                    day['homeworks']))))
                 })
 
+            # Получаем md5-хеш расписания на день:
+            # сортированный список из id предметов всего класса на данный день
+            day_hash = md5(
+                str(
+                    sorted(
+                        map(
+                            lambda l: l['subject']['id'],
+                            filter(
+                                lambda l: datetime.strptime(
+                                    l['date'],
+                                    '%Y-%m-%dT%H:%M:%S'
+                                ).date() == day_date.date(),
+                                all_schedule
+                            )
+                        )
+                    )
+                ).encode('utf-8')).hexdigest()
+
+            # Получаем внеурочки класса
+            extracurricular_activities = await get_extracurricular_activities(
+                session.group_id, day_date.weekday(), day_hash)
+            hours_extracurricular_activities = bells_schedule[len(lessons)] if extracurricular_activities else None
+            for i in extracurricular_activities:
+                i['place'] = str(i['place'])
+
             result['schedule'].append({
-                'date': day['date'].split('T')[0],
+                'date': day_date.date().strftime('%Y-%m-%d'),
                 'lessons': lessons,
+                'hoursExtracurricularActivities': hours_extracurricular_activities,
+                'extracurricularActivities': extracurricular_activities
             })
 
     except (KeyError, StopIteration) as e:
