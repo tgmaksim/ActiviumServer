@@ -272,7 +272,7 @@ async def getSchedule(request: Request):
                                       day['subjects']).__next__()['name'],
                     'place': lesson['place'],
                     'hours': get_bells_schedule(lesson_date)[(lesson['number'] - 1 - first_class_hour) // 2],
-                    'homework': '. '.join(list(
+                    'homework': '\n'.join(list(
                         map(lambda h: h['text'],
                             filter(lambda h: h['subjectId'] == subjects[lesson['id']],
                                    day['homeworks']))))
