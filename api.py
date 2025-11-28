@@ -1,6 +1,7 @@
 import aiohttp
 import asyncpg
 
+from core import log
 from hashlib import sha256
 from datetime import datetime
 from database import Database
@@ -62,19 +63,25 @@ async def check_session(session: str) -> tuple[bool, bool]:
     result = await Database.fetch_row(sql, session)
 
     if not result:
+        await log(None, 'scheckSession', session, "Session not found")
         return False, False
 
     try:
         async with aiohttp.ClientSession() as http_client:
             dn = AsyncDiaryAPI(token=result['dnevnik_token'])
             dn.session = http_client
-            person_id = (await dn.get_info()).get('personId')
-            group_id = (await dn.get_person_groups(person_id))[0].get('id')
 
-    except (AsyncDiaryError, IndexError):
+            person_id = (await dn.get_info()).get('personId')
+            groups = (await dn.get_person_groups(person_id))
+            group_id = filter(lambda g: g['type'] == 'Group', groups).__next__()['id']
+
+    except (AsyncDiaryError, IndexError) as e:
+        await log(None, 'scheckSession', session, f"{e.__class__.__name__}: {e}")
         return True, False
 
     authorized = person_id  == result['person_id'] and group_id == result['group_id']
+    if not authorized:
+        await log(None, 'scheckSession', session, f"person_id={person_id}, group_id={group_id}")
     return True, authorized
 
 
