@@ -122,3 +122,29 @@ async def get_extracurricular_activities(group_id: int, weekday: int, day: str) 
 
     sql = "SELECT subject, place FROM extracurricular_activities WHERE group_id = $1 AND weekday = $2 AND day = $3"
     return await Database.fetch_all(sql, group_id, weekday, day)
+
+
+async def get_homeworks_files(dnevnik_token: str, homework_ids: list[int]) -> list[dict[str, str]]:
+    """Получает список домашних заданий по идентификаторам и возвращает прикрепленные файлы"""
+
+    if not homework_ids:
+        return []
+
+    async with aiohttp.ClientSession() as http_client:
+        dn = AsyncDiaryAPI(token=dnevnik_token)
+        dn.session = http_client
+
+        # Полная информация о домашних задания
+        homeworks = await dn.get_homework_by_id(','.join(map(str, homework_ids)))
+
+        result = []
+        for homework in homeworks['works']:
+            for file_id in homework['files']:
+                for file in homeworks['files']:
+                    if file['id'] == file_id:
+                        result.append({
+                            "fileName": file['name'] + '.' + file['type'].lower(),
+                            "downloadUrl": file['downloadUrl']
+                        })
+
+        return result

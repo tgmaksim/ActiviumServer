@@ -20,6 +20,7 @@ from api import (
     check_session,
     check_api_key,
     create_session,
+    get_homeworks_files,
     get_extracurricular_activities,
 )
 
@@ -244,13 +245,6 @@ async def getSchedule(request: Request):
                 str(end_date)
             )
 
-            # Полное расписание всего класса (в том числе других профилей и подгрупп)
-            all_schedule = await dn.get_group_lessons_info(
-                session.group_id,
-                str(start_date),
-                str(end_date)
-            )
-
     except (json.JSONDecodeError, KeyError) as e:
         await log(request.client.host, 'getSchedule', None,
                   f"400 Bad Request. {e.__class__.__name__}: {e}")
@@ -262,6 +256,21 @@ async def getSchedule(request: Request):
         await log(request.client.host, 'getSchedule', data.get('session'), "APIError")
         result['error'] = True
         return JSONResponse(result)
+
+    all_schedule = []
+    try:
+        async with aiohttp.ClientSession() as http_client:
+            dn = AsyncDiaryAPI(token=session.dnevnik_token)
+            dn.session = http_client
+
+            # Полное расписание всего класса (в том числе других профилей и подгрупп)
+            all_schedule = await dn.get_group_lessons_info(
+                session.group_id,
+                str(start_date),
+                str(end_date)
+            )
+    except AsyncDiaryError:
+        await log(request.client.host, 'getSchedule', data.get('session'), "APIError")
 
     result['status'] = True
     try:
@@ -281,7 +290,17 @@ async def getSchedule(request: Request):
                     continue  # Считается не каждый урок, а весь блок
                 subjects[lesson['id']] = lesson['subjectId']
 
+                # Классный час первым уроков в эти дни
                 first_class_hour = day_date.weekday() in (0, 3)
+
+                files = {}
+                try:
+                    homework_ids = list(map(lambda h: h['id'],
+                                            filter(lambda h: h['subjectId'] == subjects[lesson['id']] and h['files'],
+                                                   day['homeworks'])))
+                    files = await get_homeworks_files(session.dnevnik_token, homework_ids)
+                except AsyncDiaryError as e:
+                    await log(request.client.host, 'getSchedule', None, f"{e.__class__.__name__}: {e}")
 
                 lessons.append({
                     'number': (lesson['number'] - 1 - first_class_hour) // 2,
@@ -292,7 +311,8 @@ async def getSchedule(request: Request):
                     'homework': '\n'.join(list(
                         map(lambda h: h['text'],
                             filter(lambda h: h['subjectId'] == subjects[lesson['id']],
-                                   day['homeworks']))))
+                                   day['homeworks'])))),
+                    'files': files
                 })
 
             # Получаем md5-хеш расписания на день:
@@ -303,10 +323,7 @@ async def getSchedule(request: Request):
                         map(
                             lambda l: l['subject']['id'],
                             filter(
-                                lambda l: datetime.strptime(
-                                    l['date'],
-                                    '%Y-%m-%dT%H:%M:%S'
-                                ).date() == day_date.date(),
+                                lambda l: l['date'] == day['date'],
                                 all_schedule
                             )
                         )
