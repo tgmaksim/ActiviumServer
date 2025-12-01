@@ -46,7 +46,7 @@ async def root(request: Request):
     with codecs.open('./index.html', 'r', encoding='utf-8') as file:
         html: str = file.read()
 
-    await log(request.client.host, request.base_url.path, None, "200 OK")
+    await log(request, request.base_url.path, None, "200 OK")
     return Response(content=html, headers={"Content-Type": "text/html; charset=utf-8"})
 
 
@@ -57,10 +57,11 @@ async def login(request: Request):
 
     Входные параметры:
         apiKey (String): ключ для доступа к API
+        session (String) optional: предыдущая сессия, если нужно сохранить
 
     Возвращает:
         loginUrl (String): ссылка, по которой нужно перейти, чтобы авторизоваться
-        session (String): сгенерированная сессия для дальнейших запросов
+        session (String): сгенерированная сессия для дальнейших запросов или входящая
 
     Возможные ошибки:
         400 Bad Request: невалидные JSON-данные; отсутствие обязательных параметров
@@ -71,16 +72,16 @@ async def login(request: Request):
         data: dict = await request.json()
         assert await check_api_key(data['apiKey'])
 
-        login_url, session = await create_session()
+        login_url, session = await create_session(data.get('session'))
 
     except (json.JSONDecodeError, KeyError) as e:
-        await log(request.client.host, 'login', None, f"400 Bad Request. {e.__class__.__name__}: {e}")
+        await log(request, 'login', None, f"400 Bad Request. {e.__class__.__name__}: {e}")
         raise HTTPException(status_code=400, detail="400 Bad Request")
     except AssertionError:
-        await log(request.client.host, 'login', None, "403 Forbidden")
+        await log(request, 'login', None, "403 Forbidden")
         raise HTTPException(status_code=403, detail="403 Forbidden")
 
-    await log(request.client.host, 'login', None, "200 OK")
+    await log(request, 'login', None, "200 OK")
     return JSONResponse({'loginUrl': login_url, 'session': session})
 
 
@@ -103,14 +104,14 @@ async def authSession(request: Request):
         with codecs.open('./auth_session.html', 'r', encoding='utf-8') as file:
             html: str = file.read()  # Передача параметров из hash в query через JS
 
-        await log(request.client.host, 'authSession', None, "200 OK")
+        await log(request, 'authSession', None, "200 OK")
 
     # JS в браузере передал access_hash в query-параметры
     else:
         token: Optional[str] = request.query_params.get('access_token')
         session: Optional[str] = request.query_params.get('state')
         if token is None or session is None:
-            await log(request.client.host, 'authSession', None,
+            await log(request, 'authSession', None,
                       f"400 Bad Request. token={token}, state={session}")
             raise HTTPException(status_code=400, detail="400 Bad Request")
 
@@ -127,16 +128,16 @@ async def authSession(request: Request):
                 group_id = group['id']
 
             except (AsyncDiaryError, KeyError, AssertionError, IndexError, StopIteration) as e:
-                await log(request.client.host, 'authSession', session,
+                await log(request, 'authSession', session,
                           f"403 Forbidden. {e.__class__.__name__}: {e}")
                 raise HTTPException(status_code=403, detail="403 Forbidden")
 
             if not await auth_session(session, token, person_id, group_id):  # Авторизация сессии
-                await log(request.client.host, 'authSession', session,
+                await log(request, 'authSession', session,
                           f"400 Bad Request. Unsuccessful authentication")
                 raise HTTPException(status_code=400, detail="400 Bad Request")
 
-            await log(request.client.host, 'authSession', session, "200 OK")
+            await log(request, 'authSession', session, "200 OK")
 
         with codecs.open('./auth_session.html', 'r', encoding='utf-8') as file:
             html: str = file.read()  # Открытие приложения по ссылке через JS
@@ -169,14 +170,14 @@ async def checkSession(request: Request):
         exists, auth = await check_session(data['session'])
 
     except (json.JSONDecodeError, KeyError) as e:
-        await log(request.client.host, 'checkSession', None,
+        await log(request, 'checkSession', None,
                   f"400 Bad Request. {e.__class__.__name__}: {e}")
         raise HTTPException(status_code=400, detail="400 Bad Request")
     except AssertionError:
-        await log(request.client.host, 'checkSession', None, "403 Forbidden")
+        await log(request, 'checkSession', None, "403 Forbidden")
         raise HTTPException(status_code=403, detail="403 Forbidden")
 
-    await log(request.client.host, 'checkSession', data['session'], f"exists={exists}, auth={auth}")
+    await log(request, 'checkSession', data['session'], f"exists={exists}, auth={auth}")
     return JSONResponse({'exists': exists, 'auth': auth})
 
 
@@ -224,7 +225,7 @@ async def getSchedule(request: Request):
         assert await check_api_key(data['apiKey'])
 
         if not all(await check_session(data['session'])):
-            await log(request.client.host, 'getSchedule', data['session'], "Unauthorized")
+            await log(request, 'getSchedule', data['session'], "Unauthorized")
             result['unauthorized'] = True
             return JSONResponse(result)
 
@@ -246,14 +247,14 @@ async def getSchedule(request: Request):
             )
 
     except (json.JSONDecodeError, KeyError) as e:
-        await log(request.client.host, 'getSchedule', None,
+        await log(request, 'getSchedule', None,
                   f"400 Bad Request. {e.__class__.__name__}: {e}")
         raise HTTPException(status_code=400, detail="400 Bad Request")
     except AssertionError:
-        await log(request.client.host, 'getSchedule', data.get('session'), "403 Forbidden")
+        await log(request, 'getSchedule', data.get('session'), "403 Forbidden")
         raise HTTPException(status_code=403, detail="403 Forbidden")
     except AsyncDiaryError:
-        await log(request.client.host, 'getSchedule', data.get('session'), "APIError")
+        await log(request, 'getSchedule', data.get('session'), "APIError")
         result['error'] = True
         return JSONResponse(result)
 
@@ -270,7 +271,7 @@ async def getSchedule(request: Request):
                 str(end_date)
             )
     except AsyncDiaryError:
-        await log(request.client.host, 'getSchedule', data.get('session'), "APIError")
+        await log(request, 'getSchedule', data.get('session'), "APIError")
 
     result['status'] = True
     try:
@@ -300,7 +301,7 @@ async def getSchedule(request: Request):
                                                    day['homeworks'])))
                     files = await get_homeworks_files(session.dnevnik_token, homework_ids)
                 except AsyncDiaryError as e:
-                    await log(request.client.host, 'getSchedule', None, f"{e.__class__.__name__}: {e}")
+                    await log(request, 'getSchedule', None, f"{e.__class__.__name__}: {e}")
 
                 lessons.append({
                     'number': (lesson['number'] - 1 - first_class_hour) // 2,
@@ -345,10 +346,10 @@ async def getSchedule(request: Request):
             })
 
     except (KeyError, StopIteration) as e:
-        await log(request.client.host, 'getSchedule', session.session,
+        await log(request, 'getSchedule', session.session,
                   f"400 Bad Request. {e.__class__.__name__}: {e}")
         result['error'] = True
         return JSONResponse(result)
 
-    await log(request.client.host, 'getSchedule', data.get('session'), "200 OK")
+    await log(request, 'getSchedule', data.get('session'), "200 OK")
     return JSONResponse(result)

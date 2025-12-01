@@ -1,9 +1,11 @@
 from typing import Optional
 from database import Database
 from datetime import datetime, UTC
+from fastapi.requests import Request
 
 
-async def log(ip: Optional[str], path: Optional[str], session: Optional[str], value: Optional[str]):
+async def log(request: Optional[Request], path: Optional[str], session: Optional[str], value: Optional[str]):
+    ip = request.headers.get('x-forwarded-for') if request else None
     sql = "INSERT INTO logging (ip, path, session, value, datetime) VALUES ($1, $2, $3, $4, $5)"
     await Database.execute(sql, ip, path, session, value, datetime.now(UTC).replace(tzinfo=None))
 

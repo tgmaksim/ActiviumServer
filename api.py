@@ -3,6 +3,7 @@ import asyncpg
 
 from core import log
 from hashlib import sha256
+from typing import Optional
 from datetime import datetime
 from database import Database
 from dataclasses import dataclass
@@ -27,12 +28,15 @@ async def check_api_key(api_key: str) -> bool:
     return bool(result)
 
 
-async def create_session() -> tuple[str, str]:
+async def create_session(session: Optional[str] = None) -> tuple[str, str]:
     """Создает новую сессию и возвращает url для связи сессии с дневником.ру и идентификатор сессии"""
 
-    session = sha256(str(datetime.now()).encode('utf-8')).hexdigest()
+    if session:
+        sql = "UPDATE sessions SET dnevnik_token = NULL WHERE session = $1"
+    else:
+        session = sha256(str(datetime.now()).encode('utf-8')).hexdigest()
+        sql = "INSERT INTO sessions (session, dnevnik_token, person_id, group_id) VALUES ($1, NULL, NULL, NULL)"
 
-    sql = "INSERT INTO sessions (session, dnevnik_token, person_id, group_id) VALUES ($1, NULL, NULL, NULL)"
     await Database.execute(sql, session)
 
     return f"{dnevnik_login_url}&state={session}", session
@@ -71,11 +75,11 @@ async def check_session(session: str) -> tuple[bool, bool]:
             dn = AsyncDiaryAPI(token=result['dnevnik_token'])
             dn.session = http_client
 
-            person_id = (await dn.get_info()).get('personId')
+            person_id = (await dn.get_info())['personId']
             groups = (await dn.get_person_groups(person_id))
             group_id = filter(lambda g: g['type'] == 'Group', groups).__next__()['id']
 
-    except (AsyncDiaryError, IndexError) as e:
+    except (AsyncDiaryError, IndexError, KeyError) as e:
         await log(None, 'scheckSession', session, f"{e.__class__.__name__}: {e}")
         return True, False
 
