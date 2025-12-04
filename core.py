@@ -10,6 +10,33 @@ async def log(request: Optional[Request], path: Optional[str], session: Optional
     await Database.execute(sql, ip, path, session, value, datetime.now(UTC).replace(tzinfo=None))
 
 
+async def get_min_version() -> dict[str, int]:
+    """Получает последнюю доступную и поддерживающуюся со стороны сервера версии"""
+
+    sql = """
+            SELECT
+                t.latest_version,
+                t.min_api_version,
+                v.logs as update_log,
+                v.sha256
+            FROM (
+                SELECT
+                    MAX(version) AS latest_version,
+                    MAX(CASE WHEN flag = 'minAPI' THEN version END) AS min_api_version
+                FROM versions
+            ) t
+            JOIN versions v ON v.version = t.latest_version;
+          """
+    result = await Database.fetch_row(sql)
+
+    return {
+        'latestVersion': result['latest_version'],
+        'minApiVersion': result['min_api_version'],
+        'updateLog': result['update_log'],
+        'sha256': result['sha256']
+    }
+
+
 def get_bells_schedule(date: datetime):
     if date.weekday() in (0, 3):  # Понедельник и четверг
         return [

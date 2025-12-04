@@ -7,7 +7,6 @@ from typing import Optional
 from datetime import datetime
 from database import Database
 from dataclasses import dataclass
-from config import dnevnik_login_url
 from pydnevnikruapi.aiodnevnik import AsyncDiaryAPI, AsyncDiaryError
 
 
@@ -28,10 +27,13 @@ async def check_api_key(api_key: str) -> bool:
     return bool(result)
 
 
-async def create_session(session: Optional[str] = None) -> tuple[str, str]:
-    """Создает новую сессию и возвращает url для связи сессии с дневником.ру и идентификатор сессии"""
+async def create_session(session: Optional[str] = None) -> str:
+    """Создает новую сессию и возвращает идентификатор сессии"""
 
-    if session:
+    sql = "SELECT true FROM sessions WHERE session = $1"
+    exists = await Database.fetch_row_for_one(sql, session)
+
+    if session and exists:
         sql = "UPDATE sessions SET dnevnik_token = NULL WHERE session = $1"
     else:
         session = sha256(str(datetime.now()).encode('utf-8')).hexdigest()
@@ -39,7 +41,7 @@ async def create_session(session: Optional[str] = None) -> tuple[str, str]:
 
     await Database.execute(sql, session)
 
-    return f"{dnevnik_login_url}&state={session}", session
+    return session
 
 
 async def auth_session(session: str, token: str, person_id: int, group_id: int) -> bool:
@@ -101,24 +103,6 @@ async def get_session(session: str) -> Session:
         person_id=result['person_id'],
         group_id=result['group_id']
     )
-
-
-# В оригинальном методе баг
-async def get_person_schedule(
-    self: AsyncDiaryAPI,
-    person_id,
-    group_id,
-    start_time: str = str(datetime.now()),
-    end_time: str = str(datetime.now()),
-):
-    person_schedule = await self.get(
-        f"persons/{person_id}/groups/{group_id}/schedules",
-        params={"startDate": start_time, "endDate": end_time},
-    )
-    return person_schedule
-
-
-AsyncDiaryAPI.get_person_schedule = get_person_schedule
 
 
 async def get_extracurricular_activities(group_id: int, weekday: int, day: str) -> list[dict]:
