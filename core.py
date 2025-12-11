@@ -17,8 +17,7 @@ async def get_min_version() -> dict[str, int]:
             SELECT
                 t.latest_version,
                 t.min_api_version,
-                v.logs as update_log,
-                v.sha256
+                v.logs as update_log
             FROM (
                 SELECT
                     MAX(version) AS latest_version,
@@ -32,38 +31,37 @@ async def get_min_version() -> dict[str, int]:
     return {
         'latestVersion': result['latest_version'],
         'minApiVersion': result['min_api_version'],
-        'updateLog': result['update_log'],
-        'sha256': result['sha256']
+        'updateLog': result['update_log']
     }
 
 
 def get_bells_schedule(date: datetime):
     if date.weekday() in (0, 3):  # Понедельник и четверг
         return [
-            "08:30 - 10:05",
-            "10:20 - 11:55",
-            "12:10 - 13:35",
-            "13:50 - 15:15"
+            dict(start="08:30", end="10:05"),
+            dict(start="10:20", end="11:55"),
+            dict(start="12:10", end="13:35"),
+            dict(start="13:50", end="15:15"),
         ]
     elif date.weekday() == 5:  # Суббота
         return [
-            "08:00 - 09:25",
-            "09:35 - 11:00",
-            "11:10 - 12:35",
-            "12:45 - 14:10"
+            dict(start="08:00", end="09:25"),
+            dict(start="09:35", end="11:00"),
+            dict(start="11:10", end="12:35"),
+            dict(start="12:45", end="14:10"),
         ]
     else:  # Вторник, среда, пятница
         if date.month in (9, 10, 4, 5, 6, 7, 8):  # Первая и четвертая четверти
             return [
-                "08:00 - 09:35",
-                "09:50 - 11:25",
-                "11:40 - 13:05",
-                "13:20 - 14:45"
+                dict(start="08:00", end="09:35"),
+                dict(start="09:50", end="11:25"),
+                dict(start="11:40", end="13:05"),
+                dict(start="13:20", end="14:45"),
             ]
         else:  # Вторая и третья четверти
             return [
-                "08:00 - 09:45",
-                "10:00 - 11:45",
-                "12:00 - 13:35",
-                "13:50 - 15:15"
+                dict(start="08:00", end="09:45"),
+                dict(start="10:00", end="11:45"),
+                dict(start="12:00", end="13:35"),
+                dict(start="13:50", end="15:15"),
             ]
