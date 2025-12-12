@@ -139,7 +139,9 @@ header{
 .hero-left p{margin:0 0 18px 0; color:var(--muted)}
 
 .download-actions{
-    display:flex;
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    max-width: 20rem;
     gap:12px;
     align-items:center;
 }
@@ -281,6 +283,42 @@ header{
     object-fit: cover;
 }
 
+.open-app-btn {
+    display: none;
+    grid-column: span 2;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    border-radius: 12px;
+    border: 1px solid rgba(0,0,0,0.06);
+    background: transparent;
+    color: var(--text);
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.faq details {
+    border: 1px solid var(--glass-border);
+    background: var(--card-bg);
+    border-radius: 12px;
+    margin: 10px 0;
+    padding: 12px 16px;
+    box-shadow: var(--glass-shadow);
+    cursor: pointer;
+}
+
+.faq summary {
+    font-weight: 600;
+    color: var(--text);
+}
+
+.faq p {
+    margin: 10px 0 0 0;
+    color: var(--muted);
+    font-size: 14px;
+}
+
 .dev-card{display:flex; gap:12px; align-items:center}
 .avatar{
     width:64px;height:64px;border-radius:12px;background:linear-gradient(135deg,var(--accent),var(--accent-2)); color:var(--button-text); display:grid; place-items:center; font-weight:700;
@@ -301,6 +339,17 @@ footer{ margin-top:18px; color:var(--muted); font-size:13px; text-align:center }
     .brand h1{ font-size:16px }
     .logo{ width:48px; height:48px; font-size:18px }
     .avatar{ width:56px; height:56px }
+
+    .download-actions {
+        max-width: none !important;
+    }
+
+    .open-app-btn {
+        width: 100%;
+        display: inline-flex;
+        justify-content: center;
+        margin-top: 8px;
+    }
 }
 
 .pill{ display:inline-block; padding:6px 10px; border-radius:999px; background: rgba(255,255,255,0.06); font-weight:600; font-size:13px }

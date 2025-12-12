@@ -5,9 +5,19 @@
     <meta name="viewport" content="width=device-width,initial-scale=1" />
 
     <title>Гимназия №147 — Мобильное приложение</title>
-    <meta name="description" content="Официальный сайт приложения Гимназия №147 — расписание, оценки, мероприятия, достижения">
+    <meta property="og:title" content="Гимназия №147 — Мобильное приложение">
+    <meta property="og:description" content="Официальный сайт приложения Гимназия №147 — расписание, оценки, мероприятия, достижения — все под рукой!">
+    <meta property="og:image" content="/assets/icons/preview.png">
+    <meta name="description" content="Официальный сайт приложения Гимназия №147 — расписание, оценки, мероприятия, достижения — все под рукой!">
 
-    <link href="/css/style.css" rel="stylesheet">
+    <link rel="apple-touch-icon" sizes="180x180" href="/assets/icons/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/assets/icons/favicon-16x16.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/assets/icons/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="/assets/icons/android-chrome-192x192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="/assets/icons/android-chrome-512x512.png">
+    <link rel="icon" type="image/x-icon" sizes="32x32" href="/assets/icons/favicon.ico">
+
+    <link href="/css/style.css?v=1" rel="stylesheet">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
 </head>
@@ -15,7 +25,7 @@
     <div class="wrap" id="page">
         <header>
             <div class="brand">
-                <img src="/assets/logo.png" alt="147" class="logo" aria-hidden="true">
+                <img src="/assets/index/logo.png" alt="147" class="logo" aria-hidden="true">
                 <div>
                     <h1>Гимназия №147</h1>
                     <p>Для учеников средней и старшей школы</p>
@@ -53,12 +63,19 @@
                         </svg>
                         RuStore
                     </a>
+
+                    <a class="btn-outline open-app-btn" href="gmn://open/">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                            <path d="M5 12h14M13 5l7 7-7 7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        Открыть приложение
+                    </a>
                 </div>
 
                 <div class="meta">
                     <div class="pill">Android 11+</div>
                     <div class="small">0.3.0-beta</div>
-                    <div class="small">11.12.2025</div>
+                    <div class="small">12.12.2025</div>
                 </div>
 
             </div>
@@ -66,7 +83,7 @@
             <aside id="qrCard" class="hero-card" aria-hidden="true">
                 <h3 style="justify-self:center">Скачать и установить</h3>
                 <div style="margin-top:8px; justify-self:center">
-                    <img src="/assets/qr-code.png" alt="QR - скачать" class="qr">
+                    <img src="/assets/index/qr-code.png" alt="QR - скачать" class="qr">
                 </div>
             </aside>
         </section>
@@ -100,19 +117,15 @@
         </section>
 
         <div id="screenshotsBox" class="box">
-            <h3>Скриншоты</h3>
-            <p class="small muted">Посмотрите на скриншоты приложения, чтобы заранее оценить удобство</p>
+            <h3>Скриншоты приложения</h3>
             <div id="screenshots" class="screenshots">
                 <img src="/assets/screenshots/screen1.jpg" alt="Скриншот экрана">
-                <img src="/assets/screenshots/screen1.jpg" alt="Скриншот экрана">
-                <img src="/assets/screenshots/screen1.jpg" alt="Скриншот экрана">
-                <img src="/assets/screenshots/screen1.jpg" alt="Скриншот экрана">
-                <img src="/assets/screenshots/screen1.jpg" alt="Скриншот экрана">
-                <img src="/assets/screenshots/screen1.jpg" alt="Скриншот экрана">
-                <img src="/assets/screenshots/screen1.jpg" alt="Скриншот экрана">
-                <img src="/assets/screenshots/screen1.jpg" alt="Скриншот экрана">
-                <img src="/assets/screenshots/screen1.jpg" alt="Скриншот экрана">
-                <img src="/assets/screenshots/screen1.jpg" alt="Скриншот экрана">
+                <img src="/assets/screenshots/screen2.jpg" alt="Скриншот экрана">
+                <img src="/assets/screenshots/screen3.jpg" alt="Скриншот экрана">
+                <img src="/assets/screenshots/screen4.jpg" alt="Скриншот экрана">
+                <img src="/assets/screenshots/screen5.jpg" alt="Скриншот экрана">
+                <img src="/assets/screenshots/screen6.jpg" alt="Скриншот экрана">
+                <img src="/assets/screenshots/screen7.jpg" alt="Скриншот экрана">
             </div>
         </div>
 
@@ -135,7 +148,7 @@
 
             <aside>
                 <div class="box dev-card">
-                    <img src="/assets/avatar.jpg" alt="ДМ" class="avatar" aria-hidden="true">
+                    <img src="/assets/index/avatar.jpg" alt="ДМ" class="avatar" aria-hidden="true">
                     <div>
                         <h4 style="margin:0">Дрючин Максим</h4>
                         <p class="muted">Президент школы</p>
@@ -149,7 +162,7 @@
                     <h4>Информация об обновлении</h4>
 
                     <p class="small muted">Версия: <strong>0.3.0-beta</strong></p>
-                    <p class="small muted">Дата: <strong>11.12.2025</strong></p>
+                    <p class="small muted">Дата: <strong>12.12.2025</strong></p>
                     <p class="small muted">Статус: <strong>Первая beta-версия</strong></p>
 
                     <h5 style="margin-top:10px; margin-bottom:6px">Изменения</h5>
@@ -163,7 +176,37 @@
             </aside>
         </section>
 
-        <footer>Гимназия № 147, Омск</footer>
+        <section class="box" id="support" style="margin-top:28px">
+            <h3>Поддержка</h3>
+
+            <div class="faq">
+                <details>
+                    <summary>Как установить приложение?</summary>
+                    <p>Скачайте APK-файл по кнопке сверху, подтвердите установку из браузера и запустите приложение.</p>
+                </details>
+
+                <details>
+                    <summary>У меня iOS, что делать?</summary>
+                    <p>К сожалению, выход на рынок Apple не представляется возможным из-за высокой цены размещения приложений в AppStore и необходимости иметь устройства MacBook и iPhone. Вы можете использовать только устройства Android</p>
+                </details>
+
+                <details>
+                    <summary>Как происходит авторизация?</summary>
+                    <p>Все данные приложение получает из Вашего аккаунта на портале dnevnik.ru. При запуске потребуется разрешение на данные об образовательном процессе.</p>
+                </details>
+
+                <details>
+                    <summary>Требуется ли интернет?</summary>
+                    <p>Расписание и оценки доступны автономно. Для обновления данных нужен интернет.</p>
+                </details>
+
+                <details>
+                    <summary>Почему не приходят уведомления?</summary>
+                    <p>1. На устройствах Xiaomi и Huawei уведомления могут не приходить из-за системных настроек. Заходите чаще в приложение, чтобы уведомления всегда приходили.</p>
+                    <p>2. Проверьте, включены ли уведомления для приложения в настройках Android.</p>
+                </details>
+            </div>
+        </section>
     </div>
 
     <script src="/js/theme.js"></script>
