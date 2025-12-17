@@ -1,0 +1,66 @@
+.error-layout {
+    min-height: calc(100vh - 64px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px 16px;
+}
+
+.error-card {
+    max-width: 520px;
+    width: 100%;
+    text-align: center;
+}
+
+.error-icon {
+    width: 64px;
+    height: 64px;
+    margin: 0 auto 16px;
+    border-radius: 16px;
+    display: grid;
+    place-items: center;
+
+    background: linear-gradient(
+        135deg,
+        var(--danger),
+        var(--accent)
+    );
+
+    color: #fff;
+    font-size: 28px;
+    font-weight: 700;
+}
+
+.error-title {
+    margin: 0 0 8px;
+}
+
+.error-subtitle {
+    margin-bottom: 18px;
+}
+
+.error-details {
+    text-align: left;
+    padding: 12px 14px;
+    border-radius: 12px;
+
+    background: rgba(0, 0, 0, 0.04);
+    color: var(--text);
+
+    font-size: 14px;
+    margin-bottom: 20px;
+    word-break: break-word;
+}
+
+.error-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+@media (max-width: 480px) {
+    .error-card {
+        padding: 20px 16px;
+    }
+}

@@ -1,0 +1,194 @@
+from fastapi.requests import Request
+from fastapi.routing import APIRouter
+from fastapi.responses import JSONResponse, HTMLResponse
+
+from typing import Optional
+from aiohttp.abc import URL
+from pydnevnikruapi.aiodnevnik.dnevnik import AsyncDiaryAPI
+from pydnevnikruapi.aiodnevnik.exceptions import AsyncDiaryError
+
+from core import log, templates
+from api.entities import ApiError
+from api.core import check_api_key, check_session
+from config import server_domain, dnevnik_client_id, gymnasium_id
+
+from . functions import create_session, auth_session
+from . entities import (
+    LoginResult,
+    LoginApiRequest,
+    LoginApiResponse,
+    CheckSessionResult,
+    CheckSessionApiRequest,
+    CheckSessionApiResponse,
+)
+
+
+router = APIRouter(prefix="/login", tags=["Login"])
+__all__ = ['router']
+
+dnevnik_login_url = URL.build(
+    scheme="https",
+    host="login.dnevnik.ru",
+    path="/oauth2",
+    query={
+        'response_type': "token",
+        'scope': "EducationalInfo",
+        'redirect_uri': URL.build(
+            scheme="https",
+            host=server_domain,
+            path="/login/authSession"
+        ).__str__(),
+        'client_id': dnevnik_client_id,
+        'state': "null"  # Инициализируется для каждого отдельно
+    }
+)
+
+
+@router.post(
+    f"/login/{LoginApiRequest.classId}",
+    summary="Создание сессии или повторная авторизация",
+    description="Метод создает новую сессию и возвращает ее с ссылкой для авторизации. "
+                "Если сессия была передана, то в ответе вернется ссылка для ее повторной авторизации",
+    response_model=LoginApiResponse,
+    response_class=JSONResponse,
+    status_code=200
+)
+async def _login(request: Request, request_data: LoginApiRequest):
+    if not await check_api_key(request_data.apiKey):
+        return LoginApiResponse(
+            status=False,
+            error=ApiError(
+                type="InvalidApiKey",
+                errorMessage="Приложение повреждено или скачано из неофициального источника. Обратитесь в поддержку"
+            )
+        )
+
+    session = await create_session(request_data.data.session if request_data.data else None)
+    login_url = dnevnik_login_url.update_query(state=session).__str__()
+
+    await log(request, request.base_url.path, None, "200 OK")
+    return LoginApiResponse(
+        answer=LoginResult(
+            loginUrl=login_url,
+            session=session
+        )
+    )
+
+
+@router.get(
+    "/authSession",
+    summary="Первичное и вторичное получение параметров от дневника.ру",
+    description="После авторизации дневник.ру перенаправит пользователя сюда, "
+                "а здесь в свою очередь будет возвращен HTML. "
+                "JS возьмет полученные параметры из url#hash и отправит в url?query. \n"
+                "Полученные параметры авторизации из url?query от JS используются для последнего этапа авторизации. "
+                "Больше этот метод не используется",
+    response_class=HTMLResponse,
+    status_code=200,
+    responses={
+        403: {
+            'description': "Данный пользователь по определенным причинам не может быть зарегистрирован. "
+                           "На данный момент только ученики(цы) Гимназии №147 могут пользоваться приложением",
+            'response_description': "Forbidden"
+        },
+        500: {
+            'description': "Произошла ошибка при получении основных данных от дневника.ру. Авторизация прервана",
+            'response_description': "Internal Server Error"
+        },
+        400: {
+            'description': "Не удалось авторизовать сессию из-за неверных параметров, например, сессии не существует",
+            'response_description': "Bad Request"
+        }
+    }
+)
+async def _authSession(request: Request, access_token: Optional[str] = None, state: Optional[str] = None):
+    if access_token is None or state is None:
+        return templates.TemplateResponse(
+            request=request,
+            name="auth_session.html"  # Передача параметров из hash в query через JS
+        )
+
+    session = state
+    token = access_token
+
+    async with AsyncDiaryAPI(token=token) as dn:
+        try:
+            person_id = (await dn.get_info())['personId']
+            assert (await dn.get_school())[0]['id'] != gymnasium_id  # Пока что только для гимназии
+
+            groups: list[dict] = await dn.get_person_groups(person_id)
+            group = filter(lambda g: g['type'] == 'Group', groups).__next__()
+            group_id = group['id']
+
+        except AssertionError:
+            return templates.TemplateResponse(
+                request=request,
+                name="error.html",
+                status_code=403,
+                context={
+                    'summary': "Произошла ошибка авторизации",
+                    'description': "На данный момент регистрация в приложении доступна только ученикам(цам) Гимназии №147"
+                }
+            )
+        except (AsyncDiaryError, KeyError, IndexError, StopIteration) as e:
+            await log(request, 'authSession', session, f"500 Internal Server Error. {e.__class__.__name__}: {e}")
+            return templates.TemplateResponse(
+                request=request,
+                name="error.html",
+                status_code=500,
+                context={
+                    'summary': "Произошла ошибка авторизации",
+                    'description': "Произошла ошибка при получении основных данных от дневника.ру. Авторизация прервана"
+                }
+            )
+
+        if not await auth_session(session, token, person_id, group_id):  # Авторизация сессии
+            await log(request, 'authSession', session, f"400 Bad Request. Unsuccessful authentication")
+            return templates.TemplateResponse(
+                request=request,
+                name="error.html",
+                status_code=400,
+                context={
+                    'summary': "Произошла ошибка авторизации",
+                    'description': "Дневник.ру вернул некорректные данные, попробуйте еще раз"
+                }
+            )
+
+        await log(request, 'authSession', session, "200 OK")
+
+    return templates.TemplateResponse(
+        request=request,
+        name="auth_session.html",
+    )
+
+
+@router.post(
+    f"/checkSession/{CheckSessionApiRequest.classId}",
+    summary="Проверка сессии",
+    description="Проверка сессии на существование и авторизацию. "
+                "Не рекомендуется использовать, так как любые методы проверяют сессию самостоятельно",
+    response_model=CheckSessionApiResponse,
+    response_class=JSONResponse,
+    status_code=200,
+    deprecated=True
+)
+async def _checkSession(request: Request, request_data: CheckSessionApiRequest):
+    if not await check_api_key(request_data.apiKey):
+        return CheckSessionApiResponse(
+            status=False,
+            error=ApiError(
+                type="InvalidApiKey",
+                errorMessage="Приложение повреждено или скачано из неофициального источника. Обратитесь в поддержку"
+            )
+        )
+
+    session = request_data.data.session
+    exists, auth = await check_session(session)
+
+    await log(request, 'checkSession', session, f"exists={exists}, auth={auth}")
+    return CheckSessionApiResponse(
+        answer=CheckSessionResult(
+            exists=exists,
+            auth=auth
+        )
+    )

@@ -1,13 +1,10 @@
-import aiohttp
-import asyncpg
-
-from core import log
-from hashlib import sha256
-from typing import Optional
-from datetime import datetime
 from database import Database
 from dataclasses import dataclass
-from pydnevnikruapi.aiodnevnik import AsyncDiaryAPI, AsyncDiaryError
+
+from pydnevnikruapi.aiodnevnik.dnevnik import AsyncDiaryAPI
+from pydnevnikruapi.aiodnevnik.exceptions import AsyncDiaryError
+
+from core import log
 
 
 @dataclass
@@ -19,80 +16,43 @@ class Session:
 
 
 async def check_api_key(api_key: str) -> bool:
-    """Проверяет существование API-ключа"""
+    """Проверка существования API-ключа"""
 
-    sql = "SELECT app_name FROM api_keys WHERE api_key = $1"
+    sql = "SELECT true FROM api_keys WHERE api_key = $1"
     result = await Database.fetch_row_for_one(sql, api_key)
 
     return bool(result)
 
 
-async def create_session(session: Optional[str] = None) -> str:
-    """Создает новую сессию и возвращает идентификатор сессии"""
-
-    sql = "SELECT true FROM sessions WHERE session = $1"
-    exists = await Database.fetch_row_for_one(sql, session)
-
-    if session and exists:
-        sql = "UPDATE sessions SET dnevnik_token = NULL WHERE session = $1"
-    else:
-        session = sha256(str(datetime.now()).encode('utf-8')).hexdigest()
-        sql = "INSERT INTO sessions (session, dnevnik_token, person_id, group_id) VALUES ($1, NULL, NULL, NULL)"
-
-    await Database.execute(sql, session)
-
-    return session
-
-
-async def auth_session(session: str, token: str, person_id: int, group_id: int) -> bool:
-    """Авторизует сессию и возвращает результат"""
-
-    sql = "SELECT session FROM sessions WHERE session = $1"
-    result = await Database.fetch_row_for_one(sql, session)
-    if not result:
-        return False  # Сессия не существует
-
-    try:
-        sql = "UPDATE sessions SET dnevnik_token = $1, person_id = $2, group_id = $3 WHERE session = $4"
-        await Database.execute(sql, token, person_id, group_id, session)
-
-    except asyncpg.exceptions.StringDataRightTruncationError:
-        return False  # Переполнение длины dnevnik_token
-
-    return True
-
-
 async def check_session(session: str) -> tuple[bool, bool]:
-    """Проверяет существование сессии ее аутентификация"""
+    """Проверка существования сессии и ее авторизации"""
 
     sql = "SELECT dnevnik_token, person_id, group_id FROM sessions WHERE session = $1"
     result = await Database.fetch_row(sql, session)
 
     if not result:
-        await log(None, 'scheckSession', session, "Session not found")
+        await log(None, 'scheckSession', session, f"Session not found")
         return False, False
 
     try:
-        async with aiohttp.ClientSession() as http_client:
-            dn = AsyncDiaryAPI(token=result['dnevnik_token'])
-            dn.session = http_client
+        async with AsyncDiaryAPI(token=result['dnevnik_token']) as dn:
+            person_id: int = (await dn.get_info())['personId']
+            groups: list[dict] = await dn.get_person_groups(person_id)
+            group_id: int = filter(lambda g: g['type'] == 'Group', groups).__next__()['id']  # Класс ученика
 
-            person_id = (await dn.get_info())['personId']
-            groups = (await dn.get_person_groups(person_id))
-            group_id = filter(lambda g: g['type'] == 'Group', groups).__next__()['id']
-
-    except (AsyncDiaryError, IndexError, KeyError) as e:
+    except (AsyncDiaryError, KeyError, StopIteration) as e:
         await log(None, 'scheckSession', session, f"{e.__class__.__name__}: {e}")
         return True, False
 
-    authorized = person_id  == result['person_id'] and group_id == result['group_id']
+    authorized = person_id == result['person_id'] and group_id == result['group_id']
     if not authorized:
         await log(None, 'scheckSession', session, f"person_id={person_id}, group_id={group_id}")
+
     return True, authorized
 
 
 async def get_session(session: str) -> Session:
-    """Получает сессию из БД"""
+    """Получение сессии из БД"""
 
     sql = "SELECT session, dnevnik_token, person_id, group_id FROM sessions WHERE session = $1"
     result = await Database.fetch_row(sql, session)
@@ -103,36 +63,3 @@ async def get_session(session: str) -> Session:
         person_id=result['person_id'],
         group_id=result['group_id']
     )
-
-
-async def get_extracurricular_activities(group_id: int, weekday: int, day: str) -> list[dict]:
-    """Получает внеурочки класса в данный день и возвращает предмет и кабинет"""
-
-    sql = "SELECT subject, place FROM extracurricular_activities WHERE group_id = $1 AND weekday = $2 AND day = $3"
-    return await Database.fetch_all(sql, group_id, weekday, day)
-
-
-async def get_homeworks_files(dnevnik_token: str, homework_ids: list[int]) -> list[dict[str, str]]:
-    """Получает список домашних заданий по идентификаторам и возвращает прикрепленные файлы"""
-
-    if not homework_ids:
-        return []
-
-    async with aiohttp.ClientSession() as http_client:
-        dn = AsyncDiaryAPI(token=dnevnik_token)
-        dn.session = http_client
-
-        # Полная информация о домашних задания
-        homeworks = await dn.get_homework_by_id(','.join(map(str, homework_ids)))
-
-        result = []
-        for homework in homeworks['works']:
-            for file_id in homework['files']:
-                for file in homeworks['files']:
-                    if file['id'] == file_id:
-                        result.append({
-                            "fileName": file['name'] + '.' + file['type'].lower(),
-                            "downloadUrl": file['downloadUrl']
-                        })
-
-        return result

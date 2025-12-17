@@ -74,8 +74,8 @@
 
                 <div class="meta">
                     <div class="pill">Android 11+</div>
-                    <div class="small">0.3.1-beta</div>
-                    <div class="small">14.12.2025</div>
+                    <div class="small">{{ version }}</div>
+                    <div class="small">{{ date }}</div>
                 </div>
 
             </div>
@@ -161,16 +161,15 @@
                 <div class="box">
                     <h4>Информация об обновлении</h4>
 
-                    <p class="small muted">Версия: <strong>0.3.1-beta</strong></p>
-                    <p class="small muted">Дата: <strong>14.12.2025</strong></p>
-                    <p class="small muted">Статус: <strong>Первая beta-версия</strong></p>
+                    <p class="small muted">Версия: <strong>{{ version }}</strong></p>
+                    <p class="small muted">Дата: <strong>{{ date }}</strong></p>
+                    <p class="small muted">Статус: <strong>{{ version_status }}</strong></p>
 
                     <h5 style="margin-top:10px; margin-bottom:6px">Изменения</h5>
                     <ul class="small muted" style="padding-left:18px; margin:0">
-                        <li>Отказ от самообновления</li>
-                        <li>Уведомления о внеурочках</li>
-                        <li>Настройка для вкл/выкл уведомлений о внеурочках</li>
-                        <li>Выход в beta-тестирование</li>
+                        {% for item in update_log %}
+                            <li>{{ item }}</li>
+                        {% endfor %}
                     </ul>
                 </div>
             </aside>

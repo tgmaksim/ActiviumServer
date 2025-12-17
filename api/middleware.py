@@ -1,18 +1,26 @@
 import traceback
 
 from fastapi.requests import Request
-from fastapi.exceptions import HTTPException
+from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.responses import JSONResponse
+
+from . entities import ApiResponse, ApiError
+
+
+__all__ = ['ExceptionHandlerMiddleware']
 
 
 class ExceptionHandlerMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
-        if request.url.path.startswith('/v0'):
-            return JSONResponse({"api": False})
-
         try:
             return await call_next(request)
+
         except Exception as e:
             print(''.join(traceback.format_exception(e)))
-            raise HTTPException(status_code=500, detail="Internal Server Error")
+            return JSONResponse(ApiResponse(
+                status=False,
+                error=ApiError(
+                    type="InternalServerError",
+                    errorMessage=None
+                )
+            ).model_dump())
