@@ -29,7 +29,7 @@ __all__ = ['router']
     response_class=JSONResponse,
     status_code=200
 )
-async def getSchedule(request: Request, request_data: ScheduleApiRequest):
+async def _getSchedule(request: Request, request_data: ScheduleApiRequest):
     if not await check_api_key(request_data.apiKey):
         return ScheduleApiResponse(
             status=False,
@@ -41,7 +41,7 @@ async def getSchedule(request: Request, request_data: ScheduleApiRequest):
 
     try:
         if not all(await check_session(request_data.data.session)):
-            await log(request, request.base_url.path, request_data.data.session, "Unauthorized")
+            await log(request, request.url.path, request_data.data.session, "Unauthorized")
             return ScheduleApiResponse(
                 status=False,
                 error=ApiError(
@@ -66,7 +66,7 @@ async def getSchedule(request: Request, request_data: ScheduleApiRequest):
             )
 
     except AsyncDiaryError:
-        await log(request, request.base_url.path, request_data.data.session, "ApiError")
+        await log(request, request.url.path, request_data.data.session, "ApiError")
         return ScheduleApiResponse(
             status=False,
             error=ApiError(
@@ -85,7 +85,7 @@ async def getSchedule(request: Request, request_data: ScheduleApiRequest):
             )
 
     except AsyncDiaryError:
-        await log(request, request.base_url.path, request_data.data.session, "APIError")
+        await log(request, request.url.path, request_data.data.session, "APIError")
 
     result = []
     for day in schedule['days']:
@@ -102,7 +102,7 @@ async def getSchedule(request: Request, request_data: ScheduleApiRequest):
                                          day['homeworks'])).__next__()
                 files = await get_homeworks_files(session.dnevnik_token, homework_id)
             except AsyncDiaryError as e:
-                await log(request, request.base_url.path, session.session, f"{e.__class__.__name__}: {e}")
+                await log(request, request.url.path, session.session, f"{e.__class__.__name__}: {e}")
             except StopIteration:
                 pass
 
@@ -155,7 +155,7 @@ async def getSchedule(request: Request, request_data: ScheduleApiRequest):
             extracurricularActivities=extracurricular_activities
         ))
 
-    await log(request, request.base_url.path, request_data.data.session, "200 OK")
+    await log(request, request.url.path, request_data.data.session, "200 OK")
     return ScheduleApiResponse(
         status=True,
         answer=ScheduleResult(

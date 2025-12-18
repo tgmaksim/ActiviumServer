@@ -69,7 +69,7 @@ async def _login(request: Request, request_data: LoginApiRequest):
     session = await create_session(request_data.data.session if request_data.data else None)
     login_url = dnevnik_login_url.update_query(state=session).__str__()
 
-    await log(request, request.base_url.path, request_data.data.session if request_data.data else None, "200 OK")
+    await log(request, request.url.path, request_data.data.session if request_data.data else None, "200 OK")
     return LoginApiResponse(
         answer=LoginResult(
             loginUrl=login_url,
@@ -133,7 +133,7 @@ async def _authSession(request: Request, access_token: Optional[str] = None, sta
                 }
             )
         except (AsyncDiaryError, KeyError, IndexError, StopIteration) as e:
-            await log(request, request.base_url.path, session, f"500 Internal Server Error. {e.__class__.__name__}: {e}")
+            await log(request, request.url.path, session, f"500 Internal Server Error. {e.__class__.__name__}: {e}")
             return templates.TemplateResponse(
                 request=request,
                 name="error.html",
@@ -145,7 +145,7 @@ async def _authSession(request: Request, access_token: Optional[str] = None, sta
             )
 
         if not await auth_session(session, token, person_id, group_id):  # Авторизация сессии
-            await log(request, request.base_url.path, session, f"400 Bad Request. Unsuccessful authentication")
+            await log(request, request.url.path, session, f"400 Bad Request. Unsuccessful authentication")
             return templates.TemplateResponse(
                 request=request,
                 name="error.html",
@@ -156,12 +156,20 @@ async def _authSession(request: Request, access_token: Optional[str] = None, sta
                 }
             )
 
-        await log(request, request.base_url.path, session, "200 OK")
+        await log(request, request.url.path, session, "200 OK")
 
-    return templates.TemplateResponse(
+    response = templates.TemplateResponse(
         request=request,
         name="auth_session.html"
     )
+    response.set_cookie(
+        key="session",
+        value=session,
+        max_age=30 * 24 * 60 * 60,  # 30 дней
+        httponly=True,
+        secure=True
+    )
+    return response
 
 
 @router.post(
@@ -187,7 +195,7 @@ async def _checkSession(request: Request, request_data: CheckSessionApiRequest):
     session = request_data.data.session
     exists, auth = await check_session(session)
 
-    await log(request, request.base_url.path, session, f"exists={exists}, auth={auth}")
+    await log(request, request.url.path, session, f"exists={exists}, auth={auth}")
     return CheckSessionApiResponse(
         answer=CheckSessionResult(
             exists=exists,

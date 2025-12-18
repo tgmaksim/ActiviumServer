@@ -31,7 +31,7 @@ async def check_session(session: str) -> tuple[bool, bool]:
     result = await Database.fetch_row(sql, session)
 
     if not result:
-        await log(None, 'scheckSession', session, f"Session not found")
+        await log(None, 'checkSession', session, f"Session not found")
         return False, False
 
     try:
@@ -41,12 +41,12 @@ async def check_session(session: str) -> tuple[bool, bool]:
             group_id: int = filter(lambda g: g['type'] == 'Group', groups).__next__()['id']  # Класс ученика
 
     except (AsyncDiaryError, KeyError, StopIteration) as e:
-        await log(None, 'scheckSession', session, f"{e.__class__.__name__}: {e}")
+        await log(None, 'checkSession', session, f"{e.__class__.__name__}: {e}")
         return True, False
 
     authorized = person_id == result['person_id'] and group_id == result['group_id']
     if not authorized:
-        await log(None, 'scheckSession', session, f"person_id={person_id}, group_id={group_id}")
+        await log(None, 'checkSession', session, f"person_id={person_id}, group_id={group_id}")
 
     return True, authorized
 

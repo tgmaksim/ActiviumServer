@@ -17,7 +17,7 @@ class ExceptionHandlerMiddleware(BaseHTTPMiddleware):
             return await call_next(request)
 
         except Exception as e:
-            await log(request, request.base_url.path, None, f"{e.__class__.__name__}: {e}")
+            await log(request, request.url.path, None, f"{e.__class__.__name__}: {e}")
             print(''.join(traceback.format_exception(e)))
             return JSONResponse(ApiResponse(
                 status=False,

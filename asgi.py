@@ -32,11 +32,13 @@ app.include_router(dnevnik)
     include_in_schema=False  # Не отображается в документации
 )
 async def _root(request: Request):
+    session = request.cookies.get("session")
+
     try:
         versions = await get_latest_version()
 
     except Exception as e:
-        await log(request, request.base_url.path, None, f"{e.__class__.__name__}: {e}")
+        await log(request, request.url.path, session, f"{e.__class__.__name__}: {e}")
         versions = VersionsResult(
             latestVersionNumber=0,
             latestVersionString="0.0.0",
@@ -45,7 +47,7 @@ async def _root(request: Request):
             updateLogs="Исправлены ошибки"
         )  # Значения по умолчанию
     else:
-        await log(request, request.base_url.path, None, "200 OK")
+        await log(request, request.url.path, session, "200 OK")
 
     return templates.TemplateResponse(
         request=request,

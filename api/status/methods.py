@@ -37,7 +37,7 @@ async def _check_version(request: Request, request_data: VersionsApiRequest):
         versions: VersionsResult = await get_latest_version()
 
     except Exception as e:
-        await log(request, request.base_url.path, None, f"{e.__class__.__name__}: {e}")
+        await log(request, request.url.path, None, f"{e.__class__.__name__}: {e}")
         return VersionsApiResponse(
             status=False,
             error=ApiError(
@@ -45,5 +45,5 @@ async def _check_version(request: Request, request_data: VersionsApiRequest):
             )
         )
     else:
-        await log(request, request.base_url.path, None, "200 OK")
+        await log(request, request.url.path, None, "200 OK")
         return VersionsApiResponse(answer=versions)
