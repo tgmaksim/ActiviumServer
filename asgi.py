@@ -6,6 +6,7 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from core import log, templates
+
 from api.entities import ApiResponse, ApiError
 from api.status.entities import VersionsResult
 from api.status.functions import get_latest_version
@@ -25,15 +26,18 @@ app.include_router(dnevnik)
 
 
 # Статические файлы находятся в папке www и передаются низкоуровневым сервером
-@app.get("/", response_class=HTMLResponse, include_in_schema=False)
-async def root(request: Request):
+@app.get(
+    "/",
+    response_class=HTMLResponse,
+    include_in_schema=False  # Не отображается в документации
+)
+async def _root(request: Request):
     try:
         versions = await get_latest_version()
 
     except Exception as e:
         await log(request, request.base_url.path, None, f"{e.__class__.__name__}: {e}")
         versions = VersionsResult(
-            classId=VersionsResult.classId,
             latestVersionNumber=0,
             latestVersionString="0.0.0",
             date="",
@@ -66,13 +70,14 @@ async def validation_exception_handler(_: Request, __: RequestValidationError):
     ).model_dump())
 
 
+# Глобальный обработчик HTTP-ошибок
 @app.exception_handler(StarletteHTTPException)
 async def http_exception_handler(_: Request, exc: StarletteHTTPException):
     if exc.status_code == 404:
         return JSONResponse(ApiResponse(
             status=False,
             error=ApiError(
-                type="MethodNotAllowed"
+                type="ApiMethodNotFoundError"
             )
         ).model_dump())
 
@@ -84,26 +89,36 @@ async def http_exception_handler(_: Request, exc: StarletteHTTPException):
     ).model_dump())
 
 
+# Некоторые изменения в документации
 def custom_openapi():
-    if not app.openapi_schema:
-        app.openapi_schema = get_openapi(
-            title="API приложения Гимназия №147",
-            version="1.0",
-            routes=app.routes
-        )
+    if app.openapi_schema:
+        return app.openapi_schema
 
-        for _, method_item in app.openapi_schema.get('paths').items():
-            for _, param in method_item.items():
-                responses = param.get('responses')
-                if '422' in responses:
-                    del responses['422']  # Удаление информации об ошибке RequestValidationError в документации
+    app.openapi_schema = get_openapi(
+        title="API приложения Гимназия №147",
+        summary="Подробное руководство по структуре API приложения Гимназия №147",
+        description="Данная документация представляет полную информацию по работе с API. Ключевой особенностью "
+                    "является идентификатор (classId) каждой сущности: как входной, так и результативной. Он позволяет "
+                    "разным версиям приложения использовать API должным образом, даже если определенный метод изменил "
+                    "структуру входных/выходных данных или больше не поддерживается. В каталоге сущностей можно найти "
+                    "все идентификаторы",
+        contact={"Максим Дрючин": "@tgmaksim_company"},
+        version="1.0",
+        routes=app.routes
+    )
 
-        schemas = app.openapi_schema.get('components', {}).get('schemas', {})
+    for _, method_item in app.openapi_schema.get('paths').items():
+        for _, param in method_item.items():
+            responses = param.get('responses')
+            if '422' in responses:
+                del responses['422']  # Удаление информации об ошибке RequestValidationError в документации
 
-        if 'HTTPValidationError' in schemas:
-            del schemas['HTTPValidationError']  # Удаление информации об ошибке HTTPValidationError в документации
-        if 'ValidationError' in schemas:
-            del schemas['ValidationError']  # Удаление информации об ошибке ValidationError в документации
+    schemas = app.openapi_schema.get('components', {}).get('schemas', {})
+
+    if 'HTTPValidationError' in schemas:
+        del schemas['HTTPValidationError']  # Удаление информации об ошибке HTTPValidationError в документации
+    if 'ValidationError' in schemas:
+        del schemas['ValidationError']  # Удаление информации об ошибке ValidationError в документации
 
     return app.openapi_schema
 

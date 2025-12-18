@@ -1,5 +1,6 @@
 from pydantic import Field
 from typing import Optional, ClassVar, Literal
+
 from api.entities import ApiBase, ApiRequest, ApiResponse
 
 
@@ -7,8 +8,11 @@ __all__ = ['VersionsApiRequest', 'VersionsResult', 'VersionsApiResponse']
 
 
 class VersionsApiRequest(ApiRequest):
+    """Запрос данных о последней версии приложения"""
+
     classId: ClassVar[int] = 0x00000004
     class_id: Literal[0x00000004] = Field(
+        default=classId,
         alias='classId',
         description="Идентификатор класса"
     )
@@ -17,7 +21,7 @@ class VersionsApiRequest(ApiRequest):
 
 
 class VersionsResult(ApiBase):
-    """Data-класс для результата запроса проверки версии"""
+    """Результат запроса данных о последней версии приложения"""
 
     classId: ClassVar[int] = 0x00000005
     class_id: Literal[0x00000005] = Field(
@@ -49,6 +53,8 @@ class VersionsResult(ApiBase):
 
 
 class VersionsApiResponse(ApiResponse):
+    """Ответ на запрос данных о последней версии приложения"""
+
     classId: ClassVar[int] = 0x00000006
     class_id: Literal[0x00000006] = Field(
         default=classId,

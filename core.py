@@ -1,14 +1,16 @@
 from typing import Optional
+from datetime import datetime, timedelta, UTC
+
 from database import Database
-from datetime import datetime, UTC
 
 from fastapi.requests import Request
 from fastapi.templating import Jinja2Templates
+
 from pydnevnikruapi.aiodnevnik.dnevnik import AsyncDiaryAPI
 
 
 templates = Jinja2Templates(directory="templates")
-__all__ = ['templates', 'log', 'get_bells_schedule']
+__all__ = ['templates', 'log', 'get_bells_schedule', 'datetime_now']
 
 
 # В оригинальном методе баг
@@ -39,11 +41,22 @@ async def log(
 
     ip = request.headers.get('x-forwarded-for') if request else None
 
-    sql = "INSERT INTO logging (ip, path, session, value, datetime) VALUES ($1, $2, $3, $4, $5)"
-    await Database.execute(sql, ip, path, session, value, datetime.now(UTC).replace(tzinfo=None))
+    try:
+        sql = "INSERT INTO logging (ip, path, session, value, datetime) VALUES ($1, $2, $3, $4, $5)"
+        await Database.execute(sql, ip, path, session, value, datetime_now())
+    except Exception as e:
+        print(ip, path, session, value)
+        print(e)
+
+
+def datetime_now(tz_offset: int = 0) -> datetime:
+    """Текущее время в определенном часовом поясе"""
+
+    return datetime.now(UTC).replace(tzinfo=None) + timedelta(hours=tz_offset)
 
 
 def get_bells_schedule(date: datetime) -> list[dict[str, str]]:
+    # TODO: вынести в базу данных
     if date.weekday() in (0, 3):  # Понедельник и четверг
         return [
             dict(start="08:00", end="08:25"),

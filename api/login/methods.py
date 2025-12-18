@@ -4,13 +4,15 @@ from fastapi.responses import JSONResponse, HTMLResponse
 
 from typing import Optional
 from aiohttp.abc import URL
+
 from pydnevnikruapi.aiodnevnik.dnevnik import AsyncDiaryAPI
 from pydnevnikruapi.aiodnevnik.exceptions import AsyncDiaryError
 
 from core import log, templates
+from config import server_domain, dnevnik_client_id, gymnasium_id
+
 from api.entities import ApiError
 from api.core import check_api_key, check_session
-from config import server_domain, dnevnik_client_id, gymnasium_id
 
 from . functions import create_session, auth_session
 from . entities import (
@@ -26,6 +28,7 @@ from . entities import (
 router = APIRouter(prefix="/login", tags=["Login"])
 __all__ = ['router']
 
+# База ссылки для авторизации сессии в сервисе дневник.ру
 dnevnik_login_url = URL.build(
     scheme="https",
     host="login.dnevnik.ru",
@@ -39,7 +42,7 @@ dnevnik_login_url = URL.build(
             path="/login/authSession"
         ).__str__(),
         'client_id': dnevnik_client_id,
-        'state': "null"  # Инициализируется для каждого отдельно
+        'state': ""  # Инициализируется для каждого отдельно
     }
 )
 
@@ -48,7 +51,7 @@ dnevnik_login_url = URL.build(
     f"/login/{LoginApiRequest.classId}",
     summary="Создание сессии или повторная авторизация",
     description="Метод создает новую сессию и возвращает ее с ссылкой для авторизации. "
-                "Если сессия была передана, то в ответе вернется ссылка для ее повторной авторизации",
+                "Если сессия была передана, то в ответе вернется ссылка для ее повторной авторизации (или новая сессия)",
     response_model=LoginApiResponse,
     response_class=JSONResponse,
     status_code=200
@@ -58,7 +61,7 @@ async def _login(request: Request, request_data: LoginApiRequest):
         return LoginApiResponse(
             status=False,
             error=ApiError(
-                type="InvalidApiKey",
+                type="InvalidApiKeyError",
                 errorMessage="Приложение повреждено или скачано из неофициального источника. Обратитесь в поддержку"
             )
         )
@@ -66,7 +69,7 @@ async def _login(request: Request, request_data: LoginApiRequest):
     session = await create_session(request_data.data.session if request_data.data else None)
     login_url = dnevnik_login_url.update_query(state=session).__str__()
 
-    await log(request, request.base_url.path, None, "200 OK")
+    await log(request, request.base_url.path, request_data.data.session if request_data.data else None, "200 OK")
     return LoginApiResponse(
         answer=LoginResult(
             loginUrl=login_url,
@@ -117,8 +120,7 @@ async def _authSession(request: Request, access_token: Optional[str] = None, sta
             assert (await dn.get_school())[0]['id'] != gymnasium_id  # Пока что только для гимназии
 
             groups: list[dict] = await dn.get_person_groups(person_id)
-            group = filter(lambda g: g['type'] == 'Group', groups).__next__()
-            group_id = group['id']
+            group_id: int = filter(lambda g: g['type'] == 'Group', groups).__next__()['id']  # Класс
 
         except AssertionError:
             return templates.TemplateResponse(
@@ -131,7 +133,7 @@ async def _authSession(request: Request, access_token: Optional[str] = None, sta
                 }
             )
         except (AsyncDiaryError, KeyError, IndexError, StopIteration) as e:
-            await log(request, 'authSession', session, f"500 Internal Server Error. {e.__class__.__name__}: {e}")
+            await log(request, request.base_url.path, session, f"500 Internal Server Error. {e.__class__.__name__}: {e}")
             return templates.TemplateResponse(
                 request=request,
                 name="error.html",
@@ -143,7 +145,7 @@ async def _authSession(request: Request, access_token: Optional[str] = None, sta
             )
 
         if not await auth_session(session, token, person_id, group_id):  # Авторизация сессии
-            await log(request, 'authSession', session, f"400 Bad Request. Unsuccessful authentication")
+            await log(request, request.base_url.path, session, f"400 Bad Request. Unsuccessful authentication")
             return templates.TemplateResponse(
                 request=request,
                 name="error.html",
@@ -154,11 +156,11 @@ async def _authSession(request: Request, access_token: Optional[str] = None, sta
                 }
             )
 
-        await log(request, 'authSession', session, "200 OK")
+        await log(request, request.base_url.path, session, "200 OK")
 
     return templates.TemplateResponse(
         request=request,
-        name="auth_session.html",
+        name="auth_session.html"
     )
 
 
@@ -177,7 +179,7 @@ async def _checkSession(request: Request, request_data: CheckSessionApiRequest):
         return CheckSessionApiResponse(
             status=False,
             error=ApiError(
-                type="InvalidApiKey",
+                type="InvalidApiKeyError",
                 errorMessage="Приложение повреждено или скачано из неофициального источника. Обратитесь в поддержку"
             )
         )
@@ -185,7 +187,7 @@ async def _checkSession(request: Request, request_data: CheckSessionApiRequest):
     session = request_data.data.session
     exists, auth = await check_session(session)
 
-    await log(request, 'checkSession', session, f"exists={exists}, auth={auth}")
+    await log(request, request.base_url.path, session, f"exists={exists}, auth={auth}")
     return CheckSessionApiResponse(
         answer=CheckSessionResult(
             exists=exists,

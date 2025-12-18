@@ -2,11 +2,12 @@ from database import Database
 
 from . entities import VersionsResult
 
+
 __all__ = ['get_latest_version']
 
 
 async def get_latest_version() -> VersionsResult:
-    """Последняя доступная версия приложения"""
+    """Данные о последней доступной версии приложения"""
 
     sql = """
             SELECT

@@ -11,7 +11,8 @@
             window.location.hash = '';
             location.replace('?' + hash);
         } else {
-            location.replace('gmn://open/?updateSchedule=true');
+            const token = Math.random().toString().substring(2);
+            location.replace(`gmn://open/?updateScheduleToken=${token}`);
         }
     </script>
 </head>

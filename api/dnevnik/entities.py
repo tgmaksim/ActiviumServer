@@ -1,6 +1,6 @@
+from pydantic import Field
 from typing import Optional, ClassVar, Literal
 
-from pydantic import Field
 from api.entities import ApiBase, ApiSession, ApiRequest, ApiResponse
 
 
@@ -9,8 +9,11 @@ __all__ = ['ScheduleApiRequest', 'ScheduleHomeworkDocument', 'ScheduleExtracurri
 
 
 class ScheduleApiRequest(ApiRequest):
+    """Запрос расписания на 2 недели (15 дней)"""
+
     classId: ClassVar[int] = 0x0000000D
     class_id: Literal[0x0000000D] = Field(
+        default=classId,
         alias='classId',
         description="Идентификатор класса"
     )
@@ -21,6 +24,8 @@ class ScheduleApiRequest(ApiRequest):
 
 
 class ScheduleHomeworkDocument(ApiBase):
+    """Прикрепленный файл к домашнему заданию"""
+
     classId: ClassVar[int] = 0x0000000E
     class_id: Literal[0x0000000E] = Field(
         default=classId,
@@ -39,6 +44,8 @@ class ScheduleHomeworkDocument(ApiBase):
 
 
 class ScheduleExtracurricularActivity(ApiBase):
+    """Внеурочное занятие"""
+
     classId: ClassVar[int] = 0x0000000F
     class_id: Literal[0x0000000F] = Field(
         default=classId,
@@ -47,16 +54,18 @@ class ScheduleExtracurricularActivity(ApiBase):
     )
 
     subject: str = Field(
-        description="Название предмета внеурочки",
+        description="Название предмета внеурочного занятия",
         examples=["Математика"]
     )
     place: str = Field(
-        description="Кабинет или другое место проведения внеурочки",
+        description="Кабинет или другое место проведения внеурочного занятия",
         examples=["332"]
     )
 
 
 class ScheduleHours(ApiBase):
+    """Время проведения урока или внеурочного занятия"""
+
     classId: ClassVar[int] = 0x00000010
     class_id: Literal[0x00000010] = Field(
         default=classId,
@@ -65,16 +74,18 @@ class ScheduleHours(ApiBase):
     )
 
     start: str = Field(
-        description="Начало урока или внеурочки",
+        description="Начало урока или внеурочного занятия",
         examples=["08:00"]
     )
     end: str = Field(
-        description="Окончание урока или внеурочки",
+        description="Окончание урока или внеурочного занятия",
         examples=["08:40"]
     )
 
 
 class ScheduleLesson(ApiBase):
+    """Урок"""
+
     classId: ClassVar[int] = 0x00000011
     class_id: Literal[0x00000011] = Field(
         default=classId,
@@ -102,11 +113,13 @@ class ScheduleLesson(ApiBase):
         examples=["Доделать классную работу"]
     )
     files: list[ScheduleHomeworkDocument] = Field(
-        description="Дополнительные файлы к домашнему заданию в виде списка из файлов"
+        description="Дополнительные файлы к домашнему заданию"
     )
 
 
 class ScheduleDay(ApiBase):
+    """День в расписании с уроками и внеурочными занятиями"""
+
     classId: ClassVar[int] = 0x00000012
     class_id: Literal[0x00000012] = Field(
         default=classId,
@@ -119,17 +132,19 @@ class ScheduleDay(ApiBase):
         examples=["2025-12-09"]
     )
     lessons: list[ScheduleLesson] = Field(
-        description="Уроки в данный день в виде списка из уроков"
+        description="Уроки в данный день"
     )
     hoursExtracurricularActivities: Optional[ScheduleHours] = Field(
-        description="Часы проведения внеурочек (если есть в данный день)"
+        description="Часы проведения внеурочных занятий"
     )
     extracurricularActivities: list[ScheduleExtracurricularActivity] = Field(
-        description="Внеурочки в данный день (если есть) в виде списка внеурочек"
+        description="Внеурочные занятия в данный день"
     )
 
 
 class ScheduleResult(ApiBase):
+    """Результат запроса расписания на 2 недели (15 дней)"""
+
     classId: ClassVar[int] = 0x00000013
     class_id: Literal[0x00000013] = Field(
         default=classId,
@@ -138,11 +153,13 @@ class ScheduleResult(ApiBase):
     )
 
     schedule: list[ScheduleDay] = Field(
-        description="Расписание на 2 недели (15 дней) в виде списка из расписания на каждый день"
+        description="Расписание на 2 недели (15 дней)"
     )
 
 
 class ScheduleApiResponse(ApiResponse):
+    """Ответ на запрос расписания на 2 недели (15 дней)"""
+
     classId: ClassVar[int] = 0x00000014
     class_id: Literal[0x00000014] = Field(
         default=classId,
@@ -152,5 +169,5 @@ class ScheduleApiResponse(ApiResponse):
 
     answer: Optional[ScheduleResult] = Field(
         default=None,
-        description="Данные о расписании на 2 недели (15 дней) ученика(цы)"
+        description="Данные о расписании на 2 недели (15 дней)"
     )

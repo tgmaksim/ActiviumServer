@@ -9,8 +9,11 @@ __all__ = ['LoginApiRequest', 'LoginResult', 'LoginApiResponse', 'CheckSessionAp
 
 
 class LoginApiRequest(ApiRequest):
+    """Запрос на генерацию сессии и получение ссылки для ее авторизации"""
+
     classId: ClassVar[int] = 0x00000007
     class_id: Literal[0x00000007] = Field(
+        default=classId,
         alias='classId',
         description="Идентификатор класса"
     )
@@ -21,6 +24,8 @@ class LoginApiRequest(ApiRequest):
 
 
 class LoginResult(ApiBase):
+    """Результат запроса на генерацию сессии и получение ссылки для ее авторизации"""
+
     classId: ClassVar[int] = 0x00000008
     class_id: Literal[0x00000008] = Field(
         default=classId,
@@ -42,6 +47,8 @@ class LoginResult(ApiBase):
 
 
 class LoginApiResponse(ApiResponse):
+    """Ответ на запрос на генерацию сессии и получение ссылки для ее авторизации"""
+
     classId: ClassVar[int] = 0x00000009
     class_id: Literal[0x00000009] = Field(
         default=classId,
@@ -56,8 +63,11 @@ class LoginApiResponse(ApiResponse):
 
 
 class CheckSessionApiRequest(ApiRequest):
+    """Запрос для проверки сессии на существование и авторизацию"""
+
     classId: ClassVar[int] = 0x0000000A
     class_id: Literal[0x0000000A] = Field(
+        default=classId,
         alias='classId',
         description="Идентификатор класса"
     )
@@ -68,6 +78,8 @@ class CheckSessionApiRequest(ApiRequest):
 
 
 class CheckSessionResult(ApiBase):
+    """Результат запроса для проверки сессии на существование и авторизацию"""
+
     classId: ClassVar[int] = 0x0000000B
     class_id: Literal[0x0000000B] = Field(
         default=classId,
@@ -84,6 +96,8 @@ class CheckSessionResult(ApiBase):
 
 
 class CheckSessionApiResponse(ApiResponse):
+    """Ответ на запрос для проверки сессии на существование и авторизацию"""
+
     classId: ClassVar[int] = 0x0000000C
     class_id: Literal[0x0000000C] = Field(
         default=classId,

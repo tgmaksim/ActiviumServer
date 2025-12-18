@@ -1,10 +1,10 @@
-from database import Database
 from dataclasses import dataclass
 
 from pydnevnikruapi.aiodnevnik.dnevnik import AsyncDiaryAPI
 from pydnevnikruapi.aiodnevnik.exceptions import AsyncDiaryError
 
 from core import log
+from database import Database
 
 
 @dataclass

@@ -28,7 +28,7 @@ async def get_homeworks_files(dnevnik_token: str, homework_id: int) -> list[Sche
 
 
 async def get_extracurricular_activities(group_id: int, weekday: int, day: str) -> list[ScheduleExtracurricularActivity]:
-    """Получение внеурочек класса в данный день с предметом и кабинетом"""
+    """Получение внеурочных занятий класса в данный день с предметом и кабинетом"""
 
     sql = "SELECT subject, place FROM extracurricular_activities WHERE group_id = $1 AND weekday = $2 AND day = $3"
     extracurricular_activities = await Database.fetch_all(sql, group_id, weekday, day)

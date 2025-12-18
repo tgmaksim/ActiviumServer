@@ -37,7 +37,7 @@ class ApiRequest(ApiBase):
 
 
 class ApiError(ApiBase):
-    """Базовый класс для всех ошибок в API-ответах"""
+    """Класс для всех ошибок в API-ответах"""
 
     classId: ClassVar[int] = 0x00000001
     class_id: Literal[0x00000001] = Field(
@@ -48,7 +48,13 @@ class ApiError(ApiBase):
 
     type: str = Field(
         description="Определенный тип ошибки из возможных",
-        examples=["InternationalServerError", "InvalidApiKey", "Unauthorized", "ValidationError"]
+        examples=[
+            "ValidationError",
+            "UnauthorizedError",
+            "InvalidApiKeyError",
+            "InternalServerError",
+            "ApiMethodNotFoundError",
+        ]
     )
     errorMessage: Optional[str] = Field(
         default=None,
@@ -83,7 +89,7 @@ class ApiResponse(ApiBase):
 
 
 class ApiSession(ApiBase):
-    """Данные сессии"""
+    """Данные сессии для персонализированных запросов"""
 
     classId: ClassVar[int] = 0x00000003
     class_id: Literal[0x00000003] = Field(

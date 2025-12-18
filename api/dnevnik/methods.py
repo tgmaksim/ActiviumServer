@@ -1,5 +1,6 @@
 from hashlib import md5
-from datetime import datetime, timedelta, UTC
+from datetime import timedelta, datetime
+
 from pydnevnikruapi.aiodnevnik.dnevnik import AsyncDiaryAPI
 from pydnevnikruapi.aiodnevnik.exceptions import AsyncDiaryError
 
@@ -7,8 +8,9 @@ from fastapi.requests import Request
 from fastapi.routing import APIRouter
 from fastapi.responses import JSONResponse
 
+from core import log, get_bells_schedule, datetime_now
+
 from api.entities import ApiError
-from core import log, get_bells_schedule
 from api.core import check_api_key, check_session, get_session
 
 from . functions import get_homeworks_files, get_extracurricular_activities
@@ -22,7 +24,7 @@ __all__ = ['router']
 @router.post(
     f"/getSchedule/{ScheduleApiRequest.classId}",
     summary="Получение расписания",
-    description="Получение расписания на 2 недели (15 дней) с домашними заданиями, внеурочками и другими данными",
+    description="Получение расписания на 2 недели (15 дней) с домашними заданиями, внеурочными занятиями и другими данными",
     response_model=ScheduleApiResponse,
     response_class=JSONResponse,
     status_code=200
@@ -32,18 +34,18 @@ async def getSchedule(request: Request, request_data: ScheduleApiRequest):
         return ScheduleApiResponse(
             status=False,
             error=ApiError(
-                type="InvalidApiKey",
+                type="InvalidApiKeyError",
                 errorMessage="Приложение повреждено или скачано из неофициального источника. Обратитесь в поддержку"
             )
         )
 
     try:
         if not all(await check_session(request_data.data.session)):
-            await log(request, 'getSchedule', request_data.data.session, "Unauthorized")
+            await log(request, request.base_url.path, request_data.data.session, "Unauthorized")
             return ScheduleApiResponse(
                 status=False,
                 error=ApiError(
-                    type="Unauthorized",
+                    type="UnauthorizedError",
                     errorMessage="Требуется повторная авторизация"
                 )
             )
@@ -52,8 +54,8 @@ async def getSchedule(request: Request, request_data: ScheduleApiRequest):
 
         async with AsyncDiaryAPI(token=session.dnevnik_token) as dn:
             # Период 2 недели (15 дней) с учетом часового пояса (+06:00)
-            start_date = (datetime.now(UTC).replace(tzinfo=None) + timedelta(hours=6)).date()
-            end_date = (datetime.now(UTC).replace(tzinfo=None) + timedelta(days=14, hours=6)).date()
+            start_date = datetime_now(6).date()
+            end_date = (datetime_now(6) + timedelta(days=14)).date()
 
             # Расписание конкретно для пользователя
             schedule = await dn.get_person_schedule(
@@ -64,7 +66,7 @@ async def getSchedule(request: Request, request_data: ScheduleApiRequest):
             )
 
     except AsyncDiaryError:
-        await log(request, 'getSchedule', request_data.data.session, "ApiError")
+        await log(request, request.base_url.path, request_data.data.session, "ApiError")
         return ScheduleApiResponse(
             status=False,
             error=ApiError(
@@ -83,7 +85,7 @@ async def getSchedule(request: Request, request_data: ScheduleApiRequest):
             )
 
     except AsyncDiaryError:
-        await log(request, 'getSchedule', request_data.data.session, "APIError")
+        await log(request, request.base_url.path, request_data.data.session, "APIError")
 
     result = []
     for day in schedule['days']:
@@ -100,7 +102,7 @@ async def getSchedule(request: Request, request_data: ScheduleApiRequest):
                                          day['homeworks'])).__next__()
                 files = await get_homeworks_files(session.dnevnik_token, homework_id)
             except AsyncDiaryError as e:
-                await log(request, 'getSchedule', None, f"{e.__class__.__name__}: {e}")
+                await log(request, request.base_url.path, session.session, f"{e.__class__.__name__}: {e}")
             except StopIteration:
                 pass
 
@@ -141,7 +143,7 @@ async def getSchedule(request: Request, request_data: ScheduleApiRequest):
             ).encode('utf-8')
         ).hexdigest()
 
-        # Используя полученный md5, можно получить внеурочки класса
+        # Используя полученный md5, можно получить внеурочные занятия класса
         extracurricular_activities = await get_extracurricular_activities(
             session.group_id, day_date.weekday(), day_hash)
         hours_extracurricular_activities = bells_schedule[len(lessons)] if extracurricular_activities else None
@@ -153,7 +155,7 @@ async def getSchedule(request: Request, request_data: ScheduleApiRequest):
             extracurricularActivities=extracurricular_activities
         ))
 
-    await log(request, 'getSchedule', request_data.data.session, "200 OK")
+    await log(request, request.base_url.path, request_data.data.session, "200 OK")
     return ScheduleApiResponse(
         status=True,
         answer=ScheduleResult(

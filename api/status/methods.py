@@ -3,6 +3,7 @@ from fastapi.routing import APIRouter
 from fastapi.responses import JSONResponse
 
 from core import log
+
 from api.entities import ApiError
 from api.core import check_api_key
 
@@ -27,7 +28,7 @@ async def _check_version(request: Request, request_data: VersionsApiRequest):
         return VersionsApiResponse(
             status=False,
             error=ApiError(
-                type="InvalidApiKey",
+                type="InvalidApiKeyError",
                 errorMessage="Приложение повреждено или скачано из неофициального источника. Обратитесь в поддержку"
             )
         )
