@@ -319,6 +319,33 @@ header{
     font-size: 14px;
 }
 
+#changelog details {
+    border-top: 1px solid var(--border);
+    padding: 10px 0;
+}
+
+#changelog details:first-of-type {
+    border-top: none;
+}
+
+#changelog summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    list-style: none;
+    font-weight: 500;
+}
+
+#changelog summary::-webkit-details-marker {
+    display: none;
+}
+
+#changelog ul {
+    margin: 8px 0 0;
+    padding-left: 18px;
+}
+
 .dev-card{display:flex; gap:12px; align-items:center}
 .avatar{
     width:64px;height:64px;border-radius:12px;background:linear-gradient(135deg,var(--accent),var(--accent-2)); color:var(--button-text); display:grid; place-items:center; font-weight:700;

@@ -117,7 +117,8 @@ async def _authSession(request: Request, access_token: Optional[str] = None, sta
     async with AsyncDiaryAPI(token=token) as dn:
         try:
             person_id = (await dn.get_info())['personId']
-            assert (await dn.get_school())[0]['id'] != gymnasium_id  # Пока что только для гимназии
+            # Временно убрано
+            # assert (await dn.get_school())[0]['id'] != gymnasium_id  # Пока что только для гимназии
 
             groups: list[dict] = await dn.get_person_groups(person_id)
             group_id: int = filter(lambda g: g['type'] == 'Group', groups).__next__()['id']  # Класс

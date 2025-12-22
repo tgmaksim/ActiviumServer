@@ -9,8 +9,8 @@ from core import log, templates
 
 from api.entities import ApiResponse, ApiError
 from api.status.entities import VersionsResult
-from api.status.functions import get_latest_version
 from api.middleware import ExceptionHandlerMiddleware
+from api.status.functions import get_latest_version, get_previous_versions
 
 from api.login import router as login
 from api.status import router as status
@@ -36,6 +36,7 @@ async def _root(request: Request):
 
     try:
         versions = await get_latest_version()
+        previous_versions = await get_previous_versions()
 
     except Exception as e:
         await log(request, request.url.path, session, f"{e.__class__.__name__}: {e}")
@@ -46,6 +47,7 @@ async def _root(request: Request):
             versionStatus="Новая версия",
             updateLogs="Исправлены ошибки"
         )  # Значения по умолчанию
+        previous_versions = []
     else:
         await log(request, request.url.path, session, "200 OK")
 
@@ -56,7 +58,14 @@ async def _root(request: Request):
             "version": versions.latestVersionString,
             "date": versions.date,
             "version_status": versions.versionStatus,
-            "update_log": versions.updateLogs.split('\n')
+            "update_log": versions.updateLogs.split('\n'),
+            "previous_versions": [{
+                "version": version.latestVersionString,
+                "date": version.date,
+                "versionStatus": version.versionStatus,
+                "version_status": version.versionStatus,
+                "update_log": version.updateLogs.split('\n'),
+            } for version in previous_versions if version.latestVersionNumber != versions.latestVersionNumber]
         }
     )
 
