@@ -4,10 +4,10 @@ from typing import Optional, ClassVar, Literal
 from api.entities import ApiBase, ApiSession, ApiRequest, ApiResponse
 
 
-__all__ = ['ScheduleApiRequest0x0000000D', 'ScheduleApiRequest', 'ScheduleHomeworkDocument',
-           'ScheduleExtracurricularActivity', 'ScheduleHours', 'ScheduleLog', 'ScheduleLesson0x00000011',
-           'ScheduleLesson', 'ScheduleDay0x00000012', 'ScheduleDay', 'ScheduleResult0x00000013', 'ScheduleResult',
-           'ScheduleApiResponse0x00000014', 'ScheduleApiResponse']
+__all__ = ['ScheduleApiRequest0x0000000D', 'ScheduleApiRequest0x00000015', 'ScheduleApiRequest',
+           'ScheduleHomeworkDocument', 'ScheduleExtracurricularActivity', 'ScheduleHours', 'ScheduleLog',
+           'ScheduleLesson0x00000011', 'ScheduleLesson', 'ScheduleDay0x00000012', 'ScheduleDay',
+           'ScheduleResult0x00000013', 'ScheduleResult', 'ScheduleApiResponse0x00000014', 'ScheduleApiResponse']
 
 
 class ScheduleApiRequest0x0000000D(ApiRequest):
@@ -25,11 +25,26 @@ class ScheduleApiRequest0x0000000D(ApiRequest):
     )
 
 
-class ScheduleApiRequest(ApiRequest):
-    """Запрос расписания на 2 недели (15 дней)"""
+class ScheduleApiRequest0x00000015(ApiRequest):
+    """Запрос расписания на 2 недели (15 дней) устаревшая версия"""
 
     classId: ClassVar[int] = 0x00000015
     class_id: Literal[0x00000015] = Field(
+        default=classId,
+        alias='classId',
+        description="Идентификатор класса"
+    )
+
+    data: ApiSession = Field(
+        description="Данные сессии"
+    )
+
+
+class ScheduleApiRequest(ApiRequest):
+    """Запрос расписания на 3 недели (22 дня): 7 дней до сегодня, сегодня и 15 дней после"""
+
+    classId: ClassVar[int] = 0x00000022
+    class_id: Literal[0x00000022] = Field(
         default=classId,
         alias='classId',
         description="Идентификатор класса"

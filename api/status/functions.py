@@ -41,6 +41,7 @@ async def get_previous_versions() -> list[VersionsResult]:
                 version_status,
                 update_logs
             FROM versions
+            ORDER BY version DESC
           """
     results = await Database.fetch_all(sql)
 

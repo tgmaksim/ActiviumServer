@@ -12,7 +12,7 @@ from fastapi.responses import JSONResponse
 from core import log, get_bells_schedule, datetime_now
 
 from api.entities import ApiError
-from api.core import check_api_key, check_session, get_session
+from api.core import check_api_key, check_session, get_session, get_cache, put_cache
 
 from . functions import get_homeworks_files, get_extracurricular_activities
 from . entities import (
@@ -26,6 +26,7 @@ from . entities import (
     ScheduleDay0x00000012,
     ScheduleLesson0x00000011,
     ScheduleResult0x00000013,
+    ScheduleApiRequest0x00000015,
     ScheduleApiRequest0x0000000D,
     ScheduleApiResponse0x00000014,
 )
@@ -38,22 +39,36 @@ __all__ = ['router']
 @router.post(
     f"/getSchedule/{ScheduleApiRequest0x0000000D.classId}",
     summary="Получение расписания",
-    description="Получение расписания на 2 недели (15 дней) с домашними заданиями и внеурочными занятиями"
+    description="Получение расписания на 2 недели (15 дней) с домашними заданиями и внеурочными занятиям. "
                 f"Устаревший метод в пользу {ScheduleApiRequest.classId}",
     response_model=ScheduleApiResponse0x00000014,
     response_class=JSONResponse,
     status_code=200,
     deprecated=True,
 )
-async def _getSchedule(request: Request, request_data: ScheduleApiRequest0x0000000D):
+async def _getSchedule0x0000000D(request: Request, request_data: ScheduleApiRequest0x0000000D):
+    return await getScheduleRequest(request, request_data)
+
+
+@router.post(
+    f"/getSchedule/{ScheduleApiRequest0x00000015.classId}",
+    summary="Получение расписания",
+    description="Получение расписания на 2 недели (15 дней) с домашними заданиями, внеурочными занятиями и "
+                f"оценками с отметками о посещаемости за сегодняшний день. Устаревший метод в пользу {ScheduleApiRequest.classId}",
+    response_model=ScheduleApiResponse,
+    response_class=JSONResponse,
+    status_code=200,
+    deprecated=True
+)
+async def _getSchedule0x00000015(request: Request, request_data: ScheduleApiRequest0x00000015):
     return await getScheduleRequest(request, request_data)
 
 
 @router.post(
     f"/getSchedule/{ScheduleApiRequest.classId}",
     summary="Получение расписания",
-    description="Получение расписания на 2 недели (15 дней) с домашними заданиями, внеурочными занятиями и "
-                "оценками с отметками посещаемости за сегодняшний день",
+    description="Получение расписания на 3 недели (22 дня): 7 дней до сегодня, сегодня и 15 дней после — "
+                "с домашними заданиями, внеурочными занятиями и оценками с отметками о посещаемости",
     response_model=ScheduleApiResponse,
     response_class=JSONResponse,
     status_code=200
@@ -62,15 +77,14 @@ async def _getSchedule(request: Request, request_data: ScheduleApiRequest):
     return await getScheduleRequest(request, request_data)
 
 
-async def getScheduleRequest(request: Request, request_data: Union[ScheduleApiRequest0x0000000D, ScheduleApiRequest]):
-    response_type = ScheduleApiResponse if request_data.classId == ScheduleApiRequest.classId \
-        else ScheduleApiResponse0x00000014
-    day_type = ScheduleDay if request_data.classId == ScheduleApiRequest.classId \
-        else ScheduleDay0x00000012
-    answer_type = ScheduleResult if request_data.classId == ScheduleApiRequest.classId \
-        else ScheduleResult0x00000013
+async def getScheduleRequest(request: Request, request_data: Union[ScheduleApiRequest0x0000000D, ScheduleApiRequest0x00000015, ScheduleApiRequest]):
+    response_type = ScheduleApiResponse0x00000014 if request_data.classId == ScheduleApiRequest0x0000000D.classId else ScheduleApiResponse
+    day_type = ScheduleDay0x00000012 if request_data.classId == ScheduleApiRequest0x0000000D.classId else ScheduleDay
+    answer_type = ScheduleResult0x00000013 if request_data.classId == ScheduleApiRequest0x0000000D.classId else ScheduleResult
 
     now_date = datetime_now(6).date()
+    start_date = now_date - timedelta(days=7) if request_data.classId == ScheduleApiRequest.classId else now_date
+    end_date = (datetime_now(6) + timedelta(days=14)).date()
 
     if not await check_api_key(request_data.apiKey):
         return response_type(
@@ -81,59 +95,76 @@ async def getScheduleRequest(request: Request, request_data: Union[ScheduleApiRe
             )
         )
 
-    try:
-        if not all(await check_session(request_data.data.session)):
-            await log(request, request.url.path, request_data.data.session, "Unauthorized")
-            return response_type(
-                status=False,
-                error=ApiError(
-                    type="UnauthorizedError",
-                    errorMessage="Требуется повторная авторизация"
-                )
-            )
-
-        session = await get_session(request_data.data.session)
-
-        # Период 2 недели (15 дней) с учетом часового пояса (+06:00)
-        end_date = (datetime_now(6) + timedelta(days=14)).date()
-
-        async with AsyncDiaryAPI(token=session.dnevnik_token) as dn:
-            # Расписание конкретно для пользователя
-            schedule = await dn.get_person_schedule(
-                session.person_id,
-                session.group_id,
-                str(now_date),
-                str(end_date)
-            )
-
-    except AsyncDiaryError:
-        await log(request, request.url.path, request_data.data.session, "ApiError")
+    if not all(await check_session(request_data.data.session)):
+        await log(request, request.url.path, request_data.data.session, "Unauthorized")
         return response_type(
             status=False,
             error=ApiError(
-                type="InternalServerError"
+                type="UnauthorizedError",
+                errorMessage="Требуется повторная авторизация"
             )
         )
 
-    all_schedule = []
-    try:
-        async with AsyncDiaryAPI(token=session.dnevnik_token) as dn:
-            # Полное расписание всего класса (в том числе других профилей и подгрупп)
-            all_schedule = await dn.get_group_lessons_info(
-                session.group_id,
-                str(now_date),
-                str(end_date)
+    session = await get_session(request_data.data.session)
+
+    if (_schedule := await get_cache(session.session, f"schedule|{start_date}|{end_date}")) \
+            and (_schedule.datetime + timedelta(hours=6)).date() == now_date:
+        schedule = _schedule.value
+    else:
+        try:
+            async with AsyncDiaryAPI(token=session.dnevnik_token) as dn:
+                # Расписание конкретно для пользователя
+                schedule = await dn.get_person_schedule(
+                    session.person_id,
+                    session.group_id,
+                    str(start_date),
+                    str(end_date)
+                )
+
+            await put_cache(session.session, f"schedule|{start_date}|{end_date}", schedule)
+
+        except AsyncDiaryError:
+            await log(request, request.url.path, session.session, "ApiError")
+            return response_type(
+                status=False,
+                error=ApiError(
+                    type="InternalServerError"
+                )
             )
 
-    except AsyncDiaryError:
-        await log(request, request.url.path, request_data.data.session, "APIError")
+    # Полное расписание всего класса (в том числе других профилей и подгрупп)
+    all_schedule = []
+
+    # Если в кеше актуальное (загруженное сегодня) расписание
+    if (_all_schedule := await get_cache(session.session, f"all_schedule|{start_date}|{end_date}")) \
+            and (_all_schedule.datetime + timedelta(hours=6)).date() == now_date:
+        all_schedule = _all_schedule.value
+    else:
+        try:
+            async with AsyncDiaryAPI(token=session.dnevnik_token) as dn:
+                all_schedule = await dn.get_group_lessons_info(
+                    session.group_id,
+                    str(start_date),
+                    str(end_date)
+                )
+
+            await put_cache(session.session, f"all_schedule|{start_date}|{end_date}", all_schedule)
+
+        except AsyncDiaryError:
+            await log(request, request.url.path, session.session, "APIError")
+            return response_type(
+                status=False,
+                error=ApiError(
+                    type="InternalServerError"
+                )
+            )
 
     logs = {}
 
-    if request_data.classId == ScheduleApiRequest.classId:
+    if request_data.classId != ScheduleApiRequest0x0000000D.classId:
         try:
             async with AsyncDiaryAPI(token=session.dnevnik_token) as dn:
-                marks = await dn.get(f"persons/{session.person_id}/edu-groups/{session.group_id}/marks/{now_date}/{now_date}")
+                marks = await dn.get(f"persons/{session.person_id}/edu-groups/{session.group_id}/marks/{start_date}/{end_date}")
 
             for mark in marks:
                 if logs.get(mark['lesson']) is None:
@@ -145,7 +176,7 @@ async def getScheduleRequest(request: Request, request_data: Union[ScheduleApiRe
                 ))
 
         except AsyncDiaryError:
-            await log(request, request.url.path, request_data.data.session, "APIError")
+            await log(request, request.url.path, session.session, "APIError")
             return response_type(
                 status=False,
                 error=ApiError(
@@ -155,7 +186,7 @@ async def getScheduleRequest(request: Request, request_data: Union[ScheduleApiRe
 
         try:
             async with AsyncDiaryAPI(token=session.dnevnik_token) as dn:
-                lesson_logs = (await dn.get_person_lesson_logs(session.person_id, str(now_date), str(now_date)))['logEntries']
+                lesson_logs = (await dn.get_person_lesson_logs(session.person_id, str(start_date), str(now_date)))['logEntries']
 
             for lesson_log in lesson_logs:
                 if logs.get(lesson_log['lesson']) is None:
@@ -168,7 +199,7 @@ async def getScheduleRequest(request: Request, request_data: Union[ScheduleApiRe
                     ))
 
         except (AsyncDiaryError, KeyError) as e:
-            await log(request, request.url.path, request_data.data.session, f"{e.__class__.__name__}: {e}")
+            await log(request, request.url.path, session.session, f"{e.__class__.__name__}: {e}")
             return response_type(
                 status=False,
                 error=ApiError(
@@ -207,7 +238,7 @@ async def getScheduleRequest(request: Request, request_data: Union[ScheduleApiRe
             except KeyError:
                 homework = None
 
-            if request_data.classId == ScheduleApiRequest.classId:
+            if request_data.classId != ScheduleApiRequest0x0000000D.classId:
                 lessons.append(ScheduleLesson(
                     number=lesson['number'] - 1,
                     subject=subject,
@@ -256,7 +287,7 @@ async def getScheduleRequest(request: Request, request_data: Union[ScheduleApiRe
             extracurricularActivities=extracurricular_activities
         ))
 
-    await log(request, request.url.path, request_data.data.session, "200 OK")
+    await log(request, request.url.path, session.session, "200 OK")
     return response_type(
         status=True,
         answer=answer_type(

@@ -83,14 +83,29 @@ async def validation_exception_handler(_: Request, __: RequestValidationError):
 
 # Глобальный обработчик HTTP-ошибок
 @app.exception_handler(StarletteHTTPException)
-async def http_exception_handler(_: Request, exc: StarletteHTTPException):
+async def http_exception_handler(request: Request, exc: StarletteHTTPException):
     if exc.status_code == 404:
-        return JSONResponse(ApiResponse(
-            status=False,
-            error=ApiError(
-                type="ApiMethodNotFoundError"
+        if request.headers.get("content-type") == "application/json":
+            return JSONResponse(ApiResponse(
+                status=False,
+                error=ApiError(
+                    type="ApiMethodNotFoundError"
+                )
+            ).model_dump())
+        else:
+            if request.url.path.startswith("/apk"):
+                description = "Файл с обновлением не найден..."
+            else:
+                description = "Страница, которую Вы пытались получить не найдена, или, возможно, перемещена"
+            return templates.TemplateResponse(
+                request=request,
+                name="error.html",
+                status_code=404,
+                context={
+                    "title": "Страница не найдена",
+                    "description": description
+                }
             )
-        ).model_dump())
 
     return JSONResponse(ApiResponse(
         status=False,
