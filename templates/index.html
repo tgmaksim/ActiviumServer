@@ -17,7 +17,7 @@
     <link rel="icon" type="image/png" sizes="512x512" href="/assets/icons/android-chrome-512x512.png">
     <link rel="icon" type="image/x-icon" sizes="32x32" href="/assets/icons/favicon.ico">
 
-    <link href="/css/style.css?v=2" rel="stylesheet">
+    <link href="/css/style.css?v=3" rel="stylesheet">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
 </head>
@@ -119,15 +119,13 @@
         <div id="screenshotsBox" class="box">
             <h3>Скриншоты приложения</h3>
             <div id="screenshots" class="screenshots">
-                <img src="/assets/screenshots/screen3.jpg" alt="Скриншот экрана">
-                <img src="/assets/screenshots/screen8.jpg" alt="Скриншот экрана">
-                <img src="/assets/screenshots/screen9.jpg" alt="Скриншот экрана">
-                <img src="/assets/screenshots/screen10.jpg" alt="Скриншот экрана">
-                <img src="/assets/screenshots/screen11.jpg" alt="Скриншот экрана">
-                <img src="/assets/screenshots/screen12.jpg" alt="Скриншот экрана">
-                <img src="/assets/screenshots/screen13.jpg" alt="Скриншот экрана">
-                <img src="/assets/screenshots/screen14.jpg" alt="Скриншот экрана">
-                <img src="/assets/screenshots/screen15.jpg" alt="Скриншот экрана">
+                <img src="/assets/screenshots/screen16.jpg" alt="Скриншот экрана">
+                <img src="/assets/screenshots/screen17.jpg" alt="Скриншот экрана">
+                <img src="/assets/screenshots/screen18.jpg" alt="Скриншот экрана">
+                <img src="/assets/screenshots/screen19.jpg" alt="Скриншот экрана">
+                <img src="/assets/screenshots/screen20.jpg" alt="Скриншот экрана">
+                <img src="/assets/screenshots/screen21.jpg" alt="Скриншот экрана">
+                <img src="/assets/screenshots/screen22.jpg" alt="Скриншот экрана">
             </div>
         </div>
 
@@ -178,25 +176,30 @@
         </section>
 
         <section class="box" id="changelog" style="margin-top:28px">
-            <h3>История версий</h3>
+            <details>
+                <summary>
+                    <h3 style="display:inline">История версий</h3>
+                    <span class="muted small">({{ previous_versions|length }})</span>
+                </summary>
 
-            {% for v in previous_versions %}
-                <details class="version-details">
-                    <summary>
-                        <span>
-                            Версия <strong>{{ v.version }}</strong>
-                            <span class="muted">· {{ v.date }}</span>
-                        </span>
-                        <span class="pill small">{{ v.status }}</span>
-                    </summary>
+                {% for v in previous_versions %}
+                    <details class="version-details" {% if loop.first %}open{% endif %}>
+                        <summary>
+                            <span>
+                                Версия <strong>{{ v.version }}</strong>
+                                <span class="muted">· {{ v.date }}</span>
+                            </span>
+                            <span class="pill small">{{ v.status }}</span>
+                        </summary>
 
-                    <ul class="small muted">
-                        {% for item in v.update_log %}
-                            <li>{{ item }}</li>
-                        {% endfor %}
-                    </ul>
-                </details>
-            {% endfor %}
+                        <ul class="small muted">
+                            {% for item in v.update_log %}
+                                <li>{{ item }}</li>
+                            {% endfor %}
+                        </ul>
+                    </details>
+                {% endfor %}
+            </details>
         </section>
 
         <section class="box" id="support" style="margin-top:28px">

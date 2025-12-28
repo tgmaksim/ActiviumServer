@@ -4,10 +4,11 @@ from typing import Optional, ClassVar, Literal
 from api.entities import ApiBase, ApiSession, ApiRequest, ApiResponse
 
 
-__all__ = ['ScheduleApiRequest0x0000000D', 'ScheduleApiRequest0x00000015', 'ScheduleApiRequest',
-           'ScheduleHomeworkDocument', 'ScheduleExtracurricularActivity', 'ScheduleHours', 'ScheduleLog',
-           'ScheduleLesson0x00000011', 'ScheduleLesson', 'ScheduleDay0x00000012', 'ScheduleDay',
-           'ScheduleResult0x00000013', 'ScheduleResult', 'ScheduleApiResponse0x00000014', 'ScheduleApiResponse']
+__all__ = ['ScheduleApiRequest0x0000000D', 'ScheduleApiRequest0x00000015', 'ScheduleApiRequest0x00000022',
+           'ScheduleInputData', 'ScheduleApiRequest', 'ScheduleHomeworkDocument', 'ScheduleExtracurricularActivity',
+           'ScheduleHours', 'MarksOther', 'MarkLog', 'ScheduleLesson0x00000011', 'ScheduleLesson',
+           'ScheduleDay0x00000012', 'ScheduleDay', 'ScheduleResult0x00000013', 'ScheduleResult0x00000019',
+           'ScheduleResult', 'ScheduleApiResponse0x00000014', 'ScheduleApiResponse0x00000020', 'ScheduleApiResponse']
 
 
 class ScheduleApiRequest0x0000000D(ApiRequest):
@@ -40,8 +41,8 @@ class ScheduleApiRequest0x00000015(ApiRequest):
     )
 
 
-class ScheduleApiRequest(ApiRequest):
-    """Запрос расписания на 3 недели (22 дня): 7 дней до сегодня, сегодня и 15 дней после"""
+class ScheduleApiRequest0x00000022(ApiRequest):
+    """Запрос расписания на 3 недели (22 дня): 7 дней до сегодня, сегодня и 15 дней после устаревшая версия"""
 
     classId: ClassVar[int] = 0x00000022
     class_id: Literal[0x00000022] = Field(
@@ -52,6 +53,52 @@ class ScheduleApiRequest(ApiRequest):
 
     data: ApiSession = Field(
         description="Данные сессии"
+    )
+
+
+class ScheduleInputData(ApiBase):
+    """Входные данные для запроса расписания на несколько дней"""
+
+    classId: ClassVar[int] = 0x00000024
+    class_id: Literal[0x00000024] = Field(
+        default=classId,
+        alias='classId',
+        description="Идентификатор класса"
+    )
+
+    session: str = Field(
+        description="Строковый идентификатор сессии",
+        min_length=1,
+        max_length=64,
+        pattern="[a-zA-Z0-9]+",
+        examples=["55e5bccb595d10beb8d5bf85d447dff2c411275d3ce9f2823afb3a56407f8afe"]
+    )
+    before: int = Field(
+        description="Количество дней расписания до сегодня",
+        ge=0,
+        le=14,
+        examples=[7]
+    )
+    after: int = Field(
+        description="Количество дней после сегодня",
+        ge=1,
+        le=21,
+        examples=[14]
+    )
+
+
+class ScheduleApiRequest(ApiRequest):
+    """Запрос расписания на несколько дней"""
+
+    classId: ClassVar[int] = 0x00000023
+    class_id: Literal[0x00000023] = Field(
+        default=classId,
+        alias='classId',
+        description="Идентификатор класса"
+    )
+
+    data: ScheduleInputData = Field(
+        description="Данные сессии и период запрашиваемого расписания"
     )
 
 
@@ -115,28 +162,7 @@ class ScheduleHours(ApiBase):
     )
 
 
-class ScheduleOtherMark(ApiBase):
-    """Оценка другого ученика(цы) за тот жде урок"""
-
-    classId: ClassVar[int] = 0x00000021
-    class_id: Literal[0x00000021] = Field(
-        default=classId,
-        alias='classId',
-        description="Идентификатор класса"
-    )
-
-    name: str = Field(
-        description="Имя и первая буква фамилия ученика(цы)"
-    )
-    mark: str = Field(
-        description="Оценка ученика(цы)"
-    )
-    mood: Literal["good", "average", "bad", "more"] = Field(
-        description="Тип оценки: хороший, средний или плохой"
-    )
-
-
-class ScheduleLog(ApiBase):
+class MarkLog(ApiBase):
     """Оценка или отметка посещаемости урока"""
 
     classId: ClassVar[int] = 0x00000016
@@ -176,6 +202,24 @@ class ScheduleLog(ApiBase):
                 return "П"  # Пропуск
 
         return None
+
+
+class MarksOther(ApiBase):
+    """Оценки другого ученика(цы) за тот жде урок"""
+
+    classId: ClassVar[int] = 0x00000021
+    class_id: Literal[0x00000021] = Field(
+        default=classId,
+        alias='classId',
+        description="Идентификатор класса"
+    )
+
+    name: str = Field(
+        description="Имя и первая буква фамилия ученика(цы)"
+    )
+    marks: list[MarkLog] = Field(
+        description="Оценки ученика(цы)"
+    )
 
 
 class ScheduleLesson0x00000011(ApiBase):
@@ -237,10 +281,10 @@ class ScheduleLesson(ApiBase):
     hours: ScheduleHours = Field(
         description="Время проведения урока"
     )
-    logs: list[ScheduleLog] = Field(
+    logs: list[MarkLog] = Field(
         description="Оценки и отметки посещаемости за урок"
     )
-    othersMarks: list[ScheduleOtherMark] = Field(
+    othersMarks: list[MarksOther] = Field(
         description="Оценки других учеников за урок"
     )
     homework: Optional[str] = Field(
@@ -317,8 +361,8 @@ class ScheduleResult0x00000013(ApiBase):
     )
 
 
-class ScheduleResult(ApiBase):
-    """Результат запроса расписания на 2 недели (15 дней)"""
+class ScheduleResult0x00000019(ApiBase):
+    """Результат запроса расписания на 3 недели (22 дня): 7 дней до сегодня, сегодня и 15 дней после устаревшая версия"""
 
     classId: ClassVar[int] = 0x00000019
     class_id: Literal[0x00000019] = Field(
@@ -329,6 +373,24 @@ class ScheduleResult(ApiBase):
 
     schedule: list[ScheduleDay] = Field(
         description="Расписание на 2 недели (15 дней)"
+    )
+
+
+class ScheduleResult(ApiBase):
+    """Результат запроса расписания на несколько дней"""
+
+    classId: ClassVar[int] = 0x00000026
+    class_id: Literal[0x00000026] = Field(
+        default=classId,
+        alias='classId',
+        description="Идентификатор класса"
+    )
+
+    schedule: list[ScheduleDay] = Field(
+        description="Расписание на несколько дней"
+    )
+    timezone: int = Field(
+        description="Часовой пояс"
     )
 
 
@@ -348,8 +410,8 @@ class ScheduleApiResponse0x00000014(ApiResponse):
     )
 
 
-class ScheduleApiResponse(ApiResponse):
-    """Ответ на запрос расписания на 2 недели (15 дней) устаревшая версия"""
+class ScheduleApiResponse0x00000020(ApiResponse):
+    """Ответ на запрос расписания на 3 недели (22 дня): 7 дней до сегодня, сегодня и 15 дней после устаревшая версия"""
 
     classId: ClassVar[int] = 0x00000020
     class_id: Literal[0x00000020] = Field(
@@ -358,7 +420,23 @@ class ScheduleApiResponse(ApiResponse):
         description="Идентификатор класса"
     )
 
-    answer: Optional[ScheduleResult] = Field(
+    answer: Optional[ScheduleResult0x00000019] = Field(
         default=None,
         description="Данные о расписании на 2 недели (15 дней)"
+    )
+
+
+class ScheduleApiResponse(ApiResponse):
+    """Ответ на запрос расписания на несколько дней"""
+
+    classId: ClassVar[int] = 0x00000027
+    class_id: Literal[0x00000027] = Field(
+        default=classId,
+        alias='classId',
+        description="Идентификатор класса"
+    )
+
+    answer: Optional[ScheduleResult] = Field(
+        default=None,
+        description="Данные о расписании на несколько дней"
     )

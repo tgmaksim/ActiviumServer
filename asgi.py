@@ -35,12 +35,11 @@ async def _root(request: Request):
     session = request.cookies.get("session")
 
     try:
-        versions = await get_latest_version()
-        previous_versions = await get_previous_versions()
-
+        version = await get_latest_version()  # Последняя версия приложения
+        previous_versions = await get_previous_versions()  # Все задокументированные прошлые версии
     except Exception as e:
         await log(request, request.url.path, session, f"{e.__class__.__name__}: {e}")
-        versions = VersionsResult(
+        version = VersionsResult(
             latestVersionNumber=0,
             latestVersionString="0.0.0",
             date="",
@@ -55,48 +54,53 @@ async def _root(request: Request):
         request=request,
         name="index.html",
         context={
-            "version": versions.latestVersionString,
-            "date": versions.date,
-            "version_status": versions.versionStatus,
-            "update_log": versions.updateLogs.split('\n'),
+            "version": version.latestVersionString,
+            "date": version.date,
+            "version_status": version.versionStatus,
+            "update_log": version.updateLogs.split('\n'),
             "previous_versions": [{
-                "version": version.latestVersionString,
-                "date": version.date,
-                "versionStatus": version.versionStatus,
-                "version_status": version.versionStatus,
-                "update_log": version.updateLogs.split('\n'),
-            } for version in previous_versions if version.latestVersionNumber != versions.latestVersionNumber]
+                "version": v.latestVersionString,
+                "date": v.date,
+                "versionStatus": v.versionStatus,
+                "version_status": v.versionStatus,
+                "update_log": v.updateLogs.split('\n'),
+            } for v in previous_versions]
         }
     )
 
 
 # Глобальный обработчик ошибок RequestValidationError
 @app.exception_handler(RequestValidationError)
-async def validation_exception_handler(_: Request, __: RequestValidationError):
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    await log(request, request.url.path, None, str(exc))
+
     return JSONResponse(ApiResponse(
         status=False,
         error=ApiError(
             type="ValidationError"
         )
-    ).model_dump())
+    ).model_dump(by_alias=True))
 
 
 # Глобальный обработчик HTTP-ошибок
 @app.exception_handler(StarletteHTTPException)
 async def http_exception_handler(request: Request, exc: StarletteHTTPException):
-    if exc.status_code == 404:
-        if request.headers.get("content-type") == "application/json":
+    await log(request, request.url.path, None, exc.detail)
+
+    if exc.status_code == 404:  # Обработка ошибок 404 Not Found
+        if request.headers.get("content-type") == "application/json":  # Из API
             return JSONResponse(ApiResponse(
                 status=False,
                 error=ApiError(
                     type="ApiMethodNotFoundError"
                 )
-            ).model_dump())
-        else:
+            ).model_dump(by_alias=True))
+        else:  # Запрос пользователем
             if request.url.path.startswith("/apk"):
                 description = "Файл с обновлением не найден..."
             else:
                 description = "Страница, которую Вы пытались получить не найдена, или, возможно, перемещена"
+
             return templates.TemplateResponse(
                 request=request,
                 name="error.html",
@@ -112,7 +116,7 @@ async def http_exception_handler(request: Request, exc: StarletteHTTPException):
         error=ApiError(
             type="InternalServerError"
         )
-    ).model_dump())
+    ).model_dump(by_alias=True))
 
 
 # Некоторые изменения в документации

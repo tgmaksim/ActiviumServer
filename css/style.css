@@ -346,6 +346,27 @@ header{
     padding-left: 18px;
 }
 
+.version-details summary {
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+}
+
+.version-details summary::-webkit-details-marker {
+    display: none;
+}
+
+.version-details summary::after {
+    content: "▾";
+    opacity: 0.5;
+}
+
+.version-details[open] summary::after {
+    transform: rotate(180deg);
+}
+
 .dev-card{display:flex; gap:12px; align-items:center}
 .avatar{
     width:64px;height:64px;border-radius:12px;background:linear-gradient(135deg,var(--accent),var(--accent-2)); color:var(--button-text); display:grid; place-items:center; font-weight:700;

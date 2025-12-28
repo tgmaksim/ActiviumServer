@@ -9,10 +9,9 @@ from pydnevnikruapi.aiodnevnik.dnevnik import AsyncDiaryAPI
 from pydnevnikruapi.aiodnevnik.exceptions import AsyncDiaryError
 
 from core import log, templates
-from config import server_domain, dnevnik_client_id, gymnasium_id
+from config import server_domain, dnevnik_client_id
 
-from api.entities import ApiError
-from api.core import check_api_key, check_session
+from api.core import assert_check_api_key, check_session
 
 from . functions import create_session, auth_session
 from . entities import (
@@ -57,14 +56,7 @@ dnevnik_login_url = URL.build(
     status_code=200
 )
 async def _login(request: Request, request_data: LoginApiRequest):
-    if not await check_api_key(request_data.apiKey):
-        return LoginApiResponse(
-            status=False,
-            error=ApiError(
-                type="InvalidApiKeyError",
-                errorMessage="Приложение повреждено или скачано из неофициального источника. Обратитесь в поддержку"
-            )
-        )
+    await assert_check_api_key(request_data.apiKey)
 
     session = await create_session(request_data.data.session if request_data.data else None)
     login_url = dnevnik_login_url.update_query(state=session).__str__()
@@ -114,50 +106,41 @@ async def _authSession(request: Request, access_token: Optional[str] = None, sta
     session = state
     token = access_token
 
-    async with AsyncDiaryAPI(token=token) as dn:
-        try:
-            person_id = (await dn.get_info())['personId']
-            # Временно убрано
-            # assert (await dn.get_school())[0]['id'] != gymnasium_id  # Пока что только для гимназии
+    try:
+        async with AsyncDiaryAPI(token=token) as dn:
+            info: dict = await dn.get_info()
+            person_id: int = info['personId']
+            timezone: int = int(info['timezone'].split(":")[0])
+            gymnasium_id: int = (await dn.get_school())[0]['id']
 
             groups: list[dict] = await dn.get_person_groups(person_id)
             group_id: int = filter(lambda g: g['type'] == 'Group', groups).__next__()['id']  # Класс
 
-        except AssertionError:
-            return templates.TemplateResponse(
-                request=request,
-                name="error.html",
-                status_code=403,
-                context={
-                    'summary': "Произошла ошибка авторизации",
-                    'description': "На данный момент регистрация в приложении доступна только ученикам(цам) Гимназии №147"
-                }
-            )
-        except (AsyncDiaryError, KeyError, IndexError, StopIteration) as e:
-            await log(request, request.url.path, session, f"500 Internal Server Error. {e.__class__.__name__}: {e}")
-            return templates.TemplateResponse(
-                request=request,
-                name="error.html",
-                status_code=500,
-                context={
-                    'summary': "Произошла ошибка авторизации",
-                    'description': "Произошла ошибка при получении основных данных от дневника.ру. Авторизация прервана"
-                }
-            )
+    except (AsyncDiaryError, KeyError, IndexError, StopIteration) as e:
+        await log(request, request.url.path, session, f"{e.__class__.__name__}: {e}")
+        return templates.TemplateResponse(
+            request=request,
+            name="error.html",
+            status_code=500,
+            context={
+                'summary': "Произошла ошибка авторизации",
+                'description': "Произошла ошибка при получении основных данных от дневника.ру. Авторизация прервана"
+            }
+        )
 
-        if not await auth_session(session, token, person_id, group_id):  # Авторизация сессии
-            await log(request, request.url.path, session, f"400 Bad Request. Unsuccessful authentication")
-            return templates.TemplateResponse(
-                request=request,
-                name="error.html",
-                status_code=400,
-                context={
-                    'summary': "Произошла ошибка авторизации",
-                    'description': "Дневник.ру вернул некорректные данные, попробуйте еще раз"
-                }
-            )
+    if not await auth_session(session, token, person_id, group_id, gymnasium_id, timezone):  # Авторизация сессии
+        await log(request, request.url.path, session, f"400 Bad Request. Unsuccessful authentication")
+        return templates.TemplateResponse(
+            request=request,
+            name="error.html",
+            status_code=400,
+            context={
+                'summary': "Произошла ошибка авторизации",
+                'description': "Дневник.ру вернул некорректные данные, попробуйте еще раз"
+            }
+        )
 
-        await log(request, request.url.path, session, "200 OK")
+    await log(request, request.url.path, session, "200 OK")
 
     response = templates.TemplateResponse(
         request=request,
@@ -184,17 +167,10 @@ async def _authSession(request: Request, access_token: Optional[str] = None, sta
     deprecated=True
 )
 async def _checkSession(request: Request, request_data: CheckSessionApiRequest):
-    if not await check_api_key(request_data.apiKey):
-        return CheckSessionApiResponse(
-            status=False,
-            error=ApiError(
-                type="InvalidApiKeyError",
-                errorMessage="Приложение повреждено или скачано из неофициального источника. Обратитесь в поддержку"
-            )
-        )
+    await assert_check_api_key(request_data.apiKey)
 
     session = request_data.data.session
-    exists, auth = await check_session(session)
+    exists, auth = await check_session(session, check_auth=True)
 
     await log(request, request.url.path, session, f"exists={exists}, auth={auth}")
     return CheckSessionApiResponse(

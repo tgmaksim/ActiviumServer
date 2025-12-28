@@ -10,5 +10,4 @@ db_config = {
     'database': os.environ['DBNAME']
 }
 
-gymnasium_id = os.environ['GYMNASIUM_ID']
 dnevnik_client_id = os.environ['DNEVNIK_CLIENT_ID']

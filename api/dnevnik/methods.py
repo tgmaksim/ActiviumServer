@@ -1,6 +1,6 @@
 from hashlib import md5
 from typing import Union
-from datetime import timedelta, datetime
+from datetime import timedelta, datetime, date
 
 from pydnevnikruapi.aiodnevnik.dnevnik import AsyncDiaryAPI
 from pydnevnikruapi.aiodnevnik.exceptions import AsyncDiaryError
@@ -10,13 +10,21 @@ from fastapi.routing import APIRouter
 from fastapi.responses import JSONResponse
 
 from core import log, get_bells_schedule, datetime_now
-
-from api.entities import ApiError
-from api.core import check_api_key, check_session, get_session, get_cache, put_cache
+from api.core import (
+    Session,
+    get_cache,
+    put_cache,
+    get_session,
+    SessionError,
+    check_auth_session,
+    assert_check_session,
+    assert_check_api_key,
+)
 
 from . functions import get_homeworks_files, get_extracurricular_activities
 from . entities import (
-    ScheduleLog,
+    MarkLog,
+    MarksOther,
     ScheduleDay,
     ScheduleHours,
     ScheduleResult,
@@ -26,14 +34,20 @@ from . entities import (
     ScheduleDay0x00000012,
     ScheduleLesson0x00000011,
     ScheduleResult0x00000013,
+    ScheduleResult0x00000019,
+    ScheduleApiRequest0x00000022,
     ScheduleApiRequest0x00000015,
     ScheduleApiRequest0x0000000D,
     ScheduleApiResponse0x00000014,
+    ScheduleApiResponse0x00000020,
 )
 
 
 router = APIRouter(prefix=f"/dnevnik", tags=["Dnevnik"])
 __all__ = ['router']
+
+REQUEST_DATA_TYPE = Union[ScheduleApiRequest0x0000000D, ScheduleApiRequest0x00000015,
+                          ScheduleApiRequest0x00000022, ScheduleApiRequest]
 
 
 @router.post(
@@ -54,8 +68,9 @@ async def _getSchedule0x0000000D(request: Request, request_data: ScheduleApiRequ
     f"/getSchedule/{ScheduleApiRequest0x00000015.classId}",
     summary="Получение расписания",
     description="Получение расписания на 2 недели (15 дней) с домашними заданиями, внеурочными занятиями и "
-                f"оценками с отметками о посещаемости за сегодняшний день. Устаревший метод в пользу {ScheduleApiRequest.classId}",
-    response_model=ScheduleApiResponse,
+                "оценками с отметками о посещаемости за сегодняшний день. "
+                f"Устаревший метод в пользу {ScheduleApiRequest.classId}",
+    response_model=ScheduleApiResponse0x00000020,
     response_class=JSONResponse,
     status_code=200,
     deprecated=True
@@ -65,10 +80,25 @@ async def _getSchedule0x00000015(request: Request, request_data: ScheduleApiRequ
 
 
 @router.post(
-    f"/getSchedule/{ScheduleApiRequest.classId}",
+    f"/getSchedule/{ScheduleApiRequest0x00000022.classId}",
     summary="Получение расписания",
     description="Получение расписания на 3 недели (22 дня): 7 дней до сегодня, сегодня и 15 дней после — "
-                "с домашними заданиями, внеурочными занятиями и оценками с отметками о посещаемости",
+                "с домашними заданиями, внеурочными занятиями и оценками с отметками о посещаемости. "
+                f"Устаревший метод в пользу {ScheduleApiRequest.classId}",
+    response_model=ScheduleApiResponse0x00000020,
+    response_class=JSONResponse,
+    status_code=200,
+    deprecated=True
+)
+async def _getSchedule0x00000022(request: Request, request_data: ScheduleApiRequest0x00000022):
+    return await getScheduleRequest(request, request_data)
+
+
+@router.post(
+    f"/getSchedule/{ScheduleApiRequest.classId}",
+    summary="Получение расписания",
+    description="Получение расписания на несколько дней с домашними заданиями, внеурочными занятиями и "
+                "оценками с отметками о посещаемости",
     response_model=ScheduleApiResponse,
     response_class=JSONResponse,
     status_code=200
@@ -77,142 +107,61 @@ async def _getSchedule(request: Request, request_data: ScheduleApiRequest):
     return await getScheduleRequest(request, request_data)
 
 
-async def getScheduleRequest(request: Request, request_data: Union[ScheduleApiRequest0x0000000D, ScheduleApiRequest0x00000015, ScheduleApiRequest]):
-    response_type = ScheduleApiResponse0x00000014 if request_data.classId == ScheduleApiRequest0x0000000D.classId else ScheduleApiResponse
-    day_type = ScheduleDay0x00000012 if request_data.classId == ScheduleApiRequest0x0000000D.classId else ScheduleDay
-    answer_type = ScheduleResult0x00000013 if request_data.classId == ScheduleApiRequest0x0000000D.classId else ScheduleResult
-
-    now_date = datetime_now(6).date()
-    start_date = now_date - timedelta(days=7) if request_data.classId == ScheduleApiRequest.classId else now_date
-    end_date = (datetime_now(6) + timedelta(days=14)).date()
-
-    if not await check_api_key(request_data.apiKey):
-        return response_type(
-            status=False,
-            error=ApiError(
-                type="InvalidApiKeyError",
-                errorMessage="Приложение повреждено или скачано из неофициального источника. Обратитесь в поддержку"
-            )
-        )
-
-    if not all(await check_session(request_data.data.session)):
-        await log(request, request.url.path, request_data.data.session, "Unauthorized")
-        return response_type(
-            status=False,
-            error=ApiError(
-                type="UnauthorizedError",
-                errorMessage="Требуется повторная авторизация"
-            )
-        )
+async def getScheduleRequest(request: Request, request_data: REQUEST_DATA_TYPE):
+    await assert_check_api_key(request_data.apiKey)
+    await assert_check_session(request_data.data.session, check_auth=False)
 
     session = await get_session(request_data.data.session)
+    now_date = datetime_now(session.timezone).date()
 
-    if (_schedule := await get_cache(session.session, f"schedule|{start_date}|{end_date}")) \
-            and (_schedule.datetime + timedelta(hours=6)).date() == now_date:
-        schedule = _schedule.value
-    else:
-        try:
-            async with AsyncDiaryAPI(token=session.dnevnik_token) as dn:
-                # Расписание конкретно для пользователя
-                schedule = await dn.get_person_schedule(
-                    session.person_id,
-                    session.group_id,
-                    str(start_date),
-                    str(end_date)
-                )
+    if request_data.classId == ScheduleApiRequest0x0000000D.classId: response_type = ScheduleApiResponse0x00000014
+    elif request_data.classId == ScheduleApiRequest.classId: response_type = ScheduleApiResponse
+    else: response_type = ScheduleApiResponse0x00000020
 
-            await put_cache(session.session, f"schedule|{start_date}|{end_date}", schedule)
+    if response_type.classId == ScheduleApiResponse0x00000014.classId: answer_type = ScheduleResult0x00000013
+    elif response_type.classId == ScheduleApiResponse0x00000020.classId: answer_type = ScheduleResult0x00000019
+    else: answer_type = ScheduleResult
 
-        except AsyncDiaryError:
-            await log(request, request.url.path, session.session, "ApiError")
-            return response_type(
-                status=False,
-                error=ApiError(
-                    type="InternalServerError"
-                )
-            )
+    if answer_type.classId == ScheduleResult0x00000013.classId: day_type = ScheduleDay0x00000012
+    else: day_type = ScheduleDay
 
-    # Полное расписание всего класса (в том числе других профилей и подгрупп)
-    all_schedule = []
+    if day_type.classId == ScheduleDay0x00000012.classId: lesson_type = ScheduleLesson0x00000011
+    else: lesson_type = ScheduleLesson
 
-    # Если в кеше актуальное (загруженное сегодня) расписание
-    if (_all_schedule := await get_cache(session.session, f"all_schedule|{start_date}|{end_date}")) \
-            and (_all_schedule.datetime + timedelta(hours=6)).date() == now_date:
-        all_schedule = _all_schedule.value
-    else:
-        try:
-            async with AsyncDiaryAPI(token=session.dnevnik_token) as dn:
-                all_schedule = await dn.get_group_lessons_info(
-                    session.group_id,
-                    str(start_date),
-                    str(end_date)
-                )
+    if request_data.classId in (ScheduleApiRequest0x0000000D.classId, ScheduleApiRequest0x00000015.classId): start_date = now_date
+    elif request_data.classId == ScheduleApiRequest0x00000022.classId: start_date = now_date - timedelta(days=7)
+    else: start_date = now_date - timedelta(days=request_data.data.before)
 
-            await put_cache(session.session, f"all_schedule|{start_date}|{end_date}", all_schedule)
+    if request_data.classId == ScheduleApiRequest.classId: end_date = now_date + timedelta(days=request_data.data.after)
+    else: end_date = now_date + timedelta(days=14)
 
-        except AsyncDiaryError:
-            await log(request, request.url.path, session.session, "APIError")
-            return response_type(
-                status=False,
-                error=ApiError(
-                    type="InternalServerError"
-                )
-            )
+    # Расписание конкретно для пользователя
+    try:
+        person_schedule = await get_person_schedule(session, start_date, end_date)
+    except AsyncDiaryError as e:
+        if not await check_auth_session(session.session, dnevnik_token=session.dnevnik_token, person_id=session.person_id):
+            raise SessionError(session=session.session)
+        raise e from e
+
+    # Расписание всего класса: всех подгрупп и профилей
+    class_schedule = await get_class_schedule(session, start_date, end_date)
 
     logs = {}
+    other_marks = {}
 
-    if request_data.classId != ScheduleApiRequest0x0000000D.classId:
-        try:
-            async with AsyncDiaryAPI(token=session.dnevnik_token) as dn:
-                marks = await dn.get(f"persons/{session.person_id}/edu-groups/{session.group_id}/marks/{start_date}/{end_date}")
-
-            for mark in marks:
-                if logs.get(mark['lesson']) is None:
-                    logs[mark['lesson']] = []
-
-                logs[mark['lesson']].append(ScheduleLog(
-                    mood=mark['mood'].lower() if mark['mood'].lower() in ScheduleLog.moods() else ScheduleLog.default_mood(),
-                    value=mark['value']
-                ))
-
-        except AsyncDiaryError:
-            await log(request, request.url.path, session.session, "APIError")
-            return response_type(
-                status=False,
-                error=ApiError(
-                    type="InternalServerError"
-                )
-            )
-
-        try:
-            async with AsyncDiaryAPI(token=session.dnevnik_token) as dn:
-                lesson_logs = (await dn.get_person_lesson_logs(session.person_id, str(start_date), str(now_date)))['logEntries']
-
-            for lesson_log in lesson_logs:
-                if logs.get(lesson_log['lesson']) is None:
-                    logs[lesson_log['lesson']] = []
-
-                if value := ScheduleLog.log_value(lesson_log['status']):
-                    logs[lesson_log['lesson']].append(ScheduleLog(
-                        mood=ScheduleLog.default_mood(),
-                        value=value
-                    ))
-
-        except (AsyncDiaryError, KeyError) as e:
-            await log(request, request.url.path, session.session, f"{e.__class__.__name__}: {e}")
-            return response_type(
-                status=False,
-                error=ApiError(
-                    type="InternalServerError"
-                )
-            )
+    if request_data.classId == ScheduleApiRequest0x00000015.classId:
+        logs, other_marks = await get_schedule_logs(session, now_date, now_date, other=False)
+    elif request_data.classId == ScheduleApiRequest0x00000022.classId:
+        logs, other_marks = await get_schedule_logs(session, start_date, end_date, other=False)
+    elif request_data.classId == ScheduleApiRequest.classId:
+        logs, other_marks = await get_schedule_logs(session, start_date, end_date, other=True)
 
     result = []
-    for day in schedule['days']:
+    for day in person_schedule['days']:
         lessons = []
 
         day_date = datetime.strptime(day['date'], '%Y-%m-%dT%H:%M:%S')
-        bells_schedule = get_bells_schedule(day_date)
+        bells_schedule = get_bells_schedule(day_date)  # TODO: брать из базы данных
 
         for lesson in sorted(day['lessons'], key=lambda l: l['number']):
             files = []
@@ -238,29 +187,19 @@ async def getScheduleRequest(request: Request, request_data: Union[ScheduleApiRe
             except KeyError:
                 homework = None
 
-            if request_data.classId != ScheduleApiRequest0x0000000D.classId:
-                lessons.append(ScheduleLesson(
-                    number=lesson['number'] - 1,
-                    subject=subject,
-                    place=lesson['place'],
-                    hours=ScheduleHours(**bells_schedule[lesson['number'] - 1]),
-                    logs=logs.get(lesson['id'], []),
-                    othersMarks=[],  # Пока что заглушка TODO: добавить данные
-                    homework=homework or None,
-                    files=files
-                ))
-            else:
-                lessons.append(ScheduleLesson0x00000011(
-                    number=lesson['number'] - 1,
-                    subject=subject,
-                    place=lesson['place'],
-                    hours=ScheduleHours(**bells_schedule[lesson['number'] - 1]),
-                    homework=homework or None,
-                    files=files
-                ))
+            lessons.append(lesson_type(
+                number=lesson['number'] - 1,  # Начало с 0
+                subject=subject,
+                place=lesson['place'],
+                hours=ScheduleHours(**bells_schedule[lesson['number'] - 1]),
+                logs=logs.get(lesson['id'], []),
+                othersMarks=other_marks.get(lesson['id'], []),
+                homework=homework or None,
+                files=files
+            ))
 
         # Получение md5-хеша расписания на день:
-        # сортированный список из id предметов всего класса на данный день
+        # отсортированный список из id предметов всего класса на данный день
         day_hash = md5(
             str(
                 sorted(
@@ -268,7 +207,7 @@ async def getScheduleRequest(request: Request, request_data: Union[ScheduleApiRe
                         lambda l: l['subject']['id'],
                         filter(
                             lambda l: l['date'] == day['date'],
-                            all_schedule
+                            class_schedule
                         )
                     )
                 )
@@ -277,7 +216,7 @@ async def getScheduleRequest(request: Request, request_data: Union[ScheduleApiRe
 
         # Используя полученный md5, можно получить внеурочные занятия класса
         extracurricular_activities = await get_extracurricular_activities(
-            session.group_id, day_date.weekday(), day_hash)
+            session.gymnasium_id, session.group_id, day_date.weekday(), day_hash)
         hours_extracurricular_activities = bells_schedule[len(lessons)] if extracurricular_activities else None
 
         result.append(day_type(
@@ -291,6 +230,170 @@ async def getScheduleRequest(request: Request, request_data: Union[ScheduleApiRe
     return response_type(
         status=True,
         answer=answer_type(
-            schedule=result
+            schedule=result,
+            timezone=session.timezone
         )
     )
+
+
+async def get_person_schedule(session: Session, start_date: date, end_date: date) -> dict:
+    """
+    Получение расписания конкретно для пользователя за период включительно
+
+    :param session: данные сессии
+    :param start_date: начало периода включительно
+    :param end_date: конец периода включительно
+    :except AsyncDiaryError: ошибка запроса в дневник.ру
+    :return: расписание
+    """
+
+    cache_key = f"schedule|{start_date}|{end_date}"
+
+    # Если в кеше актуальное (загруженное сегодня) расписание
+    if ((cache := await get_cache(session.session, cache_key)) and
+            (cache.datetime + timedelta(hours=session.timezone)).date() == datetime_now(session.timezone).date()):
+        return cache.value
+    else:
+        async with AsyncDiaryAPI(token=session.dnevnik_token) as dn:
+            # Расписание конкретно для пользователя
+            person_schedule = await dn.get_person_schedule(
+                session.person_id,
+                session.group_id,
+                str(start_date),
+                str(end_date)
+            )
+
+        await put_cache(session.session, cache_key, person_schedule)
+
+        return person_schedule
+
+
+async def get_class_schedule(session: Session, start_date: date, end_date: date) -> dict:
+    """
+    Получение расписания всего класса: всех подгрупп и профилей за период включительно
+
+    :param session: данные сессии
+    :param start_date: начало периода включительно
+    :param end_date: конец периода включительно
+    :except AsyncDiaryError: ошибка запроса в дневник.ру
+    :return: расписание
+    """
+
+    cache_key = f"all_schedule|{start_date}|{end_date}"
+
+    # Если в кеше актуальное (загруженное сегодня) расписание
+    if ((cache := await get_cache(session.session, cache_key)) and
+            (cache.datetime + timedelta(hours=session.timezone)).date() == datetime_now(session.timezone).date()):
+        return cache.value
+    else:
+        async with AsyncDiaryAPI(token=session.dnevnik_token) as dn:
+            # Расписание всего класса: всех подгрупп и профилей
+            class_schedule = await dn.get_group_lessons_info(
+                session.group_id,
+                str(start_date),
+                str(end_date)
+            )
+
+        await put_cache(session.session, cache_key, class_schedule)
+
+        return class_schedule
+
+
+async def get_schedule_logs(session: Session, start_date: date, end_date: date, other: bool) -> tuple[dict, dict]:
+    """
+    Получение своих оценок и отметок о посещаемости уроков и оценок класса за период включительно
+
+    :param session: данные сессии
+    :param start_date: начало периода включительно
+    :param end_date: конец периода включительно
+    :param other: получать оценки других
+    :except AsyncDiaryError: ошибка запроса в дневник.ру
+    :return: свои оценки и отметки о посещаемости уроков и оценки класса
+    """
+
+    logs = {}
+    other_marks = {}
+
+    names = {}
+
+    async with AsyncDiaryAPI(token=session.dnevnik_token) as dn:
+        if other:
+            marks = await dn.get_group_marks_period(session.group_id, start_date, end_date)
+        else:
+            marks = await dn.get(f"persons/{session.person_id}/edu-groups/{session.group_id}/marks/{start_date}/{end_date}")
+
+    for mark in marks:
+        mood = mark['mood'].lower() if mark['mood'].lower() in MarkLog.moods() else MarkLog.default_mood()
+
+        if mark['person'] == session.person_id:
+            if logs.get(mark['lesson']) is None:
+                logs[mark['lesson']] = []
+
+            logs[mark['lesson']].append(MarkLog(
+                mood=mood,
+                value=mark['value']
+            ))
+        else:
+            if other_marks.get(mark['lesson']) is None:
+                other_marks[mark['lesson']] = {}
+            if names.get(mark['person']) is None:
+                names[mark['person']] = await get_person_name(session, mark['person'])
+            if other_marks[mark['lesson']].get(mark['person']) is None:
+                other_marks[mark['lesson']][mark['person']] = MarksOther(
+                    name=names[mark['person']],
+                    marks=[]
+                )
+
+            other = other_marks[mark['lesson']][mark['person']]
+            other.marks.append(MarkLog(
+                value=mark['value'],
+                mood=mood
+            ))
+
+    async with AsyncDiaryAPI(token=session.dnevnik_token) as dn:
+        lesson_logs = (await dn.get_person_lesson_logs(session.person_id, str(start_date), str(end_date)))['logEntries']
+
+    for lesson_log in lesson_logs:
+        if logs.get(lesson_log['lesson']) is None:
+            logs[lesson_log['lesson']] = []
+
+        if value := MarkLog.log_value(lesson_log['status']):
+            logs[lesson_log['lesson']].append(MarkLog(
+                mood=MarkLog.default_mood(),
+                value=value
+            ))
+
+    return logs, {lesson: other_marks[lesson].values() for lesson in other_marks}
+
+
+async def get_person_name(session: Session, person_id: int) -> str:
+    """
+    Получение имени person в дневнике.ру
+
+    :param session: данные сессии
+    :param person_id: идентификатор person в дневнике.ру
+    :return: имя person в дневнике.ру
+    """
+
+    cache_key = f"person|{person_id}"
+    person_name = "Неизвестный"
+
+    if ((cache := await get_cache(session.session, cache_key)) and
+            datetime_now(session.timezone) - (cache.datetime + timedelta(hours=session.timezone)) < timedelta(days=28)):
+        return cache.value['name']
+    else:
+        try:
+            async with AsyncDiaryAPI(token=session.dnevnik_token) as dn:
+                persons = await dn.get_group_persons(session.group_id)
+
+        except AsyncDiaryError:
+            await log(None, None, session.session, "Error getting person info")
+            return person_name
+
+        for person in persons:
+            if person['id'] == person_id:
+                person_name = person['shortName']
+
+            await put_cache(session.session, f"person|{person['id']}", {'name': person['shortName']})
+
+        return person_name

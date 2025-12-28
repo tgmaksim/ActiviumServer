@@ -4,11 +4,27 @@ from typing import Optional, ClassVar, Literal
 from api.entities import ApiBase, ApiRequest, ApiResponse
 
 
-__all__ = ['VersionsApiRequest', 'VersionsResult', 'VersionsApiResponse']
+__all__ = ['VersionsApiRequest0x00000004', 'VersionsInputData', 'VersionsApiRequest', 'VersionsResult',
+           'VersionsApiResponse']
 
 
-class VersionsApiRequest(ApiRequest):
-    """Запрос данных о последней версии приложения"""
+class VersionsInputData(ApiBase):
+    """Входные данные для запроса последней версии приложения"""
+
+    classId: ClassVar[int] = 0x00000024
+    class_id: Literal[0x00000024] = Field(
+        default=classId,
+        alias="classId",
+        description="Идентификатор класса"
+    )
+
+    versionNumber: int = Field(
+        description="Номер сборки приложения"
+    )
+
+
+class VersionsApiRequest0x00000004(ApiRequest):
+    """Запрос данных о последней версии приложения устаревшая версия"""
 
     classId: ClassVar[int] = 0x00000004
     class_id: Literal[0x00000004] = Field(
@@ -18,6 +34,21 @@ class VersionsApiRequest(ApiRequest):
     )
 
     data: None = None
+
+
+class VersionsApiRequest(ApiRequest):
+    """Запрос данных о последней версии приложения"""
+
+    classId: ClassVar[int] = 0x00000025
+    class_id: Literal[0x00000025] = Field(
+        default=classId,
+        alias='classId',
+        description="Идентификатор класса"
+    )
+
+    data: VersionsInputData = Field(
+        description="Данные версии приложения"
+    )
 
 
 class VersionsResult(ApiBase):
