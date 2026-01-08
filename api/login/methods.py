@@ -1,14 +1,15 @@
 from fastapi.requests import Request
 from fastapi.routing import APIRouter
+from fastapi.background import BackgroundTasks
 from fastapi.responses import JSONResponse, HTMLResponse
 
+from yarl import URL
+from asyncio import gather
 from typing import Optional
-from aiohttp.abc import URL
 
-from pydnevnikruapi.aiodnevnik.dnevnik import AsyncDiaryAPI
-from pydnevnikruapi.aiodnevnik.exceptions import AsyncDiaryError
+from dnevnikru import AioDnevnikruApi, BaseDnevnikruException
 
-from core import log, templates
+from core import log, templates, httpx_client
 from config import server_domain, dnevnik_client_id
 
 from api.core import assert_check_api_key, check_session
@@ -24,8 +25,9 @@ from . entities import (
 )
 
 
-router = APIRouter(prefix="/login", tags=["Login"])
 __all__ = ['router']
+
+router = APIRouter(prefix="/login", tags=["Login"])
 
 # База ссылки для авторизации сессии в сервисе дневник.ру
 dnevnik_login_url = URL.build(
@@ -55,13 +57,13 @@ dnevnik_login_url = URL.build(
     response_class=JSONResponse,
     status_code=200
 )
-async def _login(request: Request, request_data: LoginApiRequest):
+async def _login(request: Request, request_data: LoginApiRequest, background_tasks: BackgroundTasks):
     await assert_check_api_key(request_data.apiKey)
 
     session = await create_session(request_data.data.session if request_data.data else None)
     login_url = dnevnik_login_url.update_query(state=session).__str__()
 
-    await log(request, request.url.path, request_data.data.session if request_data.data else None, "200 OK")
+    background_tasks.add_task(log, request, request.url.path, request_data.data.session if request_data.data else None, "200 OK")
     return LoginApiResponse(
         answer=LoginResult(
             loginUrl=login_url,
@@ -96,7 +98,7 @@ async def _login(request: Request, request_data: LoginApiRequest):
         }
     }
 )
-async def _authSession(request: Request, access_token: Optional[str] = None, state: Optional[str] = None):
+async def _authSession(request: Request, background_tasks: BackgroundTasks, access_token: Optional[str] = None, state: Optional[str] = None):
     if access_token is None or state is None:
         return templates.TemplateResponse(
             request=request,
@@ -106,18 +108,23 @@ async def _authSession(request: Request, access_token: Optional[str] = None, sta
     session = state
     token = access_token
 
+    dnr = AioDnevnikruApi(client=httpx_client, token=token)
+
+    async def info_and_groups():
+        _info = await dnr.get_info()
+        _person_id: int = _info['personId']
+        _timezone: int = int(_info['timezone'].split(":")[0])
+
+        _groups = await dnr.get_person_groups(_person_id)
+        _group_id: int = filter(lambda g: g['type'] == 'Group', _groups).__next__()['id']  # Класс
+
+        return _person_id, _timezone, _group_id
+
     try:
-        async with AsyncDiaryAPI(token=token) as dn:
-            info: dict = await dn.get_info()
-            person_id: int = info['personId']
-            timezone: int = int(info['timezone'].split(":")[0])
-            gymnasium_id: int = (await dn.get_school())[0]['id']
-
-            groups: list[dict] = await dn.get_person_groups(person_id)
-            group_id: int = filter(lambda g: g['type'] == 'Group', groups).__next__()['id']  # Класс
-
-    except (AsyncDiaryError, KeyError, IndexError, StopIteration) as e:
-        await log(request, request.url.path, session, f"{e.__class__.__name__}: {e}")
+        (person_id, timezone, group_id), gymnasium = await gather(info_and_groups(), dnr.get_school())
+        gymnasium_id: int = gymnasium[0]['id']
+    except (BaseDnevnikruException, KeyError, IndexError, StopIteration) as e:
+        background_tasks.add_task(log, request, request.url.path, session, f"{e.__class__.__name__}: {e}")
         return templates.TemplateResponse(
             request=request,
             name="error.html",
@@ -129,7 +136,7 @@ async def _authSession(request: Request, access_token: Optional[str] = None, sta
         )
 
     if not await auth_session(session, token, person_id, group_id, gymnasium_id, timezone):  # Авторизация сессии
-        await log(request, request.url.path, session, f"400 Bad Request. Unsuccessful authentication")
+        background_tasks.add_task(log, request, request.url.path, session, f"400 Bad Request. Unsuccessful authentication")
         return templates.TemplateResponse(
             request=request,
             name="error.html",
@@ -140,7 +147,7 @@ async def _authSession(request: Request, access_token: Optional[str] = None, sta
             }
         )
 
-    await log(request, request.url.path, session, "200 OK")
+    background_tasks.add_task(log, request, request.url.path, session, "200 OK")
 
     response = templates.TemplateResponse(
         request=request,
@@ -166,13 +173,13 @@ async def _authSession(request: Request, access_token: Optional[str] = None, sta
     status_code=200,
     deprecated=True
 )
-async def _checkSession(request: Request, request_data: CheckSessionApiRequest):
+async def _checkSession(request: Request, request_data: CheckSessionApiRequest, background_tasks: BackgroundTasks):
     await assert_check_api_key(request_data.apiKey)
 
     session = request_data.data.session
     exists, auth = await check_session(session, check_auth=True)
 
-    await log(request, request.url.path, session, f"exists={exists}, auth={auth}")
+    background_tasks.add_task(log, request, request.url.path, session, f"exists={exists}, auth={auth}")
     return CheckSessionApiResponse(
         answer=CheckSessionResult(
             exists=exists,

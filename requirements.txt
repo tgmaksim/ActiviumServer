@@ -1,8 +1,8 @@
+yarl
+httpx
 orjson
 jinja2
 fastapi
-aiohttp
 asyncpg
 pydantic
 starlette
-pydnevnikruapi

@@ -1,3 +1,9 @@
+import locale
+
+from asyncio import gather
+from contextlib import asynccontextmanager
+
+from fastapi import BackgroundTasks
 from fastapi.requests import Request
 from fastapi.applications import FastAPI
 from fastapi.openapi.utils import get_openapi
@@ -5,7 +11,8 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import HTMLResponse, JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from core import log, templates
+from database import Database
+from core import log, templates, httpx_client
 
 from api.entities import ApiResponse, ApiError
 from api.status.entities import VersionsResult
@@ -17,8 +24,24 @@ from api.status import router as status
 from api.dnevnik import router as dnevnik
 
 
-app = FastAPI()
-app.add_middleware(ExceptionHandlerMiddleware)
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    await Database.init()  # Инициализация сессии базы данных на время работы программы
+    await log(None, 'lifespan', None, "Сервер запущен")
+
+    yield
+
+    try:
+        await log(None, 'lifespan', None, "Сервер остановлен")
+    finally:
+        await Database.close()  # Закрытие соединения с базой данных
+        await httpx_client.aclose()  # Закрытие httpx-соединения
+
+
+locale.setlocale(locale.LC_TIME, 'ru_RU.UTF-8')  # Для работы datetime
+
+app = FastAPI(lifespan=lifespan)
+app.add_middleware(ExceptionHandlerMiddleware)  # Глобальный обработчик ошибок
 
 app.include_router(status)
 app.include_router(login)
@@ -31,24 +54,20 @@ app.include_router(dnevnik)
     response_class=HTMLResponse,
     include_in_schema=False  # Не отображается в документации
 )
-async def _root(request: Request):
+async def _root(request: Request, background_tasks: BackgroundTasks):
     session = request.cookies.get("session")
 
-    try:
-        version = await get_latest_version()  # Последняя версия приложения
-        previous_versions = await get_previous_versions()  # Все задокументированные прошлые версии
-    except Exception as e:
-        await log(request, request.url.path, session, f"{e.__class__.__name__}: {e}")
-        version = VersionsResult(
-            latestVersionNumber=0,
-            latestVersionString="0.0.0",
-            date="",
-            versionStatus="Новая версия",
-            updateLogs="Исправлены ошибки"
-        )  # Значения по умолчанию
+    # Одновременные запросы в базу данных
+    version, previous_versions = await gather(get_latest_version(), get_previous_versions(), return_exceptions=True)
+
+    if isinstance(e := version, BaseException):
+        version = VersionsResult.default()
+        background_tasks.add_task(log, request, request.url.path, session, f"{e.__class__.__name__}: {e}")
+    if isinstance(e := previous_versions, BaseException):
         previous_versions = []
-    else:
-        await log(request, request.url.path, session, "200 OK")
+        background_tasks.add_task(log, request, request.url.path, session, f"{e.__class__.__name__}: {e}")
+    if not isinstance(version, BaseException) and not isinstance(previous_versions, BaseException):
+        background_tasks.add_task(log, request, request.url.path, session, "200 OK")
 
     return templates.TemplateResponse(
         request=request,
@@ -69,6 +88,18 @@ async def _root(request: Request):
     )
 
 
+# Обработка head-запроса на главную страницу
+@app.head(
+    "/",
+    response_class=HTMLResponse,
+    include_in_schema=False  # Не отображается в документации
+)
+async def _head_root(request: Request, background_tasks: BackgroundTasks):
+    background_tasks.add_task(log, request, request.url.path, None, "HEAD 200 OK")
+
+    return HTMLResponse()
+
+
 # Глобальный обработчик ошибок RequestValidationError
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
@@ -86,9 +117,10 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 @app.exception_handler(StarletteHTTPException)
 async def http_exception_handler(request: Request, exc: StarletteHTTPException):
     await log(request, request.url.path, None, exc.detail)
+    content_type = request.headers.get("content-type", "").split(';')[0]
 
     if exc.status_code == 404:  # Обработка ошибок 404 Not Found
-        if request.headers.get("content-type") == "application/json":  # Из API
+        if content_type == "application/json":  # Из API
             return JSONResponse(ApiResponse(
                 status=False,
                 error=ApiError(
@@ -97,7 +129,7 @@ async def http_exception_handler(request: Request, exc: StarletteHTTPException):
             ).model_dump(by_alias=True))
         else:  # Запрос пользователем
             if request.url.path.startswith("/apk"):
-                description = "Файл с обновлением не найден..."
+                description = "Файл с обновлением не найден. Попробуйте позже или обратитесь в поддержку"
             else:
                 description = "Страница, которую Вы пытались получить не найдена, или, возможно, перемещена"
 
@@ -111,12 +143,23 @@ async def http_exception_handler(request: Request, exc: StarletteHTTPException):
                 }
             )
 
-    return JSONResponse(ApiResponse(
-        status=False,
-        error=ApiError(
-            type="InternalServerError"
+    if content_type == "application/json":
+        return JSONResponse(ApiResponse(
+            status=False,
+            error=ApiError(
+                type="InternalServerError"
+            )
+        ).model_dump(by_alias=True))
+    else:
+        return templates.TemplateResponse(
+            request=request,
+            name="error.html",
+            status_code=500,
+            context={
+                "title": "Произошла ошибка на сервере",
+                "description": "Произошла непредвиденная ошибка, из-за которой не получилось обработать Ваш запрос"
+            }
         )
-    ).model_dump(by_alias=True))
 
 
 # Некоторые изменения в документации

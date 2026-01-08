@@ -1,4 +1,5 @@
 from typing import Optional
+from httpx import AsyncClient
 from datetime import datetime, timedelta, UTC, date
 
 from database import Database
@@ -6,28 +7,14 @@ from database import Database
 from fastapi.requests import Request
 from fastapi.templating import Jinja2Templates
 
-from pydnevnikruapi.aiodnevnik.dnevnik import AsyncDiaryAPI
 
+__all__ = ['templates', 'log', 'get_bells_schedule', 'datetime_now', 'httpx_client']
 
-templates = Jinja2Templates(directory="templates")  # Папка с html-страницами
-__all__ = ['templates', 'log', 'get_bells_schedule', 'datetime_now']
+templates = Jinja2Templates(directory="templates")
+"""Папка с html-страницами"""
 
-
-# В оригинальном методе баг
-async def get_person_schedule(
-    self: AsyncDiaryAPI,
-    person_id,
-    group_id,
-    start_time: str = str(datetime.now()),
-    end_time: str = str(datetime.now()),
-):
-    return await self.get(
-        f"persons/{person_id}/groups/{group_id}/schedules",
-        params={"startDate": start_time, "endDate": end_time},
-    )
-
-
-AsyncDiaryAPI.get_person_schedule = get_person_schedule
+httpx_client = AsyncClient()
+"""httpx-клиент для работы сетевых запросов всей программы"""
 
 
 async def log(request: Optional[Request], path: Optional[str], session: Optional[str], value: Optional[str]):

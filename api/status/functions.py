@@ -8,9 +8,9 @@ from . entities import VersionsResult
 __all__ = ['get_latest_version', 'get_previous_versions']
 
 version_statuses = {
-    0: "Требуется обновить",
+    0: (default_version_status := "Небольшие улучшения"),
     1: "Новая функция",
-    2: (default_version_status := "Небольшие улучшения")
+    2: "Требуется обновить",
 }
 
 
@@ -38,7 +38,8 @@ async def get_latest_version(version_number: Optional[int] = None) -> VersionsRe
         # Статус версии определяется максимальным из всех промежуточных между данной и последней
         sql = "SELECT MAX(version_status) FROM versions WHERE version > $1"
         version_status = await Database.fetch_row_for_one(sql, version_number)
-        result['version_status'] = version_status
+        if version_status:
+            result['version_status'] = version_status
 
     return VersionsResult(
         latestVersionNumber=result['version'],

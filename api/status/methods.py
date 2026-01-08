@@ -3,6 +3,7 @@ from typing import Union
 from fastapi.requests import Request
 from fastapi.routing import APIRouter
 from fastapi.responses import JSONResponse
+from fastapi.background import BackgroundTasks
 
 from core import log
 from api.core import assert_check_api_key
@@ -16,8 +17,9 @@ from . entities import (
 )
 
 
-router = APIRouter(prefix=f"/status", tags=["Status"])
 __all__ = ['router']
+
+router = APIRouter(prefix=f"/status", tags=["Status"])
 
 
 @router.post(
@@ -30,8 +32,8 @@ __all__ = ['router']
     status_code=200,
     deprecated=True
 )
-async def _check_version0x00000004(request: Request, request_data: VersionsApiRequest0x00000004):
-    return await check_version(request, request_data)
+async def _checkVersion0x00000004(request: Request, request_data: VersionsApiRequest0x00000004, background_tasks: BackgroundTasks):
+    return await checkVersionRequest(request, request_data, background_tasks)
 
 
 @router.post(
@@ -43,11 +45,11 @@ async def _check_version0x00000004(request: Request, request_data: VersionsApiRe
     response_class=JSONResponse,
     status_code=200
 )
-async def _check_version(request: Request, request_data: VersionsApiRequest):
-    return await check_version(request, request_data)
+async def _checkVersion(request: Request, request_data: VersionsApiRequest, background_tasks: BackgroundTasks):
+    return await checkVersionRequest(request, request_data, background_tasks)
 
 
-async def check_version(request: Request, request_data: Union[VersionsApiRequest0x00000004, VersionsApiRequest]):
+async def checkVersionRequest(request: Request, request_data: Union[VersionsApiRequest0x00000004, VersionsApiRequest], background_tasks: BackgroundTasks):
     await assert_check_api_key(request_data.apiKey)
 
     if request_data.classId == VersionsApiRequest.classId:
@@ -55,5 +57,5 @@ async def check_version(request: Request, request_data: Union[VersionsApiRequest
     else:
         versions: VersionsResult = await get_latest_version()
 
-    await log(request, request.url.path, None, "200 OK")
+    background_tasks.add_task(log, request, request.url.path, None, "200 OK")
     return VersionsApiResponse(answer=versions)

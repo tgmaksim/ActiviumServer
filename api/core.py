@@ -1,14 +1,16 @@
-from dataclasses import dataclass
+from datetime import timedelta, datetime as _datetime
 from typing import Optional, Union
-from datetime import timedelta, datetime
-from asyncpg.exceptions import UniqueViolationError
+from pydantic import BaseModel, Field
 
-from pydnevnikruapi.aiodnevnik.dnevnik import AsyncDiaryAPI
-from pydnevnikruapi.aiodnevnik.exceptions import AsyncDiaryError
+from dnevnikru import AioDnevnikruApi, BaseDnevnikruException
 
 from database import Database
-from core import log, datetime_now
+from core import log, datetime_now, httpx_client
 
+
+__all__ = ['SESSION_LIFETIME', 'ApiKeyError', 'SessionError', 'Session', 'Cache', 'assert_check_api_key',
+           'check_session', 'check_auth_session', 'assert_check_session', 'get_session', 'get_cache', 'get_caches',
+           'put_caches', 'put_cache']
 
 SESSION_LIFETIME = 28  # Время жизни сессии в днях
 
@@ -27,26 +29,44 @@ class SessionError(Exception):
         self.session = session
 
 
-@dataclass
-class Session:
+class Session(BaseModel):
     """Данные сессии пользователя"""
 
-    session: str  # Строковый идентификатор сессии
-    dnevnik_token: str  # Токен для взаимодействия с аккаунтом дневника.ру
-    person_id: int  # Идентификатор person в дневнике.ру
-    group_id: int  # Идентификатор класса ученика(цы) в дневнике.ру
-    gymnasium_id: int  # Идентификатор школы ученика(цы) в дневнике.ру
-    timezone: int  # Часовой пояс
+    session: str = Field(
+        description="Строковый идентификатор сессии"
+    )
+    dnevnik_token: str = Field(
+        description="Токен для взаимодействия с аккаунтом дневника.ру"
+    )
+    person_id: int = Field(
+        description="Идентификатор person в дневнике.ру"
+    )
+    group_id: int = Field(
+        description="Идентификатор класса обучающегося в дневнике.ру"
+    )
+    gymnasium_id: int = Field(
+        description="Идентификатор школы обучающегося в дневнике.ру"
+    )
+    timezone: int = Field(
+        description="Часовой пояс"
+    )
 
 
-@dataclass
-class Cache:
+class Cache(BaseModel):
     """Кешированные данные в БД"""
 
-    session: str  # Строковый идентификатор сессии, к которой привязан кеш
-    key: str  # Ключ (идентификатор) кеша для пользователя
-    value: Union[list, dict]  # Значение кеша в формате JSON
-    datetime: datetime  # Дата и время заполнения данных
+    session: str = Field(
+        description="Строковый идентификатор сессии, к которой привязан кеш"
+    )
+    key: str = Field(
+        description="Ключ (идентификатор) кеша для пользователя"
+    )
+    value: Union[list, dict] = Field(
+        description="Значение кеша в формате JSON"
+    )
+    datetime: _datetime = Field(
+        description="Дата и время заполнения данных"
+    )
 
 
 async def assert_check_api_key(api_key: str):
@@ -81,7 +101,8 @@ async def check_session(session: str, *, check_auth: bool) -> tuple[bool, bool]:
         return False, False
 
     if check_auth:
-        if not await check_auth_session(session, dnevnik_token=result['dnevnik_token'], person_id=result['person_id']):
+        dnr = AioDnevnikruApi(client=httpx_client, token=result['dnevnik_token'])
+        if not await check_auth_session(session, dnr, dnevnik_token=result['dnevnik_token'], person_id=result['person_id']):
             return True, False
 
     if datetime_now() - result['datetime'] > timedelta(days=SESSION_LIFETIME):
@@ -91,11 +112,18 @@ async def check_session(session: str, *, check_auth: bool) -> tuple[bool, bool]:
     return True, True
 
 
-async def check_auth_session(session: str, *, dnevnik_token: Optional[str] = None, person_id: Optional[int] = None) -> bool:
+async def check_auth_session(
+        session: str,
+        dnr: AioDnevnikruApi,
+        *,
+        dnevnik_token: Optional[str] = None,
+        person_id: Optional[int] = None
+) -> bool:
     """
     Проверка авторизации сессии
 
     :param session: строковый идентификатор сессии
+    :param dnr: объект AioDnevnikruApi для совершения запросов
     :param dnevnik_token: токен для взаимодействия с аккаунтом дневника.ру
     :param person_id: идентификатор ученика(цы)
     :return: авторизация сессии
@@ -108,10 +136,8 @@ async def check_auth_session(session: str, *, dnevnik_token: Optional[str] = Non
         dnevnik_token, person_id = result['dnevnik_token'], result['person_id']
 
     try:
-        async with AsyncDiaryAPI(token=dnevnik_token) as dn:
-            _person_id: int = (await dn.get_info())['personId']
-
-    except (AsyncDiaryError, KeyError) as e:
+        _person_id: int = (await dnr.get_info())['personId']
+    except (BaseDnevnikruException, KeyError) as e:
         await log(None, 'checkAuthSession', session, f"{e.__class__.__name__}: {e}")
         return False
 
@@ -157,6 +183,26 @@ async def get_session(session: str) -> Session:
     )
 
 
+async def get_caches(session: str, keys: list[str]) -> dict[str, Cache]:
+    """
+    Получение значение из кеша в базе данных по сессии и ключу
+
+    :param session: строковый идентификатор сессии
+    :param keys: ключи к значению данных в кеше
+    :return: данные кеша, если найдены, по ключу
+    """
+
+    sql = "SELECT key, value, datetime FROM cache WHERE session = $1 AND key = ANY($2::text[])"
+    results = await Database.fetch_all(sql, session, keys)
+
+    return {result['key']: Cache(
+        session=session,
+        key=result['key'],
+        value=result['value'],
+        datetime=result['datetime']
+    ) for result in results}
+
+
 async def get_cache(session: str, key: str) -> Optional[Cache]:
     """
     Получение значение из кеша в базе данных по сессии и ключу
@@ -166,23 +212,30 @@ async def get_cache(session: str, key: str) -> Optional[Cache]:
     :return: данные кеша, если найдены
     """
 
-    sql = "SELECT value, datetime FROM cache WHERE session = $1 AND key = $2"
-    result = await Database.fetch_row(sql, session, key)
+    return (await get_caches(session, [key])).get(key)
 
-    if not result:
-        return None
 
-    if datetime_now() - result['datetime'] > timedelta(days=1):
-        sql = "DELETE FROM cache WHERE session = $1 AND key = $2"
-        await Database.execute(sql, session, key)
-        return None
+async def put_caches(session: str, keys: list[str], values: list[Union[list, dict]]):
+    """
+    Добавление (обновление) значений в кеше по сессии и ключам
 
-    return Cache(
-        session=session,
-        key=key,
-        value=result['value'],
-        datetime=result['datetime']
-    )
+    :param session: строковый идентификатор сессии
+    :param keys: ключи к значениям в кеше
+    :param values: значения, которые нужно положить в кеш по ключам
+    """
+
+    params = [(session, keys[i], Database.serialize(values[i])) for i in range(len(keys))]
+
+    sql = """
+            INSERT INTO cache (session, key, value, datetime)
+            VALUES ($1, $2, $3, NOW())
+            ON CONFLICT (session, key)
+            DO UPDATE SET
+                value = EXCLUDED.value,
+                datetime = EXCLUDED.datetime
+          """
+
+    await Database.executemany(sql, params)
 
 
 async def put_cache(session: str, key: str, value: Union[list, dict]):
@@ -194,11 +247,4 @@ async def put_cache(session: str, key: str, value: Union[list, dict]):
     :param value: значение, которое нужно положить в кеш по ключу
     """
 
-    value = Database.serialize(value)  # Сериализация в строковый формат JSON
-
-    try:
-        sql = "INSERT INTO cache (session, key, value, datetime) VALUES ($1, $2, $3, NOW())"
-        await Database.execute(sql, session, key, value)
-    except UniqueViolationError:
-        sql = "UPDATE cache SET value = $3, datetime = NOW() WHERE session = $1 AND key = $2"
-        await Database.execute(sql, session, key, value)
+    return await put_caches(session, [key], [value])

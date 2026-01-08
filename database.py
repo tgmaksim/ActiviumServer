@@ -2,30 +2,45 @@ import orjson
 
 from config import db_config
 
+from typing import Union, Optional
 from asyncpg import Pool, Record, create_pool
-from typing import List, Any, Union, Dict, Optional
 from datetime import date, time, datetime, timedelta
 
 
-__all__ = ['Database', 'INTEGER_TYPE', 'DATETIME_TYPE', 'JSON_TYPE', 'SQL_TYPE']
+__all__ = ['Database']
 
-
-INTEGER_TYPE = Union[int, float]
-DATETIME_TYPE = Union[date, time, datetime, timedelta]
-JSON_TYPE = Union[Dict[str, Any], List[Any]]
-SQL_TYPE = Union[INTEGER_TYPE, DATETIME_TYPE, JSON_TYPE, bool, bytes, str]
+type NumberType = Union[int, float]
+type DatetimeType = Union[date, time, datetime, timedelta]
+type JsonType = Union[dict[str, SqlType], list[SqlType]]
+type SqlType = Union[NumberType, DatetimeType, JsonType, bool, bytes, str, None]
 
 
 class Database:
+    """"
+    Класс для взаимодействия с Postgres базой данных
+
+    Пример:
+
+    >>> async def main():
+    ...     await Database.init()
+    ...     await Database.execute("INSERT INTO table VALUES ($1, $2)", "value1", "value2")
+    ...     await Database.close()
+    """
+
     pool: Optional[Pool] = None
+    """Пул соединений для одновременных запросов"""
 
     @classmethod
     async def init(cls):
+        """Инициализация пула соединений"""
+
         if cls.pool is None:
             cls.pool = await create_pool(**db_config)
 
     @classmethod
     async def close(cls):
+        """Закрытие соединения с базой данных"""
+
         if cls.pool is not None:
             await cls.pool.close()
             cls.pool = None
@@ -39,12 +54,21 @@ class Database:
         :param params: дополнительные параметры запроса
         """
 
-        await Database.init()
-
         await cls.pool.execute(sql, *params)
 
     @classmethod
-    async def fetch_all(cls, sql: str, *params) -> List[Dict[str, SQL_TYPE]]:
+    async def executemany(cls, sql: str, params: list[tuple]):
+        """
+        Выполняет SQL-запрос несколько раз и ничего не возвращает
+
+        :param sql: SQL-запрос
+        :param params: дополнительные параметры запроса
+        """
+
+        await cls.pool.executemany(sql, params)
+
+    @classmethod
+    async def fetch_all(cls, sql: str, *params) -> list[dict[str, SqlType]]:
         """
         Выполняет SQL-запрос и возвращает список строк
 
@@ -53,13 +77,10 @@ class Database:
         :return: список словарей со строковым ключом (название столбца) и объектами SQL-типа
         """
 
-        await Database.init()
-        data = await cls.pool.fetch(sql, *params)
-
-        return cls.deserialize(data)
+        return cls.deserialize(await cls.pool.fetch(sql, *params))
 
     @classmethod
-    async def fetch_all_for_one(cls, sql: str, *params) -> List[SQL_TYPE]:
+    async def fetch_all_for_one(cls, sql: str, *params) -> list[Optional[SqlType]]:
         """
         Выполняет SQL-запрос и возвращает список из одного результата каждого запроса
 
@@ -68,13 +89,10 @@ class Database:
         :return: список из одного результата каждого запроса
         """
 
-        await Database.init()
-        data = await cls.pool.fetch(sql, *params)
-
-        return [cls.deserialize(line, one=True) for line in data]
+        return [cls.deserialize(line, one=True) for line in await cls.pool.fetch(sql, *params)]
 
     @classmethod
-    async def fetch_row(cls, sql: str, *params) -> Dict[str, SQL_TYPE]:
+    async def fetch_row(cls, sql: str, *params) -> dict[str, SqlType]:
         """
         Выполняет SQL-запрос и возвращает одну строку ответа
 
@@ -83,13 +101,10 @@ class Database:
         :return: словарь со строковым ключом (название столбца) и объекта SQL-типа
         """
 
-        await Database.init()
-        data = await cls.pool.fetchrow(sql, *params)
-
-        return cls.deserialize(data)
+        return cls.deserialize(await cls.pool.fetchrow(sql, *params))
 
     @classmethod
-    async def fetch_row_for_one(cls, sql: str, *params) -> SQL_TYPE:
+    async def fetch_row_for_one(cls, sql: str, *params) -> Optional[SqlType]:
         """
         Выполняет SQL-запрос и возвращает один результат одной строки ответа
 
@@ -98,10 +113,7 @@ class Database:
         :return: объект SQL-типа
         """
 
-        await Database.init()
-        data = await cls.pool.fetchrow(sql, *params)
-
-        return cls.deserialize(data, one=True)
+        return cls.deserialize(await cls.pool.fetchrow(sql, *params), one=True)
 
     @classmethod
     def deserialize(cls, data, one: bool = False):
@@ -138,7 +150,7 @@ class Database:
         return result  # Объект нелинейный, возвращаем его целым
 
     @classmethod
-    def serialize(cls, data: JSON_TYPE) -> str:
+    def serialize(cls, data: JsonType) -> str:
         """Сериализует словарь или список в JSON-строку"""
 
         return orjson.dumps(data).decode()

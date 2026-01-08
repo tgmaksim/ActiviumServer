@@ -82,6 +82,16 @@ class VersionsResult(ApiBase):
         examples=["1. Добавлена новая функция\n2. Исправлены ошибки"]
     )
 
+    @classmethod
+    def default(cls):
+        return cls(
+            latestVersionNumber=0,
+            latestVersionString="0.0.0",
+            date="09.12.2009",
+            versionStatus="Новая версия",
+            updateLogs="Исправлены ошибки"
+        )
+
 
 class VersionsApiResponse(ApiResponse):
     """Ответ на запрос данных о последней версии приложения"""

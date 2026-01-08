@@ -20,7 +20,7 @@ async def create_session(session: Optional[str] = None) -> str:
     :return: строковый идентификатор новой сессии или входной, если она существует
     """
 
-    sql = f"SELECT datetime - NOW() > INTERVAL '{SESSION_LIFETIME} days' FROM sessions WHERE session = $1"
+    sql = f"SELECT NOW() - datetime < INTERVAL '{SESSION_LIFETIME} days' FROM sessions WHERE session = $1"
     exists = await Database.fetch_row_for_one(sql, session)
 
     if session and exists:
