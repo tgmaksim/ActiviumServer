@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+
+    <title>Ошибка авторизации — Активиум</title>
+
+    <link href="/css/style.css" rel="stylesheet">
+    <link href="/css/error.css" rel="stylesheet">
+
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+<div class="wrap" id="page">
+    <main class="error-layout">
+        <section class="box error-card">
+
+            <div class="error-icon">
+                !
+            </div>
+
+            <h2 class="error-title">
+                Авторизация невозможна
+            </h2>
+
+            <p class="muted error-subtitle">
+                Не удалось завершить вход в приложение
+            </p>
+
+            <div class="error-details">
+                <span>{{ reason }}</span>
+            </div>
+
+            <div class="error-actions">
+                <a href="/" class="btn-primary">
+                    На главную
+                </a>
+
+                <button class="btn-outline" onclick="location.replace('tgm://activium/open/')">
+                    Открыть приложение
+                </button>
+            </div>
+
+        </section>
+    </main>
+</div>
+
+<script src="/js/theme.js"></script>
+</body>
+</html>

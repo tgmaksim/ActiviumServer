@@ -1,5 +1,5 @@
-from datetime import date
-from typing import Optional, Any
+from datetime import date, datetime
+from typing import Optional, Any, Union
 
 from . base import BaseAioDnevnikruApi
 
@@ -8,68 +8,148 @@ __all__ = ['AioDnevnikruApi']
 
 
 class AioDnevnikruApi(BaseAioDnevnikruApi):
-    """TODO"""
-
     async def get_info(self) -> dict:
+        """Общая информация о текущем пользователе"""
+
         return await self.get("users/me")
 
-    async def get_school(self) -> dict:
-        return await self.get("schools/person-schools")
+    async def get_context(self) -> dict:
+        """Полная контекстная информация текущего пользователя и его детей"""
+
+        return await self.get("users/me/context")
+
+    async def get_schools(self, excludeOrganizations: bool = True) -> list[dict]:
+        """Школы и другие организации, в которых состоит пользователь"""
+
+        return await self.get("schools/person-schools", excludeOrganizations=excludeOrganizations)
 
     async def get_person_groups(self, person: int) -> list[dict]:
+        """Классы и другие учебные группы (например, подгруппы класса) персоны"""
+
         return await self.get(f"persons/{person}/edu-groups")
 
-    async def get_person_schedule(self, person: int, group: int, startDate: date, endDate: date) -> dict:
+    async def get_person_schedule(self, person: int, group: int, startDate: Union[str, datetime, date], endDate: Union[str, datetime, date]) -> dict:
+        """Расписание персоны в учебной группе"""
+
         return await self.get(
             f"persons/{person}/groups/{group}/schedules",
             startDate=str(startDate), endDate=str(endDate)
         )
 
     async def get_group_lessons(self, group: int, startDate: date, endDate: date) -> list[dict]:
+        """Уроки всей учебной группы, в том числе разных подгрупп"""
+
         return await self.get(f"edu-groups/{group}/lessons/{startDate}/{endDate}")
 
     async def get_group_marks(self, group: int, startDate: date, endDate: date) -> list[dict]:
+        """Оценки учебной группы"""
+
         return await self.get(f"edu-groups/{group}/marks/{startDate}/{endDate}")
 
-    async def get_work_types(self, gymnasium_id: int) -> list[dict]:
-        return await self.get(f"work-types/{gymnasium_id}")
+    async def get_work_types(self, school_id: int) -> list[dict]:
+        """Существующие типы работ в образовательной организации"""
+
+        return await self.get(f"work-types/{school_id}")
 
     async def get_group_persons(self, group: int) -> list[dict]:
+        """Персоны в учебной группе"""
+
         return await self.get(f"edu-groups/{group}/students")
 
     async def get_homeworks(self, homeworks_id: list[int]) -> dict:
+        """Домашние задания по идентификаторам"""
+
         return await self.get("users/me/school/homeworks", homeworkId=homeworks_id)
 
     async def get_person_recent_marks(
             self,
             person: int,
             group: int,
-            from_date: Optional[date] = None,
+            from_date: Optional[Union[datetime, date]] = None,
             subject: Optional[str] = None,
             limit: int = 10
     ) -> dict:
+        """Последние по дате выставления оценки персоны в учебной группе"""
+
         params: dict[str, Any] = {'limit': limit}
         if from_date:
-            params['fromDate'] = from_date.isoformat()
+            params['fromDate'] = str(from_date)
         if subject:
             params['subject'] = subject
 
         return await self.get(f"persons/{person}/group/{group}/recentmarks", **params)
 
     async def get_reporting_periods(self, group: int) -> list[dict]:
+        """Отчетные периоды в учебной группе"""
+
         return await self.get(f"edu-groups/{group}/reporting-periods")
 
     async def get_many_marks(self, lessons: list[int]) -> list[dict]:
+        """Все оценки за урок в учебной группе"""
+
         return await self.post("lessons/many/marks", data=lessons)
 
     async def get_marks_by_work(self, work: int) -> list[dict]:
+        """Все оценки за работу на уроке в учебной группе"""
+
         return await self.get(f"works/{work}/marks")
 
-    async def get_person_marks(self, person: int, subject: int, startDate: date, endDate: date) -> list[dict]:
+    async def get_person_subject_marks(self, person: int, subject: int, startDate: date, endDate: date) -> list[dict]:
+        """Оценки персоны по предмету в текущем отчетном периоде"""
+
         return await self.get(f"persons/{person}/subjects/{subject}/marks/{startDate}/{endDate}")
 
     async def get_group_avg_marks(self, group: int, start: date, finish: date) -> list[dict]:
+        """Средние баллы по предметам в учебной группе"""
+
         return await self.get(f"edu-groups/{group}/avg-marks/{start}/{finish}")
 
     async def get_person_final_marks(self, person: int, group: int) -> dict:
+        """Оценки персоны по предметам за каждый отчетный период в текущем учебном году и за год"""
+
         return await self.get(f"persons/{person}/edu-groups/{group}/allfinalmarks")
+
+    async def get_children(self, person_id: int) -> list[dict]:
+        """Дети персоны"""
+
+        return await self.get(f"person/{person_id}/children")
+
+    async def get_lesson(self, lesson_id: int) -> dict:
+        """Урок по идентификатору"""
+
+        return await self.get(f"lessons/{lesson_id}")
+
+    async def get_group_avg_marks_by_date(self, group: int, period: int, _date: date) -> list[dict]:
+        """Средние баллы по предметам в учебной группе на момент определенной даты"""
+
+        return await self.get(f"edu-groups/{group}/reporting-periods/{period}/avg-marks/{_date}")
+
+    async def get_user_info(self, user: int) -> dict:
+        """Общая информация о пользователе"""
+
+        return await self.get(f"users/{user}")
+
+    async def get_person_marks(self, person: int, group: int, startDate: date, endDate: date) -> list[dict]:
+        """Оценки персоны по предметам в учебной группе"""
+
+        return await self.get(f"persons/{person}/edu-groups/{group}/marks/{startDate}/{endDate}")
+
+    async def get_many_lessons(self, lessons: list[int]) -> list[dict]:
+        """Уроки по идентификаторам"""
+
+        return await self.post("lessons/many", data=lessons)
+
+    async def get_marks_by_lesson(self, lesson: int) -> list[dict]:
+        """Все оценки за урок в учебной группе"""
+
+        return await self.get(f"lessons/{lesson}/marks")
+
+    async def get_person(self, person: int) -> dict:
+        """Персона по идентификатору"""
+
+        return await self.get(f"persons/{person}")
+
+    async def get_person_marks_by_lesson(self, person: int, lesson: int) -> list[dict]:
+        """Оценки персоны за урок в учебной группе"""
+
+        return await self.get(f"persons/{person}/lessons/{lesson}/marks")

@@ -1,0 +1,312 @@
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+
+    <meta name="csrf-token" content="{{ csrf_token }}">
+
+    <title>Активиум — Мобильное приложение</title>
+    <meta property="og:title" content="Активиум — Мобильное приложение">
+    <meta property="og:description" content="Официальный сайт приложения Активиум — расписание, оценки, мероприятия, достижения — все под рукой!">
+    <meta property="og:image" content="/assets/icons/preview.png">
+    <meta name="description" content="Официальный сайт приложения Активиум — расписание, оценки, мероприятия, достижения — все под рукой!">
+
+    <link rel="apple-touch-icon" sizes="180x180" href="/assets/icons/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/assets/icons/favicon-16x16.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/assets/icons/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="/assets/icons/android-chrome-192x192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="/assets/icons/android-chrome-512x512.png">
+    <link rel="icon" type="image/x-icon" sizes="32x32" href="/assets/icons/favicon.ico">
+
+    <link href="/css/main.css?v=6" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="wrap" id="page">
+        <header>
+            <div class="brand">
+                <img src="/assets/index/logo.png" alt="logo" class="logo" aria-hidden="true">
+                <div>
+                    <h1>Активиум</h1>
+                    <p>Для учеников средней и старшей школы</p>
+                </div>
+            </div>
+
+            <div class="header-actions">
+                <button class="theme-toggle" id="themeToggle" aria-label="Переключить тему">
+                    <svg xmlns="http://www.w3.org/2000/svg" x="0px" y="0px" width="24" height="24" viewBox="0 0 24 24">
+                        <path id="themeSvg" fill="black" d="M 11 0 L 11 3 L 13 3 L 13 0 L 11 0 z M 4.2226562 2.8085938 L 2.8085938 4.2226562 L 4.9296875 6.34375 L 6.34375 4.9296875 L 4.2226562 2.8085938 z M 19.777344 2.8085938 L 17.65625 4.9296875 L 19.070312 6.34375 L 21.191406 4.2226562 L 19.777344 2.8085938 z M 12 5 C 8.1458514 5 5 8.1458514 5 12 C 5 15.854149 8.1458514 19 12 19 C 15.854149 19 19 15.854149 19 12 C 19 8.1458514 15.854149 5 12 5 z M 12 7 C 14.773268 7 17 9.2267316 17 12 C 17 14.773268 14.773268 17 12 17 C 9.2267316 17 7 14.773268 7 12 C 7 9.2267316 9.2267316 7 12 7 z M 0 11 L 0 13 L 3 13 L 3 11 L 0 11 z M 21 11 L 21 13 L 24 13 L 24 11 L 21 11 z M 4.9296875 17.65625 L 2.8085938 19.777344 L 4.2226562 21.191406 L 6.34375 19.070312 L 4.9296875 17.65625 z M 19.070312 17.65625 L 17.65625 19.070312 L 19.777344 21.191406 L 21.191406 19.777344 L 19.070312 17.65625 z M 11 21 L 11 24 L 13 24 L 13 21 L 11 21 z"></path>
+                    </svg>
+                </button>
+            </div>
+        </header>
+
+        <section class="hero" role="region" aria-label="Приложение">
+            <div class="hero-left">
+                <span class="kicker">Приложение</span>
+                <h2>Расписание, оценки и школьные события в одном приложении</h2>
+                <p>Удобный интерфейс: актуальное расписание, уведомления о событиях и мероприятиях, домашние задания, внеурочные занятия и оценки — всё под рукой.</p>
+
+                <div class="download-actions">
+                    <a class="btn-primary" id="downloadApk" href="/apk/activium_v{{ version }}.apk">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                            <path d="M12 3v12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M8 11l4 4 4-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                            <rect x="3" y="17" width="18" height="4" rx="1" stroke="currentColor" stroke-width="1.6"/>
+                        </svg>
+                        Android
+                    </a>
+
+                    <a class="btn-outline" href="#support" onclick="scrollToIOSFaq(); return false;">
+                        <img src="/assets/icons/apple.png" alt="iOS" style="width:16px;height:16px;">
+                        iOS
+                    </a>
+
+                    <a class="btn-outline open-app-btn" href="tgm://activium/open/">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                            <path d="M5 12h14M13 5l7 7-7 7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        Открыть приложение
+                    </a>
+                </div>
+
+                <div class="meta">
+                    <div class="pill">Android 10+</div>
+                    <div class="small">{{ version }}</div>
+                    <div class="small">{{ date }}</div>
+                </div>
+
+            </div>
+
+            <aside id="qrCard" class="hero-card" aria-hidden="true">
+                <h3 style="justify-self:center">Скачать и установить</h3>
+                <div style="margin-top:8px; justify-self:center">
+                    <img src="/assets/index/qr-code.png" alt="QR - скачать" class="qr">
+                </div>
+            </aside>
+        </section>
+
+        <section aria-label="Функции">
+            <div class="features">
+                <article class="card" role="article" aria-labelledby="f1">
+                    <div class="icon" aria-hidden="true">📅</div>
+                    <h4 id="f1">Расписание</h4>
+                    <p>Быстрый доступ к расписанию на весь день и следующие две недели даже без интернета. Уведомления о внеурочных занятиях и новых домашних.</p>
+                </article>
+
+                <article class="card" role="article" aria-labelledby="f2">
+                    <div class="icon" aria-hidden="true">📝</div>
+                    <h4 id="f2">Оценки</h4>
+                    <p>Просмотр текущих оценок, история успеваемости, рейтинг в классе и уведомления о новых оценках.</p>
+                </article>
+
+                <article class="card" role="article" aria-labelledby="f3">
+                    <div class="icon" aria-hidden="true">🎫</div>
+                    <h4 id="f3">Мероприятия</h4>
+                    <p>Список школьных событий, запись на мероприятия, напоминания и вся жизнь школы</p>
+                </article>
+
+                <article class="card" role="article" aria-labelledby="f4">
+                    <div class="icon" aria-hidden="true">🏅</div>
+                    <h4 id="f4">Достижения</h4>
+                    <p>Заслуженные награды и участие в событиях — личная страница достижений ученика.</p>
+                </article>
+            </div>
+        </section>
+
+        <div id="screenshotsBox" class="box">
+            <h3>Скриншоты приложения</h3>
+            <div id="screenshots" class="screenshots">
+                <img src="/assets/screenshots/screen16.jpg" alt="Скриншот экрана">
+                <img src="/assets/screenshots/screen18.jpg" alt="Скриншот экрана">
+                <img src="/assets/screenshots/screen24.jpg" alt="Скриншот экрана">
+                <img src="/assets/screenshots/screen25.jpg" alt="Скриншот экрана">
+                <img src="/assets/screenshots/screen26.jpg" alt="Скриншот экрана">
+                <img src="/assets/screenshots/screen27.jpg" alt="Скриншот экрана">
+                <img src="/assets/screenshots/screen21.jpg" alt="Скриншот экрана">
+                <img src="/assets/screenshots/screen28.jpg" alt="Скриншот экрана">
+                <img src="/assets/screenshots/screen29.jpg" alt="Скриншот экрана">
+                <img src="/assets/screenshots/screen30.jpg" alt="Скриншот экрана">
+            </div>
+        </div>
+
+        <section class="columns" aria-label="О приложении и разработчике">
+            <div class="box">
+                <h3>О приложении</h3>
+                <p class="muted">Приложение Активиум — это не просто мобильная версия dnevnik.ru, это удобный доступ к школьной информации в своем телефоне даже без интернета: расписанию, оценкам, мероприятиям и домашним заданиям — все под рукой. Синхронизация и безопасная авторизация происходит при запуске с помощью портала dnevnik.ru.</p>
+
+                <h4 style="margin:0">Ключевые особенности</h4>
+                <ul>
+                    <li>Расписание и домашнее всегда под рукой даже без интернета</li>
+                    <li>Внеурочные занятия встроены в расписание</li>
+                    <li>Напоминания о внеурочных занятиях</li>
+                    <li>Уведомления о новых домашних и оценках</li>
+                    <li>Удобный просмотр прикреплённых файлов к домашнему</li>
+                    <li>Оценки и рейтинг в классе</li>
+                    <li>Актуальные мероприятия и события</li>
+                </ul>
+            </div>
+
+            <aside>
+                <div id="developer" class="box dev-card">
+                    <img src="/assets/index/avatar.jpg?v=3" alt="ДМ" class="avatar" aria-hidden="true">
+                    <div>
+                        <h4 style="margin:0">Дрючин Максим</h4>
+                        <p class="muted">Разработчик</p>
+                        <p class="small muted">Контакт: <a href="https://t.me/tgmaksim_company" target="_blank">@tgmaksim_company</a></p>
+                    </div>
+                </div>
+
+                <div style="height:12px"></div>
+
+                <div class="box" id="update">
+                    <h4>Информация об обновлении</h4>
+
+                    <p class="small muted">Версия: <strong>{{ version }}</strong></p>
+                    <p class="small muted">Дата: <strong>{{ date }}</strong></p>
+                    <p class="small muted">Статус: <strong>{{ version_status }}</strong></p>
+
+                    <h5 style="margin-top:10px; margin-bottom:6px">Изменения</h5>
+                    <ul class="small muted" style="padding-left:18px; margin:0">
+                        {% for item in update_log %}
+                            <li>{{ item }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </aside>
+        </section>
+
+        <section class="box" id="reviews" style="margin-top:28px">
+            <div class="reviews-header">
+                <h3>Отзывы</h3>
+
+                <select id="reviewSort" onchange="changeSort(this.value)">
+                    <option value="likes" {% if likes_sort == 'likes' %}selected{% endif %}>По популярности</option>
+                    <option value="max_stars" {% if likes_sort == 'max_stars' %}selected{% endif %}>Сначала лучшие</option>
+                    <option value="min_stars" {% if likes_sort == 'min_stars' %}selected{% endif %}>Сначала худшие</option>
+                </select>
+            </div>
+
+            <div id="reviewsList">
+                {% for r in reviews %}
+                <div class="review" data-review-id="{{ r.id }}">
+                    <div class="review-header">
+                        <div class="review-meta">
+                            <strong>{{ r.author }}</strong>
+                            <span class="review-date">
+                                {{ r.created_at }}
+                                {% if r.is_edited %}
+                                    <span class="edited">(изменён)</span>
+                                {% endif %}
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="review-stars">
+                        {% for i in range(1, 6) %}
+                            {% if i <= r.stars %}
+                                <span class="star filled">★</span>
+                            {% else %}
+                                <span class="star">☆</span>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+
+                    {% if r.text %}
+                        <div class="review-text">{{ r.text }}</div>
+                    {% endif %}
+
+                    <div class="review-footer">
+                        <button class="like-btn{% if r.has_my_like %} active{% endif %}"
+                                onclick="toggleLike({{ r.id }}, this)">
+                            👍 <span class="like-count">{{ r.reactions }}</span>
+                        </button>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            {% if next_likes_offset %}
+                <button class="btn-outline" onclick="loadMoreReviews()" data-next-offset="{{ next_likes_offset }}">
+                    Показать ещё
+                </button>
+            {% endif %}
+        </section>
+
+        <section class="box" id="changelog" style="margin-top:28px">
+            <details>
+                <summary>
+                    <h3 style="display:inline">История версий</h3>
+                    <span class="muted small">({{ previous_versions|length }})</span>
+                </summary>
+
+                {% for v in previous_versions %}
+                    <details class="version-details" {% if loop.first %}open{% endif %}>
+                        <summary>
+                            <span>
+                                Версия <strong>{{ v.version }}</strong>
+                                <span class="muted">· {{ v.date }}</span>
+                            </span>
+                            <span class="pill small">{{ v.status }}</span>
+                        </summary>
+
+                        <ul class="small muted">
+                            {% for item in v.update_log %}
+                                <li>{{ item }}</li>
+                            {% endfor %}
+                        </ul>
+                    </details>
+                {% endfor %}
+            </details>
+        </section>
+
+        <section class="box" id="support" style="margin-top:28px">
+            <h3>Поддержка</h3>
+
+            <div class="faq">
+                <details>
+                    <summary>Как установить приложение?</summary>
+                    <p>Скачайте APK-файл по кнопке сверху, подтвердите установку из браузера и запустите приложение.</p>
+                </details>
+
+                <details id="faq-ios">
+                    <summary>У меня iOS, что делать?</summary>
+                    <p>К сожалению, выход на рынок Apple не представляется возможным из-за высокой цены размещения приложений в AppStore и необходимости иметь устройства MacBook и iPhone. Вы можете использовать только устройства Android</p>
+                </details>
+
+                <details>
+                    <summary>Как происходит авторизация?</summary>
+                    <p>Все данные приложение получает из Вашего аккаунта на портале dnevnik.ru. При запуске потребуется разрешение на данные об образовательном процессе.</p>
+                </details>
+
+                <details>
+                    <summary>Требуется ли интернет?</summary>
+                    <p>Расписание и оценки доступны автономно. Для обновления данных нужен интернет.</p>
+                </details>
+
+                <details>
+                    <summary>Возникает ошибка в приложении</summary>
+                    <p>Если Вы столкнулись с уведомлением об ошибке, то напишите в чат поддержки, чтобы проблема была исправлена. В своем сообщении детально опишите, как и когда происходит ошибка</p>
+                </details>
+
+                <details>
+                    <summary>Как написать отзыв?</summary>
+                    <p>Чтобы написать отзыв, перейдите в настройки приложения и нажмите на соответствующую кнопку. Если у Вас возникла проблема, сначала напишите в чат поддержки</p>
+                </details>
+
+                <details>
+                    <summary>Как связаться с поддержкой?</summary>
+                    <p>По любым интересующим Вас вопросам или предложениям напишите в Telegram. Ссылка доступна <a href="#developer">выше</a></p>
+                </details>
+            </div>
+        </section>
+    </div>
+
+    <script src="/js/theme.js?v=1"></script>
+    <script src="/js/screenshots.js?v=1"></script>
+    <script src="/js/ios.js?v=2"></script>
+    <script src="/js/likes.js?v=9"></script>
+</body>
+</html>

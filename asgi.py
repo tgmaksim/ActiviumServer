@@ -1,199 +1,80 @@
 import locale
+import asyncio
 
-from asyncio import gather
+from typing import AsyncIterator
 from contextlib import asynccontextmanager
 
-from fastapi import BackgroundTasks
-from fastapi.requests import Request
-from fastapi.applications import FastAPI
-from fastapi.openapi.utils import get_openapi
-from fastapi.exceptions import RequestValidationError
-from fastapi.responses import HTMLResponse, JSONResponse
-from starlette.exceptions import HTTPException as StarletteHTTPException
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
-from database import Database
-from core import log, templates, httpx_client
+from src.config.project_config import settings  # Сначала project_config для загрузки env
+from src.config.database.db_helper import db_helper
 
-from api.entities import ApiResponse, ApiError
-from api.status.entities import VersionsResult
-from api.middleware import ExceptionHandlerMiddleware
-from api.status.functions import get_latest_version, get_previous_versions
+from background import add_backgrounds
+from src.config.openapi import setup_openapi
+from src.dependencies.httpx import get_httpx_client
+from src.middlewares import setup_exception_handlers
+from src.routers import get_api_router, get_site_router, get_public_api_router
 
-from api.login import router as login
-from api.status import router as status
-from api.dnevnik import router as dnevnik
+from src.services.log_service import LogService
+from src.dependencies.uow import get_log_uow_factory
 
 
 @asynccontextmanager
-async def lifespan(_: FastAPI):
-    await Database.init()  # Инициализация сессии базы данных на время работы программы
-    await log(None, 'lifespan', None, "Сервер запущен")
-
-    yield
+async def lifespan(_: FastAPI) -> AsyncIterator:
+    tasks = []
+    get_httpx_client()
 
     try:
-        await log(None, 'lifespan', None, "Сервер остановлен")
-    finally:
-        await Database.close()  # Закрытие соединения с базой данных
-        await httpx_client.aclose()  # Закрытие httpx-соединения
+        tasks = add_backgrounds(asyncio.get_running_loop())
 
+        service = LogService(get_log_uow_factory())
+        await service.log(path='lifespan', value="Сервер запущен")
+
+        yield  # Работа сервера
+
+    finally:  # Завершение работы
+        print("Сервер остановлен")
+
+        service = LogService(get_log_uow_factory())
+        await service.log(path='lifespan', value="Сервер остановлен")
+
+        for task in tasks:
+            task.cancel()
+
+        await get_httpx_client().aclose()
+        await db_helper.dispose()
+
+
+def get_application() -> FastAPI:
+    application = FastAPI(
+        title=settings.PROJECT_NAME,
+        debug=settings.DEBUG,
+        version=settings.VERSION,
+        lifespan=lifespan,
+        openapi_url=f"{settings.API_PREFIX}/openapi.json",
+        docs_url=f"{settings.API_PREFIX}/docs",
+        redoc_url=f"{settings.API_PREFIX}/redoc",
+        swagger_ui_parameters={"defaultModelsExpandDepth": -1}  # Скрытие сущностей в документации
+    )
+
+    setup_openapi(application, settings.HIDE_VALIDATION_ERRORS_IN_DOCS)
+    setup_exception_handlers(application)
+
+    application.include_router(get_site_router())
+    application.include_router(get_api_router())
+    application.include_router(get_public_api_router())
+    application.add_middleware(
+        CORSMiddleware,
+        allow_origins=settings.CORS_ALLOWED_ORIGINS,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
+    return application
+
+
+app = get_application()
 
 locale.setlocale(locale.LC_TIME, 'ru_RU.UTF-8')  # Для работы datetime
-
-app = FastAPI(lifespan=lifespan)
-app.add_middleware(ExceptionHandlerMiddleware)  # Глобальный обработчик ошибок
-
-app.include_router(status)
-app.include_router(login)
-app.include_router(dnevnik)
-
-
-# Статические файлы находятся в папке www и передаются низкоуровневым сервером
-@app.get(
-    "/",
-    response_class=HTMLResponse,
-    include_in_schema=False  # Не отображается в документации
-)
-async def _root(request: Request, background_tasks: BackgroundTasks):
-    session = request.cookies.get("session")
-
-    # Одновременные запросы в базу данных
-    version, previous_versions = await gather(get_latest_version(), get_previous_versions(), return_exceptions=True)
-
-    if isinstance(e := version, BaseException):
-        version = VersionsResult.default()
-        background_tasks.add_task(log, request, request.url.path, session, f"{e.__class__.__name__}: {e}")
-    if isinstance(e := previous_versions, BaseException):
-        previous_versions = []
-        background_tasks.add_task(log, request, request.url.path, session, f"{e.__class__.__name__}: {e}")
-    if not isinstance(version, BaseException) and not isinstance(previous_versions, BaseException):
-        background_tasks.add_task(log, request, request.url.path, session, "200 OK")
-
-    return templates.TemplateResponse(
-        request=request,
-        name="index.html",
-        context={
-            "version": version.latestVersionString,
-            "date": version.date,
-            "version_status": version.versionStatus,
-            "update_log": version.updateLogs.split('\n'),
-            "previous_versions": [{
-                "version": v.latestVersionString,
-                "date": v.date,
-                "versionStatus": v.versionStatus,
-                "version_status": v.versionStatus,
-                "update_log": v.updateLogs.split('\n'),
-            } for v in previous_versions]
-        }
-    )
-
-
-# Обработка head-запроса на главную страницу
-@app.head(
-    "/",
-    response_class=HTMLResponse,
-    include_in_schema=False  # Не отображается в документации
-)
-async def _head_root(request: Request, background_tasks: BackgroundTasks):
-    background_tasks.add_task(log, request, request.url.path, None, "HEAD 200 OK")
-
-    return HTMLResponse()
-
-
-# Глобальный обработчик ошибок RequestValidationError
-@app.exception_handler(RequestValidationError)
-async def validation_exception_handler(request: Request, exc: RequestValidationError):
-    await log(request, request.url.path, None, str(exc))
-
-    return JSONResponse(ApiResponse(
-        status=False,
-        error=ApiError(
-            type="ValidationError"
-        )
-    ).model_dump(by_alias=True))
-
-
-# Глобальный обработчик HTTP-ошибок
-@app.exception_handler(StarletteHTTPException)
-async def http_exception_handler(request: Request, exc: StarletteHTTPException):
-    await log(request, request.url.path, None, exc.detail)
-    content_type = request.headers.get("content-type", "").split(';')[0]
-
-    if exc.status_code == 404:  # Обработка ошибок 404 Not Found
-        if content_type == "application/json":  # Из API
-            return JSONResponse(ApiResponse(
-                status=False,
-                error=ApiError(
-                    type="ApiMethodNotFoundError"
-                )
-            ).model_dump(by_alias=True))
-        else:  # Запрос пользователем
-            if request.url.path.startswith("/apk"):
-                description = "Файл с обновлением не найден. Попробуйте позже или обратитесь в поддержку"
-            else:
-                description = "Страница, которую Вы пытались получить не найдена, или, возможно, перемещена"
-
-            return templates.TemplateResponse(
-                request=request,
-                name="error.html",
-                status_code=404,
-                context={
-                    "title": "Страница не найдена",
-                    "description": description
-                }
-            )
-
-    if content_type == "application/json":
-        return JSONResponse(ApiResponse(
-            status=False,
-            error=ApiError(
-                type="InternalServerError"
-            )
-        ).model_dump(by_alias=True))
-    else:
-        return templates.TemplateResponse(
-            request=request,
-            name="error.html",
-            status_code=500,
-            context={
-                "title": "Произошла ошибка на сервере",
-                "description": "Произошла непредвиденная ошибка, из-за которой не получилось обработать Ваш запрос"
-            }
-        )
-
-
-# Некоторые изменения в документации
-def custom_openapi():
-    if app.openapi_schema:
-        return app.openapi_schema
-
-    app.openapi_schema = get_openapi(
-        title="API приложения Гимназия №147",
-        summary="Подробное руководство по структуре API приложения Гимназия №147",
-        description="Данная документация представляет полную информацию по работе с API. Ключевой особенностью "
-                    "является идентификатор (classId) каждой сущности: как входной, так и результативной. Он позволяет "
-                    "разным версиям приложения использовать API должным образом, даже если определенный метод изменил "
-                    "структуру входных/выходных данных или больше не поддерживается. В каталоге сущностей можно найти "
-                    "все идентификаторы",
-        contact={"Максим Дрючин": "@tgmaksim_company"},
-        version="1.0",
-        routes=app.routes
-    )
-
-    for _, method_item in app.openapi_schema.get('paths').items():
-        for _, param in method_item.items():
-            responses = param.get('responses')
-            if '422' in responses:
-                del responses['422']  # Удаление информации об ошибке RequestValidationError в документации
-
-    schemas = app.openapi_schema.get('components', {}).get('schemas', {})
-
-    if 'HTTPValidationError' in schemas:
-        del schemas['HTTPValidationError']  # Удаление информации об ошибке HTTPValidationError в документации
-    if 'ValidationError' in schemas:
-        del schemas['ValidationError']  # Удаление информации об ошибке ValidationError в документации
-
-    return app.openapi_schema
-
-
-app.openapi = custom_openapi

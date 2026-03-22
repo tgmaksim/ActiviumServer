@@ -1,22 +1,69 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ru">
 <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
 
-    <title>Авторизация...</title>
-    <script>
-        if (window.location.hash != '') {
-            const hash = window.location.hash.substring(1);
-            window.location.hash = '';
-            location.replace('?' + hash);
-        } else {
-            const token = Math.random().toString().substring(2);
-            location.replace(`gmn://open/?updateScheduleToken=${token}`);
+    <title>Авторизация — Активиум</title>
+
+    <link href="/css/style.css" rel="stylesheet">
+    <link href="/css/error.css" rel="stylesheet">
+
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        .loader {
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            border: 3px solid rgba(255,255,255,.25);
+            border-top-color: var(--accent);
+            animation: spin 0.9s linear infinite;
+            margin: 24px auto;
         }
-    </script>
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
 </head>
+
 <body>
-    Авторизация...
+<div class="wrap" id="page">
+    <main class="error-layout">
+        <section class="box error-card">
+
+            <div class="error-icon" style="background:linear-gradient(135deg,var(--accent),var(--accent-2))">
+                ⏳
+            </div>
+
+            <h2 class="error-title">
+                Авторизация
+            </h2>
+
+            <p class="muted error-subtitle">
+                Пожалуйста, подождите. Мы завершаем вход в приложение.
+            </p>
+
+            <div class="loader"></div>
+
+            <div class="error-details">
+                Обычно это занимает не больше нескольких секунд.
+            </div>
+
+        </section>
+    </main>
+</div>
+
+<script src="/js/theme.js"></script>
+<script>
+    function next() {
+        const hash = window.location.hash.substring(1);
+        window.location.hash = '';
+        location.replace('?' + hash);
+    }
+    setTimeout(next, 2500);
+</script>
 </body>
 </html>

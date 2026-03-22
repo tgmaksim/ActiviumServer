@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+
+    <title>Авторизация успешна — Активиум</title>
+
+    <link href="/css/style.css" rel="stylesheet">
+    <link href="/css/error.css" rel="stylesheet">
+
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+<div class="wrap" id="page">
+    <main class="error-layout">
+        <section class="box error-card">
+
+            <div class="error-icon" style="background:linear-gradient(135deg,var(--accent),var(--accent-2))">
+                ✓
+            </div>
+
+            <h2 class="error-title">
+                Авторизация успешна
+            </h2>
+
+            <p class="muted error-subtitle">
+                Вы успешно вошли в систему. Сейчас вы будете перенаправлены в приложение.
+            </p>
+
+            <div class="error-details">
+                Если переход не произошёл автоматически, нажмите кнопку ниже.
+            </div>
+
+            <div class="error-actions">
+                <button class="btn-primary" onclick="openApp()">
+                    Открыть приложение
+                </button>
+
+                <a href="/" class="btn-outline">
+                    На главную
+                </a>
+            </div>
+
+        </section>
+    </main>
+</div>
+
+<script src="/js/theme.js"></script>
+<script>
+    const redirectUrl = "tgm://activium/open/";
+
+    function openApp() {
+        const token = Math.random().toString().substring(2);
+        location.replace(`${redirectUrl}?updateScheduleToken=${token}');
+    }
+
+    setTimeout(openApp, 2500);
+</script>
+</body>
+</html>
