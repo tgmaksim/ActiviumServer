@@ -25,10 +25,12 @@ public_router = APIRouter(prefix='/login', tags=["Login"], include_in_schema=Fal
     response_model=LoginApiResponse
 )
 async def _login0(
+        request: Request,
         sessionId: Annotated[Optional[str], Query(description="Ранее использованный идентификатор сессии для повторной авторизации", min_length=1, max_length=32)] = None,
         firebaseToken: Annotated[Optional[str], Query(description="Firebase-токен для отправки уведомлений клиенту", min_length=1, max_length=4096)] = None,
         service: LoginService = Depends(get_login_service)
 ) -> LoginApiResponse:
+    request.state.session_id = sessionId
     return await service.login(sessionId, firebaseToken)
 
 
@@ -46,6 +48,7 @@ async def _authSession(
         state: Annotated[Optional[str], Query(description="Дополнительные параметры от дневника.ру (внутренний идентификатор сессии sessionId)", min_length=1, max_length=32)] = None,
         service: LoginService = Depends(get_login_service)
 ) -> HTMLResponse:
+    request.state.session_id = state
     if access_token is not None and state is not None:
         template_params = await service.secondAuthSession(access_token, state)
     else:
@@ -72,7 +75,9 @@ async def _authSession(
     response_model=CheckSessionApiResponse
 )
 async def _checkSession(
+        request: Request,
         sessionId: Annotated[str, Query(description="Идентификатор сессии для проверки", min_length=1, max_length=32)],
         service: LoginService = Depends(get_login_service)
 ) -> CheckSessionApiResponse:
+    request.state.session_id = sessionId
     return await service.checkSession(sessionId)

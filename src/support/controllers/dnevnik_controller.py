@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Query, Depends, Header
+from fastapi import APIRouter, Query, Depends, Header, Request
 
 from ..schemas.dnevnik_schemas import (
     MarksApiResponse,
@@ -28,11 +28,13 @@ router = APIRouter(prefix='/dnevnik', tags=["Dnevnik"])
     response_model=ScheduleApiResponse
 )
 async def _getSchedule0(
+        request: Request,
         before: Annotated[int, Query(description="Количество дней расписания до сегодня", ge=0, le=14)],
         after: Annotated[int, Query(description="Количество дней после сегодня", ge=0, le=21)],
         sessionId: Annotated[str, Header(description="Идентификатор сессии", min_length=1, max_length=32)],
         service: DnevnikService = Depends(get_dnevnik_service)
 ) -> ScheduleApiResponse:
+    request.state.session_id = sessionId
     return await service.getSchedule(sessionId, before, after)
 
 
@@ -43,10 +45,12 @@ async def _getSchedule0(
     response_model=LessonRatingStatsApiResponse
 )
 async def _getLessonRatingStats0(
+        request: Request,
         ratingKey: Annotated[str, Query(description="Ключ от урока, по которому получить статистику", pattern=r'[0-9a-z]{1,13}\.[0-9a-z]{1,13}\.\d{4}-\d{2}-\d{2}', min_length=9, max_length=38)],
         sessionId: Annotated[str, Header(description="Идентификатор сессии", min_length=1, max_length=32)],
         service: DnevnikService = Depends(get_dnevnik_service)
 ) -> LessonRatingStatsApiResponse:
+    request.state.session_id = sessionId
     return await service.getLessonRatingStats(sessionId, ratingKey)
 
 
@@ -57,10 +61,12 @@ async def _getLessonRatingStats0(
     response_model=MarksApiResponse
 )
 async def _getMarks0(
+        request: Request,
         last: Annotated[int, Query(description="Число дней, за которое будут запрошены последние по дате выставления оценки", ge=1, le=7)],
         sessionId: Annotated[str, Header(description="Идентификатор сессии", min_length=1, max_length=32)],
         service: DnevnikService = Depends(get_dnevnik_service)
 ) -> MarksApiResponse:
+    request.state.session_id = sessionId
     return await service.getMarks(sessionId, last)
 
 
@@ -71,10 +77,12 @@ async def _getMarks0(
     response_model=MarksRatingStatsApiResponse
 )
 async def _getMarkRatingStats0(
+        request: Request,
         ratingKey: Annotated[str, Query(description="Ключ от последней оценки", pattern=r'[wl][0-9a-z]{1,13}', min_length=2, max_length=14)],
         sessionId: Annotated[str, Header(description="Идентификатор сессии", min_length=1, max_length=32)],
         service: DnevnikService = Depends(get_dnevnik_service)
 ) -> MarksRatingStatsApiResponse:
+    request.state.session_id = sessionId
     return await service.getMarksRatingStats(sessionId, ratingKey)
 
 
@@ -85,10 +93,12 @@ async def _getMarkRatingStats0(
     response_model=MarksSubjectRatingApiResponse
 )
 async def _getMarksSubjectRating0(
+        request: Request,
         ratingKey: Annotated[str, Query(description="Ключ от предмета или общий ключ", pattern=r'(?:[0-9a-z]{1,13}\.)?[0-9a-z]{1,13}', min_length=1, max_length=27)],
         sessionId: Annotated[str, Header(description="Идентификатор сессии", min_length=1, max_length=32)],
         service: DnevnikService = Depends(get_dnevnik_service)
 ) -> MarksSubjectRatingApiResponse:
+    request.state.session_id = sessionId
     return await service.getMarksSubjectRating(sessionId, ratingKey)
 
 
@@ -99,7 +109,9 @@ async def _getMarksSubjectRating0(
     response_model=MarksFinalApiResponse
 )
 async def getFinalMarks0(
+        request: Request,
         sessionId: Annotated[str, Header(description="Идентификатор сессии", min_length=1, max_length=32)],
         service: DnevnikService = Depends(get_dnevnik_service)
 ) -> MarksFinalApiResponse:
+    request.state.session_id = sessionId
     return await service.getFinalMarks(sessionId)

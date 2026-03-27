@@ -1,3 +1,4 @@
+from asyncio import gather
 from typing import Callable, Optional
 
 from httpx import AsyncClient
@@ -38,7 +39,10 @@ class SettingsService(BaseService[AppUnitOfWork]):
             dnr = AioDnevnikruApi(self.httpx_client, session.dnevnik_token)
 
             try:
-                children = await dnr.get_children(parent.parent_id)
+                children, info = await gather(
+                    dnr.get_children(parent.parent_id),
+                    dnr.get_info()
+                )
             except BaseDnevnikruException as e:
                 if not await uow.session_repository.check_session_auth(session.session_id, dnr):
                     raise SessionError(session_id=session.session_id) from e
@@ -51,7 +55,10 @@ class SettingsService(BaseService[AppUnitOfWork]):
                     children=[Child(
                         childId=int(child['id']),
                         name=child['shortName']
-                    ) for child in children],
+                    ) for child in children] or [Child(
+                        childId=int(info['personId']),
+                        name=info['shortName']
+                    )],
                     activeChildId=parent.active_child_id
                 )
             )

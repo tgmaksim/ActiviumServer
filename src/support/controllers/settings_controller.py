@@ -1,6 +1,6 @@
 from typing import Annotated, Optional
 
-from fastapi import APIRouter, Depends, Header, Query
+from fastapi import APIRouter, Depends, Header, Query, Request
 
 from ..schemas.settings_schemas import (
     ChildrenApiResponse,
@@ -27,9 +27,11 @@ router = APIRouter(prefix='/settings', tags=["Settings"])
     response_model=ChildrenApiResponse
 )
 async def _getChildren0(
+        request: Request,
         sessionId: Annotated[str, Header(description="Идентификатор сессии", min_length=1, max_length=32)],
         service: SettingsService = Depends(get_settings_service)
 ) -> ChildrenApiResponse:
+    request.state.session_id = sessionId
     return await service.getChildren(sessionId)
 
 
@@ -40,10 +42,12 @@ async def _getChildren0(
     response_model=SwitchActiveChildApiResponse
 )
 async def _setActiveChild0(
+        request: Request,
         childId: Annotated[int, Query(description="Идентификатор ребенка, полученный запросом")],
         sessionId: Annotated[str, Header(description="Идентификатор сессии", min_length=1, max_length=32)],
         service: SettingsService = Depends(get_settings_service)
 ) -> SwitchActiveChildApiResponse:
+    request.state.session_id = sessionId
     return await service.setActiveChild(sessionId, childId)
 
 
@@ -54,10 +58,12 @@ async def _setActiveChild0(
     response_model=StatusDnevnikNotificationsApiResponse
 )
 async def _getStatusDnevnikNotifications0(
+        request: Request,
         sessionId: Annotated[str, Header(description="Идентификатор сессии", min_length=1, max_length=32)],
         service: SettingsService = Depends(get_settings_service),
         childId: Annotated[Optional[int], Query(description="Идентификатор ребенка")] = None
 ) -> StatusDnevnikNotificationsApiResponse:
+    request.state.session_id = sessionId
     return await service.getStatusDnevnikNotifications(sessionId, childId)
 
 
@@ -68,11 +74,13 @@ async def _getStatusDnevnikNotifications0(
     response_model=SwitchDnevnikNotificationsApiResponse
 )
 async def _switchDnevnikNotifications0(
+        request: Request,
         status: Annotated[bool, Query(description="Новый статус настройки")],
         sessionId: Annotated[str, Header(description="Идентификатор сессии", min_length=1, max_length=32)],
         service: SettingsService = Depends(get_settings_service),
         childId: Annotated[Optional[int], Query(description="Идентификатор ребенка")] = None,
 ) -> SwitchDnevnikNotificationsApiResponse:
+    request.state.session_id = sessionId
     return await service.switchDnevnikNotifications(sessionId, childId, status)
 
 
@@ -83,8 +91,10 @@ async def _switchDnevnikNotifications0(
     response_model=UpdateFirebaseApiResponse
 )
 async def _updateFirebase0(
+        request: Request,
         sessionId: Annotated[str, Query(description="Идентификатор сессии", min_length=1, max_length=32)],
         firebaseToken: Annotated[Optional[str], Query(description="Firebase-токен для отправки уведомлений клиенту", min_length=1, max_length=4096)] = None,
         service: SettingsService = Depends(get_settings_service)
 ) -> UpdateFirebaseApiResponse:
+    request.state.session_id = sessionId
     return await service.update_firebase(sessionId, firebaseToken)

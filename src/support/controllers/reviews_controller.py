@@ -31,11 +31,13 @@ public_router = APIRouter(prefix='/reviews', tags=["Reviews"])
     response_model=CreateReviewApiResponse
 )
 async def _createReview0(
+        request: Request,
         stars: Annotated[int, Query(description="Оценка от 1 до 5", ge=1, le=5)],
         sessionId: Annotated[str, Query(description="Идентификатор сессии", min_length=1, max_length=32)],
         text: Annotated[Optional[str], Body(description="Текст отзыва", media_type='text/plain', min_length=1, max_length=256)] = None,
         service: ReviewsService = Depends(get_reviews_service)
 ) -> CreateReviewApiResponse:
+    request.state.session_id = sessionId
     return await service.create_review(sessionId, stars, text)
 
 
@@ -46,9 +48,11 @@ async def _createReview0(
     response_model=MyReviewApiResponse
 )
 async def _getMyReview0(
+        request: Request,
         sessionId: Annotated[str, Query(description="Идентификатор сессии", min_length=1, max_length=32)],
         service: ReviewsService = Depends(get_reviews_service)
 ) -> MyReviewApiResponse:
+    request.state.session_id = sessionId
     return await service.get_my_review(sessionId)
 
 
@@ -59,9 +63,11 @@ async def _getMyReview0(
     response_model=DeleteReviewApiResponse
 )
 async def _deleteReview0(
+        request: Request,
         sessionId: Annotated[str, Query(description="Идентификатор сессии", min_length=1, max_length=32)],
         service: ReviewsService = Depends(get_reviews_service)
 ) -> DeleteReviewApiResponse:
+    request.state.session_id = sessionId
     return await service.delete_review(sessionId)
 
 
@@ -87,10 +93,12 @@ async def _getReviews0(
     response_model=LikeReviewApiResponse
 )
 async def _likeReview0(
+        request: Request,
         reviewId: Annotated[int, Query(description="Идентификатор отзыва", ge=1, le=2**63-1)],
         sessionId: Annotated[str, Query(description="Идентификатор сессии", min_length=1, max_length=32)],
         service: ReviewsService = Depends(get_reviews_service)
 ) -> LikeReviewApiResponse:
+    request.state.session_id = sessionId
     return await service.like_review(sessionId, reviewId)
 
 
@@ -108,6 +116,7 @@ async def _public_likeReview0(
 ) -> LikeReviewApiResponse:
     csrf_token = request.cookies.get('csrf_token')
     session_id = request.cookies.get('session_id')
+    request.state.session_id = session_id
     if csrf_token != csrfToken:
         return LikeReviewApiResponse(
             status=False,
@@ -133,10 +142,12 @@ async def _public_likeReview0(
     response_model=DeleteReviewLikeApiResponse
 )
 async def _deleteReviewLike0(
+        request: Request,
         reviewId: Annotated[int, Query(description="Идентификатор отзыва", ge=1, le=2**63-1)],
         sessionId: Annotated[str, Query(description="Идентификатор сессии", min_length=1, max_length=32)],
         service: ReviewsService = Depends(get_reviews_service)
 ) -> DeleteReviewLikeApiResponse:
+    request.state.session_id = sessionId
     return await service.delete_review_like(sessionId, reviewId)
 
 
@@ -154,6 +165,7 @@ async def _public_deleteReviewLike0(
 ) -> DeleteReviewLikeApiResponse:
     csrf_token = request.cookies.get('csrf_token')
     session_id = request.cookies.get('session_id')
+    request.state.session_id = session_id
     if csrf_token != csrfToken:
         return DeleteReviewLikeApiResponse(
             status=False,

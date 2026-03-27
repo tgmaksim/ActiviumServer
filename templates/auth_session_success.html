@@ -6,7 +6,7 @@
 
     <title>Авторизация успешна — Активиум</title>
 
-    <link href="/css/style.css" rel="stylesheet">
+    <link href="/css/main.css" rel="stylesheet">
     <link href="/css/error.css" rel="stylesheet">
 
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -50,14 +50,14 @@
 
 <script src="/js/theme.js"></script>
 <script>
-    const redirectUrl = "tgm://activium/open/";
+    const redirectUrl = "tgm://activium/open";
 
     function openApp() {
         const token = Math.random().toString().substring(2);
-        location.replace(`${redirectUrl}?updateScheduleToken=${token}');
+        location.replace(`${redirectUrl}?updateScheduleToken=${token}`);
     }
 
-    setTimeout(openApp, 2500);
+    openApp();
 </script>
 </body>
 </html>

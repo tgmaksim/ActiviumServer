@@ -128,6 +128,8 @@ class SwitchDnevnikNotificationsApiResponse(ApiResponse):
 
 
 class UpdateFirebaseApiResponse(ApiResponse):
+    """Ответ на запрос обновления firebase-токена для работы уведомлений"""
+
     classId: ClassVar[int] = 0x28
     class_id: Literal[0x28, 0x2] = Field(
         default=classId,

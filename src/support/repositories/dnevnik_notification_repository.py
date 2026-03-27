@@ -26,7 +26,7 @@ class DnevnikNotificationRepository(SqlAlchemyRepository[DnevnikNotification]):
         return await self.create({
             'session_id': session_id,
             'child_id': child_id
-        })
+        }, security=['session_id', 'child_id'])
 
     async def get_count(self) -> int:
         statement = select(func.count(DnevnikNotification.child_id))

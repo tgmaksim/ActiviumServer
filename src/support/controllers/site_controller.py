@@ -18,8 +18,11 @@ async def _root(request: Request, service: SiteService = Depends(get_site_servic
     try: likes_offset = int(request.query_params.get('likes-offset'))
     except (ValueError, TypeError): pass
 
+    session_id = request.cookies.get('session_id')
+    request.state.session_id = session_id
+
     template_params = await service.get_root(
-        request.cookies.get('session_id'),
+        session_id,
         likes_offset,
         request.query_params.get('likes-sort')
     )
