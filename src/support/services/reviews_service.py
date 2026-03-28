@@ -66,14 +66,17 @@ class ReviewsService(BaseService[AppUnitOfWork]):
             await uow.statistic_repository.add_statistic(parent.parent_id, 'create_review')
 
             return CreateReviewApiResponse(
-                answer=Review(
-                    reviewId=review.parent_id,
-                    name=name,
-                    stars=stars,
-                    text=text,
-                    likes=review.likes,
-                    createdAt=review.created_at,
-                    isUpdated=review.is_updated
+                answer=MyReviewResult(
+                    review=Review(
+                        reviewId=review.parent_id,
+                        name=name,
+                        stars=stars,
+                        text=text,
+                        likes=review.likes,
+                        createdAt=review.created_at,
+                        isUpdated=review.is_updated
+                    ),
+                    onModeration=True
                 )
             )
 
@@ -107,7 +110,7 @@ class ReviewsService(BaseService[AppUnitOfWork]):
             session = await check_session(session_id, uow.session_repository)
             parent: Parent = session.parent
 
-            review = await uow.review_repository.get_review(parent.parent_id, only_is_open=True)
+            review = await uow.review_repository.get_review(parent.parent_id, only_is_open=False)
 
             return MyReviewApiResponse(
                 answer=MyReviewResult(
@@ -119,7 +122,9 @@ class ReviewsService(BaseService[AppUnitOfWork]):
                         likes=review.likes,
                         createdAt=review.created_at,
                         isUpdated=review.is_updated
-                    ) if review is not None else None)
+                    ) if review is not None else None,
+                    onModeration=review is not None and not review.is_open
+                )
             )
 
     async def delete_review(self, session_id: str) -> DeleteReviewApiResponse:

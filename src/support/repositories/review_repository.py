@@ -86,7 +86,8 @@ class ReviewRepository(SqlAlchemyRepository[Review]):
     async def check_review(review: Review):
         await send_admin_message(
             f"Новый отзыв от {review.name}!\n"
-            f"Оценка: {'<tg-emoji emoji-id="5435957248314579621">⭐️</tg-emoji>' * review.stars}\n"
+            f"Оценка: {'<tg-emoji emoji-id="5435957248314579621">⭐️</tg-emoji>' * review.stars}"
+            f"{'<tg-emoji emoji-id="5994495149336434048">⭐️</tg-emoji>' * (5 - review.stars)}\n"
             f"{f'<blockquote>{escape(review.text)}</blockquote>' if review.text else ''}",
             reply_markup=InlineKeyboardMarkup(inline_keyboard=[
                 [InlineKeyboardButton(

@@ -92,7 +92,7 @@ async def _switchDnevnikNotifications0(
 )
 async def _updateFirebase0(
         request: Request,
-        sessionId: Annotated[str, Query(description="Идентификатор сессии", min_length=1, max_length=32)],
+        sessionId: Annotated[str, Header(description="Идентификатор сессии", min_length=1, max_length=32)],
         firebaseToken: Annotated[Optional[str], Query(description="Firebase-токен для отправки уведомлений клиенту", min_length=1, max_length=4096)] = None,
         service: SettingsService = Depends(get_settings_service)
 ) -> UpdateFirebaseApiResponse:

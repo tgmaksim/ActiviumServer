@@ -2,7 +2,7 @@ import datetime
 
 from typing import ClassVar, Literal, Optional
 
-from pydantic import Field
+from pydantic import Field, field_serializer
 
 from ...schemas.base_schema import ApiBase
 from ...schemas.response_schema import ApiResponse
@@ -50,24 +50,14 @@ class Review(ApiBase):
         description="Отзыв был изменен после написания"
     )
 
-
-class CreateReviewApiResponse(ApiResponse):
-    classId: ClassVar[int] = 0x2A
-    class_id: Literal[0x2A, 0x2] = Field(
-        default=classId,
-        alias='classId',
-        description="Идентификатор класса"
-    )
-
-    answer: Optional[Review] = Field(
-        default=None,
-        description="Отзыв, который создан"
-    )
+    @field_serializer('createdAt')
+    def serialize_dt(self, dt: datetime.datetime, _info):
+        return dt.replace(microsecond=0).isoformat()
 
 
 class MyReviewResult(ApiBase):
-    classId: ClassVar[int] = 0x2B
-    class_id: Literal[0x2B] = Field(
+    classId: ClassVar[int] = 0x2A
+    class_id: Literal[0x2A] = Field(
         default=classId,
         alias='classId',
         description="Идентификатор класса"
@@ -75,6 +65,23 @@ class MyReviewResult(ApiBase):
 
     review: Optional[Review] = Field(
         description="Отзыв написанный пользователем, если есть"
+    )
+    onModeration: bool = Field(
+        description="Отзыв на модерации"
+    )
+
+
+class CreateReviewApiResponse(ApiResponse):
+    classId: ClassVar[int] = 0x2B
+    class_id: Literal[0x2B, 0x2] = Field(
+        default=classId,
+        alias='classId',
+        description="Идентификатор класса"
+    )
+
+    answer: Optional[MyReviewResult] = Field(
+        default=None,
+        description="Отзыв, который создан"
     )
 
 

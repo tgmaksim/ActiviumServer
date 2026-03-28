@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Query, Depends, Body, Request
+from fastapi import APIRouter, Query, Depends, Body, Request, Header
 
 from ..schemas.dnevnik_tools_schemas import (
     NoteApiResponse,
@@ -28,7 +28,7 @@ async def _createNote0(
         request: Request,
         lessonKey: Annotated[str, Query(description="Ключ от урока, к которому нужно создать заметку", pattern=r'[0-9a-z]{1,13}', min_length=1, max_length=32)],
         text: Annotated[str, Body(media_type='plain/text', description="Текст заметки", min_length=1, max_length=128)],
-        sessionId: Annotated[str, Query(description="Идентификатор сессии", min_length=1, max_length=32)],
+        sessionId: Annotated[str, Header(description="Идентификатор сессии", min_length=1, max_length=32)],
         service: DnevnikToolsService = Depends(get_dnevnik_tools_service)
 ) -> CreateNoteApiResponse:
     request.state.session_id = sessionId
@@ -44,7 +44,7 @@ async def _createNote0(
 async def _getNote0(
         request: Request,
         lessonKey: Annotated[str, Query(description="Ключ от урока, к которому нужно создать заметку", pattern=r'[0-9a-z]{1,13}', min_length=1, max_length=32)],
-        sessionId: Annotated[str, Query(description="Идентификатор сессии", min_length=1, max_length=32)],
+        sessionId: Annotated[str, Header(description="Идентификатор сессии", min_length=1, max_length=32)],
         service: DnevnikToolsService = Depends(get_dnevnik_tools_service)
 ) -> NoteApiResponse:
     request.state.session_id = sessionId
@@ -60,7 +60,7 @@ async def _getNote0(
 async def _deleteNote0(
         request: Request,
         lessonKey: Annotated[str, Query(description="Ключ от урока, к которому нужно создать заметку", pattern=r'[0-9a-z]{1,13}', min_length=1, max_length=32)],
-        sessionId: Annotated[str, Query(description="Идентификатор сессии", min_length=1, max_length=32)],
+        sessionId: Annotated[str, Header(description="Идентификатор сессии", min_length=1, max_length=32)],
         service: DnevnikToolsService = Depends(get_dnevnik_tools_service)
 ) -> DeleteNoteApiResponse:
     request.state.session_id = sessionId
@@ -76,7 +76,7 @@ async def _deleteNote0(
 async def _sendPraise0(
         request: Request,
         lessonKey: Annotated[str, Query(description="Ключ от урока, по которому нужно отправить похвалу", pattern=r'[0-9a-z]{1,13}', min_length=1, max_length=32)],
-        sessionId: Annotated[str, Query(description="Идентификатор сессии", min_length=1, max_length=32)],
+        sessionId: Annotated[str, Header(description="Идентификатор сессии", min_length=1, max_length=32)],
         service: DnevnikToolsService = Depends(get_dnevnik_tools_service)
 ) -> PraiseApiResponse:
     request.state.session_id = sessionId
