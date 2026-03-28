@@ -14,8 +14,6 @@ async function toggleLike(reviewId, btn) {
             }
         });
 
-        if (!res.ok) throw new Error();
-
         const data = await res.json();
 
         if (data.error && data.error.errorMessage) {

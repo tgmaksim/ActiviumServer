@@ -174,7 +174,7 @@ class DnevnikNotificationWorker:
             image=self.get_mark_url(mark['value'], mark['mood']),
             title=f"{'🥳 Ура! ' * (mark['mood'] == 'good')}Новая оценка",
             message=f"Вам выставили «{mark['value']}» по предмету {mark['subject']}",
-            channel=AppNotificationChannel.marks
+            channel=AppNotificationChannel.dnevnik
         ) for firebase_token, mark in pushes])
 
     def get_mark_url(self, mark: str, mark_type: str) -> Optional[str]:

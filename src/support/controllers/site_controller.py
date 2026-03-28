@@ -1,5 +1,7 @@
+from typing import Annotated, Optional
+
 from fastapi.responses import HTMLResponse
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Request, Query
 
 from ..services.site_service import SiteService
 
@@ -13,12 +15,16 @@ router = APIRouter()
 
 
 @router.get("/", include_in_schema=False)
-async def _root(request: Request, service: SiteService = Depends(get_site_service)):
+async def _root(
+        request: Request,
+        sessionId: Annotated[Optional[str], Query(description="Идентификатор сессия для статистики и пользовательских взаимодействий на сайте")] = None,
+        service: SiteService = Depends(get_site_service)
+):
     likes_offset = None
     try: likes_offset = int(request.query_params.get('likes-offset'))
     except (ValueError, TypeError): pass
 
-    session_id = request.cookies.get('session_id')
+    session_id = sessionId or request.cookies.get('session_id')
     request.state.session_id = session_id
 
     template_params = await service.get_root(
@@ -35,6 +41,7 @@ async def _root(request: Request, service: SiteService = Depends(get_site_servic
         context=template_params.context
     )
 
+    response.set_cookie('session_id', session_id, max_age=30 * 24 * 60 * 60, secure=True, httponly=True)
     if template_params.cookies:
         response.set_cookie(**template_params.cookies)
 

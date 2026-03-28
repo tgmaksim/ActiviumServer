@@ -1,6 +1,7 @@
 from asyncio import gather
 from typing import Callable, Optional
 
+from asyncpg import UniqueViolationError
 from httpx import AsyncClient
 from dnevnikru import AioDnevnikruApi, BaseDnevnikruException
 
@@ -201,7 +202,10 @@ class SettingsService(BaseService[AppUnitOfWork]):
                     )
                 )
 
-            await uow.dnevnik_notification_repository.turn_on(session_id, child_id)
+            try:
+                await uow.dnevnik_notification_repository.turn_on(session_id, child_id)
+            except UniqueViolationError:
+                pass
             await uow.statistic_repository.add_statistic(parent.parent_id, 'turnOnDnevnikNotifications')
 
             return SwitchDnevnikNotificationsApiResponse()

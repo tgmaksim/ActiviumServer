@@ -18,9 +18,9 @@ class FirebaseApiError(Exception):
 
 
 class AppNotificationChannel(Enum):
-    marks = 'extracurricularActivities'
-    service = 'extracurricularActivities'
-    praise = 'extracurricularActivities'
+    dnevnik = 'dnevnik'
+    service = 'service'
+    praise = 'praise'
 
 
 class Notification(BaseModel):
