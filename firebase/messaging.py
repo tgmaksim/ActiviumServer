@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Optional
+from typing import Optional, Any
 
 from pydantic import BaseModel, HttpUrl
 
@@ -29,6 +29,7 @@ class Notification(BaseModel):
     title: str
     message: str
     channel: AppNotificationChannel
+    data: dict[str, Any] = {}
 
 
 async def send_notifications(notifications: list[Notification]):
@@ -39,7 +40,11 @@ async def send_notifications(notifications: list[Notification]):
             image=str(notification.image)
         ),
         token=notification.firebase_token,
-        android=AndroidConfig.build(priority='high', channel_id=notification.channel.value)
+        android=AndroidConfig.build(
+            priority='high',
+            channel_id=notification.channel.value,
+            data=notification.data
+        )
     ) for notification in notifications]
 
     try:

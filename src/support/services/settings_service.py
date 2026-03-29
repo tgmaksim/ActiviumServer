@@ -71,12 +71,11 @@ class SettingsService(BaseService[AppUnitOfWork]):
 
             dnr = AioDnevnikruApi(self.httpx_client, session.dnevnik_token)
 
-            if parent.active_child_id == child_id:
-                await uow.statistic_repository.add_statistic(parent.parent_id, 'setActiveChild')
-                return SwitchActiveChildApiResponse()
-
             try:
-                children = await dnr.get_children(parent.parent_id)
+                children, info = await gather(
+                    dnr.get_children(parent.parent_id),
+                    dnr.get_info()
+                )
             except BaseDnevnikruException as e:
                 if not await uow.session_repository.check_session_auth(session.session_id, dnr):
                     raise SessionError(session_id=session.session_id) from e
@@ -135,7 +134,18 @@ class SettingsService(BaseService[AppUnitOfWork]):
 
             await uow.statistic_repository.add_statistic(parent.parent_id, 'setActiveChild')
 
-            return SwitchActiveChildApiResponse()
+            return SwitchActiveChildApiResponse(
+                answer=ChildrenResult(
+                    children=[Child(
+                        childId=int(child['id']),
+                        name=child['shortName']
+                    ) for child in children] or [Child(
+                        childId=int(info['personId']),
+                        name=info['shortName']
+                    )],
+                    activeChildId=child_id
+                )
+            )
 
     async def getStatusDnevnikNotifications(self, session_id: str, child_id: Optional[int]) -> StatusDnevnikNotificationsApiResponse:
         async with self.uow_factory() as uow:

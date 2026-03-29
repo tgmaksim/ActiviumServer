@@ -74,9 +74,9 @@ class SwitchActiveChildApiResponse(ApiResponse):
         description="Идентификатор класса"
     )
 
-    answer: None = Field(
+    answer: Optional[ChildrenResult] = Field(
         default=None,
-        description="Всегда null"
+        description="Данные о детях пользователя"
     )
 
 
