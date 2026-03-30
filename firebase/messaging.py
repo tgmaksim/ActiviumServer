@@ -33,7 +33,7 @@ class Notification(BaseModel):
 
 
 async def send_notifications(notifications: list[Notification]):
-    messages = [FCMMessage(
+    messages = {notification.firebase_token: FCMMessage(
         notification=FCMNotification(
             title=notification.title,
             body=notification.message,
@@ -45,10 +45,10 @@ async def send_notifications(notifications: list[Notification]):
             channel_id=notification.channel.value,
             data=notification.data
         )
-    ) for notification in notifications]
+    ) for notification in notifications}
 
     try:
-        response = await client.send_each(messages)
+        response = await client.send_each(list(messages.values()))
         print(response)
     except Exception as e:
         raise FirebaseApiError(e)
