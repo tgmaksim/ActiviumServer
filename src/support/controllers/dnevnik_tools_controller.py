@@ -1,4 +1,4 @@
-from typing import Annotated
+from typing import Annotated, Optional
 
 from fastapi import APIRouter, Query, Depends, Body, Request, Header
 
@@ -28,11 +28,12 @@ async def _createNote0(
         request: Request,
         lessonKey: Annotated[str, Query(description="Ключ от урока, к которому нужно создать заметку", pattern=r'[0-9a-z]{1,13}', min_length=1, max_length=32)],
         text: Annotated[str, Body(media_type='plain/text', description="Текст заметки", min_length=1, max_length=128)],
+        public: Annotated[bool, Query(description="Заметка доступна родителю")],
         sessionId: Annotated[str, Header(description="Идентификатор сессии", min_length=1, max_length=32)],
         service: DnevnikToolsService = Depends(get_dnevnik_tools_service)
 ) -> CreateNoteApiResponse:
     request.state.session_id = sessionId
-    return await service.create_note(sessionId, lessonKey, text)
+    return await service.create_note(sessionId, lessonKey, text, public)
 
 
 @router.get(
@@ -77,7 +78,8 @@ async def _sendPraise0(
         request: Request,
         lessonKey: Annotated[str, Query(description="Ключ от урока, по которому нужно отправить похвалу", pattern=r'[0-9a-z]{1,13}', min_length=1, max_length=32)],
         sessionId: Annotated[str, Header(description="Идентификатор сессии", min_length=1, max_length=32)],
+        text: Annotated[Optional[str], Body(media_type="plain/text", description="Короткое сообщение ребенку", min_length=1, max_length=64)] = None,
         service: DnevnikToolsService = Depends(get_dnevnik_tools_service)
 ) -> PraiseApiResponse:
     request.state.session_id = sessionId
-    return await service.send_praise(sessionId, lessonKey)
+    return await service.send_praise(sessionId, lessonKey, text)

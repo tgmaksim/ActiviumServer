@@ -24,6 +24,9 @@ class Note(ApiBase):
     text: str = Field(
         description="Текст заметки"
     )
+    public: bool = Field(
+        description="Заметка доступна родителю"
+    )
 
 
 class CreateNoteResult(ApiBase):

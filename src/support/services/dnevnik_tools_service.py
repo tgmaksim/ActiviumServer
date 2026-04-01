@@ -1,6 +1,6 @@
 from asyncio import gather
-from typing import Callable
 from httpx import AsyncClient
+from typing import Callable, Optional
 
 from dnevnikru.aiodnevnikru.dnevnikru import AioDnevnikruApi
 from dnevnikru.exceptions import BaseDnevnikruException, InvalidResponseException
@@ -33,7 +33,7 @@ class DnevnikToolsService(BaseService[AppUnitOfWork]):
         super().__init__(uow_factory)
         self.httpx_client = httpx_client
 
-    async def create_note(self, session_id: str, lesson_key: str, text: str) -> CreateNoteApiResponse:
+    async def create_note(self, session_id: str, lesson_key: str, text: str, public: bool) -> CreateNoteApiResponse:
         async with self.uow_factory() as uow:
             session = await check_session(session_id, uow.session_repository)
             parent: Parent = session.parent
@@ -46,6 +46,16 @@ class DnevnikToolsService(BaseService[AppUnitOfWork]):
                     error=ApiError(
                         type="ValueError",
                         errorMessage="Урок не найден"
+                    )
+                )
+
+            note = await uow.lesson_note_repository.get_note(parent.active_child_id, lesson_id)
+            if note is not None and not note.public and parent.parent_id != parent.active_child_id:
+                return CreateNoteApiResponse(
+                    status=False,
+                    error=ApiError(
+                        type="NoteAccessDeniedError",
+                        errorMessage="Заметка на данный урок уже создана ребенком"
                     )
                 )
 
@@ -66,7 +76,7 @@ class DnevnikToolsService(BaseService[AppUnitOfWork]):
                     )
                 raise
 
-            await uow.lesson_note_repository.create_note(parent.active_child_id, lesson_id, text)
+            await uow.lesson_note_repository.create_note(parent.active_child_id, lesson_id, text, public)
 
             await uow.statistic_repository.add_statistic(parent.parent_id, 'create_note')
 
@@ -74,7 +84,8 @@ class DnevnikToolsService(BaseService[AppUnitOfWork]):
                 answer=CreateNoteResult(
                     note=Note(
                         lessonKey=lesson_key,
-                        text=text
+                        text=text,
+                        public=public
                     )
                 )
             )
@@ -95,7 +106,8 @@ class DnevnikToolsService(BaseService[AppUnitOfWork]):
                 answer=NoteResult(
                     note=Note(
                         lessonKey=lesson_key,
-                        text=note.text
+                        text=note.text,
+                        public=note.public
                     ) if note else None
                 )
             )
@@ -126,7 +138,7 @@ class DnevnikToolsService(BaseService[AppUnitOfWork]):
 
             return DeleteNoteApiResponse()
 
-    async def send_praise(self, session_id: str, lesson_key: str) -> PraiseApiResponse:
+    async def send_praise(self, session_id: str, lesson_key: str, text: Optional[str]) -> PraiseApiResponse:
         async with self.uow_factory() as uow:
             session = await check_session(session_id, uow.session_repository)
             parent: Parent = session.parent
@@ -145,8 +157,9 @@ class DnevnikToolsService(BaseService[AppUnitOfWork]):
             dnr = AioDnevnikruApi(self.httpx_client, session.dnevnik_token)
 
             try:
-                info, lesson, marks = await gather(
+                info, children_relatives, lesson, marks = await gather(
                     dnr.get_info(),
+                    dnr.get_children_relatives(),
                     dnr.get_lesson(lesson_id),
                     dnr.get_person_marks_by_lesson(parent.active_child_id, lesson_id)
                 )
@@ -191,13 +204,37 @@ class DnevnikToolsService(BaseService[AppUnitOfWork]):
                     )
                 )
 
-            verb = "похвалила" if info['sex'] == 'female' else "похвалил"
+            verb = "похвалила" if info['sex'] == 'Female' else "похвалил"
+            quote = f": «{text}»".strip() if text else ""
             text_marks = '/'.join(map(lambda mark: mark['textValue'], marks))
+
+            parent_name = info['shortName']
+            relatives = {
+                "Mother": "Мама",
+                "Father": "Папа",
+                "Grandmother": "Бабушка",
+                "Grandfather": "Дедушка",
+                "Aunt": "Тетя",
+                "Uncle": "Дядя",
+                "Tutor": "Опекун",
+                "Stepmother": "Мачеха",
+                "Stepfather": "Отчим"
+            }
+
+            for child_relatives in children_relatives:
+                if child_relatives['person']['id'] != parent.active_child_id:
+                    continue
+
+                for child_relative in child_relatives['relatives']:
+                    if child_relative['person']['id'] != parent.parent_id:
+                        continue
+
+                    parent_name = relatives.get(child_relative['type'], parent_name)
 
             await send_notifications([Notification(
                 firebase_token=child_session.firebase_token,
                 title="😎 Получай похвалу 🥰",
-                message=f"{info['shortName']} {verb} тебя за «{text_marks}» по предмету {lesson['subject']['name']}",
+                message=f"{parent_name} {verb} за «{text_marks}» ({lesson['subject']['name']}){quote}",
                 channel=AppNotificationChannel.praise
             ) for child_session in child_sessions if child_session.firebase_token is not None])
 

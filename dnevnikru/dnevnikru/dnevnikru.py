@@ -153,3 +153,8 @@ class DnevnikruApi(BaseDnevnikruApi):
         """Оценки персоны за урок в учебной группе"""
 
         return self.get(f"persons/{person}/lessons/{lesson}/marks")
+
+    def get_children_relatives(self) -> list[dict]:
+        """Родственные связи все своих детей"""
+
+        return self.get("users/me/childrenrelatives")

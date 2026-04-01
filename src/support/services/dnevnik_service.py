@@ -7,8 +7,6 @@ from typing import Callable, Optional, Literal
 from httpx import AsyncClient
 from datetime import datetime, timedelta, time, date, UTC
 
-from yarl import URL
-
 from dnevnikru.exceptions import BaseDnevnikruException
 from dnevnikru.aiodnevnikru.dnevnikru import AioDnevnikruApi
 
@@ -114,7 +112,9 @@ class DnevnikService(BaseService[AppUnitOfWork]):
                 class_days_schedule[lesson['date']].append(lesson)
                 lessons_id.append(lesson['id'])
 
-            notes = await uow.lesson_note_repository.get_notes(parent.active_child_id, lessons_id)
+            # Показывать только открытые заметки для родителя
+            only_public_notes = parent.parent_id != parent.active_child_id
+            notes = await uow.lesson_note_repository.get_notes(parent.active_child_id, lessons_id, only_public=only_public_notes)
 
             days_hash: dict[datetime, str] = {}
             for day in class_days_schedule:
@@ -258,21 +258,10 @@ class DnevnikService(BaseService[AppUnitOfWork]):
                 file = files[file_id]
                 results[homework['id']].append(ScheduleHomeworkDocument(
                     fileName=f"{file['name']}.{file['type'].lower()}",
-                    downloadUrl=file['downloadUrl'],
-                    insideOpenUrl=cls.get_insideOpenUrl(file['type'].lower(), file['downloadUrl'])
+                    downloadUrl=file['downloadUrl']
                 ))
 
         return results
-
-    @classmethod
-    def get_insideOpenUrl(cls, file_type: str, download_url: str) -> str:
-        photo = {'.jpg', '.jpeg', '.png'}
-        if file_type in photo:
-            return download_url
-
-        url = URL("https://docs.google.com/gview?embedded=true")
-        url = url.update_query(url=download_url)
-        return str(url)  # TODO
 
     @classmethod
     async def _get_schedule_marks(

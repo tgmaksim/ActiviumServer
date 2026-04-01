@@ -32,10 +32,6 @@ class ScheduleHomeworkDocument(ApiBase):
         description="Ссылка для загрузки файла",
         examples=["https://b1.csdnevnik.ru/file.docx"]
     )
-    insideOpenUrl: Optional[str] = Field(
-        description="Ссылка для открытия документа во внутреннем браузере приложения (прямая или через обработчик документов)",
-        examples=["https://b1.csdnevnik.ru/file.docx"]
-    )
 
 
 class ScheduleHours(ApiBase):
