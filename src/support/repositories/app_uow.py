@@ -16,6 +16,7 @@ from .review_likes_repository import ReviewLikeRepository
 from .ea_notification_repository import EANotificationRepository
 from ...repositories.statistic_repository import StatisticRepository
 from .marks_notification_repository import MarksNotificationRepository
+from .highlighting_person_repository import HighlightingPersonRepository
 from .extracurricular_activity_repository import ExtracurricularActivityRepository
 from .ea_processing_notification_repository import EAProcessingNotificationRepository
 
@@ -45,6 +46,7 @@ class AppUnitOfWork(SqlAlchemyUnitOfWork):
         self._lesson_note_repository: Optional[LessonNoteRepository] = None
         self._ea_notification_repository: Optional[EANotificationRepository] = None
         self._ea_processing_notification_repository: Optional[EAProcessingNotificationRepository] = None
+        self._highlighting_person_repository: Optional[HighlightingPersonRepository] = None
 
     @property
     def log_repository(self) -> LogRepository:
@@ -141,3 +143,9 @@ class AppUnitOfWork(SqlAlchemyUnitOfWork):
         if self._ea_processing_notification_repository is None:
             self._ea_processing_notification_repository = EAProcessingNotificationRepository(self.queue)
         return self._ea_processing_notification_repository
+
+    @property
+    def highlighting_person_repository(self) -> HighlightingPersonRepository:
+        if self._highlighting_person_repository is None:
+            self._highlighting_person_repository = HighlightingPersonRepository(self.queue)
+        return self._highlighting_person_repository

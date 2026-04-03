@@ -17,6 +17,7 @@ from ...dependencies.datetime import datetime_now, astimezone
 from ...services.base_service import BaseService
 from ..repositories.app_uow import AppUnitOfWork
 from ..repositories.cache_repository import CacheRepository
+from ..repositories.highlighting_person_repository import HighlightingPersonRepository
 from ..repositories.extracurricular_activity_repository import ExtracurricularActivityRepository
 
 from ...models.child_model import Child
@@ -95,7 +96,7 @@ class DnevnikService(BaseService[AppUnitOfWork]):
             try:
                 (person_schedule, files), (marks, others_marks), active_period = await gather(
                     self._get_person_schedule(dnr, child, start_date, end_date),
-                    self._get_schedule_marks(uow.cache_repository, dnr, session, child, start_date, end_date),
+                    self._get_schedule_marks(uow.cache_repository, dnr, uow.highlighting_person_repository, session, child, start_date, end_date),
                     self._get_period(uow.cache_repository, dnr, session, child, now.date())
                 )
             except BaseDnevnikruException as e:
@@ -239,6 +240,7 @@ class DnevnikService(BaseService[AppUnitOfWork]):
     @classmethod
     async def _get_schedule_marks(
             cls, cache_repository: CacheRepository, dnr: AioDnevnikruApi,
+            highlighting_person_repository: HighlightingPersonRepository,
             session: Session, child: Child,
             start_date: date, end_date: date
     ) -> tuple[dict[int, list[MarkLog]], dict[int, list[MarksOther]]]:
@@ -253,10 +255,13 @@ class DnevnikService(BaseService[AppUnitOfWork]):
             work_types_id.add(mark['workType'])
             persons_id.add(mark['person'])
 
-        work_types, persons = await gather(
+        work_types, persons, _highlighting_persons = await gather(
             cls._get_work_types(cache_repository, dnr, session, child, work_types_id),
-            cls._get_persons_name(cache_repository, dnr, session, child, persons_id)
+            cls._get_persons_name(cache_repository, dnr, session, child, persons_id),
+            highlighting_person_repository.get_highlighting_persons(session.parent_id)
         )
+
+        highlighting_persons = {person.person_id for person in _highlighting_persons}
 
         for mark in marks:
             mood = mark['mood'].lower() if mark['mood'].lower() in MarkLog.moods else MarkLog.default_mood()
@@ -279,6 +284,8 @@ class DnevnikService(BaseService[AppUnitOfWork]):
                         continue
                     others_marks[mark['lesson']][mark['person']] = MarksOther(
                         name=persons[mark['person']],
+                        person_key=zip_int(mark['person']),
+                        is_highlighting=mark['person'] in highlighting_persons,
                         marks=[]
                     )
 
@@ -290,7 +297,11 @@ class DnevnikService(BaseService[AppUnitOfWork]):
                     created=astimezone(datetime.fromisoformat(mark['date']).replace(tzinfo=UTC), child.timezone)
                 ))
 
-        return my_marks, {lesson_id: sorted(others_marks[lesson_id].values(), key=cls._key_others_marks, reverse=True) for lesson_id in others_marks}
+        return my_marks, {lesson_id: sorted(
+            others_marks[lesson_id].values(),
+            key=cls._key_others_marks,
+            reverse=True
+        ) for lesson_id in others_marks}
 
     @classmethod
     def _key_others_marks(cls, other_marks: MarksOther):
@@ -310,7 +321,7 @@ class DnevnikService(BaseService[AppUnitOfWork]):
 
         if len(marks) == 0:
             return 0, []
-        return sum(marks) / len(marks), marks
+        return other_marks.is_highlighting, sum(marks) / len(marks), marks
 
     @classmethod
     async def _get_work_types(
@@ -786,6 +797,9 @@ class DnevnikService(BaseService[AppUnitOfWork]):
 
             dnr = AioDnevnikruApi(self.httpx_client, session.dnevnik_token)
 
+            _highlighting_persons = await uow.highlighting_person_repository.get_highlighting_persons(parent.parent_id)
+            highlighting_persons = {person.person_id for person in _highlighting_persons}
+
             if key_type == 'w':
                 try:
                     marks = await dnr.get_marks_by_work(entity_id)
@@ -809,7 +823,12 @@ class DnevnikService(BaseService[AppUnitOfWork]):
                     if mark['person'] == child.child_id:
                         marks.append(mark_log)
                     elif name := persons.get(mark['person']):
-                        others_marks.append(MarksOther(name=name, marks=[mark_log]))
+                        others_marks.append(MarksOther(
+                            name=name,
+                            person_key=zip_int(mark['person']),
+                            is_highlighting=mark['person'] in highlighting_persons,
+                            marks=[mark_log]
+                        ))
 
                 avg = self._calc_avg(marks, others_marks)
 
@@ -817,7 +836,11 @@ class DnevnikService(BaseService[AppUnitOfWork]):
 
                 return MarksRatingStatsApiResponse(
                     answer=MarksRatingStatsResult(
-                        othersMarks=sorted(others_marks, key=self._key_others_marks, reverse=True),
+                        othersMarks=sorted(
+                            others_marks,
+                            key=self._key_others_marks,
+                            reverse=True
+                        ),
                         avgGroupMark=avg,
                         oldAvgMark=None,
                         newAvgMark=None
@@ -863,11 +886,20 @@ class DnevnikService(BaseService[AppUnitOfWork]):
                     marks.append(mark_log)
                 elif name := persons.get(mark['person']):
                     if (other := others_marks.get(mark['person'])) is None:
-                        other = MarksOther(name=name, marks=[])
+                        other = MarksOther(
+                            name=name,
+                            person_key=zip_int(mark['person']),
+                            is_highlighting=mark['person'] in highlighting_persons,
+                            marks=[]
+                        )
                         others_marks[mark['person']] = other
                     other.marks.append(mark_log)
 
-            others_marks = sorted(others_marks.values(), key=self._key_others_marks, reverse=True)
+            others_marks = sorted(
+                others_marks.values(),
+                key=self._key_others_marks,
+                reverse=True
+            )
             avg = self._calc_avg(marks, others_marks)
 
             await uow.statistic_repository.add_statistic(parent.parent_id, 'getMarksRatingStats')
@@ -890,7 +922,7 @@ class DnevnikService(BaseService[AppUnitOfWork]):
                 period_id = int(key.group('period_id'), 36)
             except (ValueError, AssertionError) as e:
                 await uow.log_repository.add_log(path='getMarksSubjectRating', session_id=session_id, status=False,
-                                                 value=f"{e.__class__.__name__}: {e}")
+                                                 value=f"{e.__class__.__name__}: {e}; {rating_key}")
                 return MarksSubjectRatingApiResponse(
                     status=False,
                     error=ApiError(
@@ -930,6 +962,9 @@ class DnevnikService(BaseService[AppUnitOfWork]):
             persons_id: set[int] = {person['person'] for person in avg_marks}
             persons_name = await self._get_persons_name(uow.cache_repository, dnr, session, child, persons_id)
 
+            _highlighting_person = await uow.highlighting_person_repository.get_highlighting_persons(parent.parent_id)
+            highlighting_person = {person.person_id for person in _highlighting_person}
+
             class_rating: list[tuple[MarksOther, float, int]] = []
 
             if subject_id is None:
@@ -942,6 +977,8 @@ class DnevnikService(BaseService[AppUnitOfWork]):
 
                     class_rating.append((MarksOther(
                         name=name,
+                        person_key=zip_int(person['person']),
+                        is_highlighting=person['person'] in highlighting_person,
                         marks=[MarkLog(
                             mood=mark_moods.get(round(avg_mark), MarkLog.default_mood()),
                             value=str(avg_mark).replace('.', ','),
@@ -963,6 +1000,8 @@ class DnevnikService(BaseService[AppUnitOfWork]):
 
                         class_rating.append((MarksOther(
                             name=name,
+                            person_key=zip_int(person['person']),
+                            is_highlighting=person['person'] in highlighting_person,
                             marks=[MarkLog(
                                 mood=mark_moods.get(round(avg_mark), MarkLog.default_mood()),
                                 value=subject['avg-mark-value'],
@@ -971,7 +1010,7 @@ class DnevnikService(BaseService[AppUnitOfWork]):
                             )]
                         ), avg_mark, person['person']))
 
-            rating = sorted(class_rating, key=lambda r: (r[1], r[2] == child.child_id), reverse=True)
+            rating = sorted(class_rating, key=lambda r: (r[0].is_highlighting, r[1], r[2] == child.child_id), reverse=True)
 
             me: Optional[int] = None
             last_number = 0
@@ -990,6 +1029,8 @@ class DnevnikService(BaseService[AppUnitOfWork]):
             old_mark = MarksOther(
                 number=old.number,
                 name=persons_name.get(child.child_id, "Я"),
+                person_key=None,
+                is_highlighting=None,
                 marks=[MarkLog(
                     mood=old.mood,
                     value=old.avg,

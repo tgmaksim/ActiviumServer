@@ -7,7 +7,7 @@ from ...schemas.response_schema import ApiResponse
 
 
 __all__ = ['Note', 'CreateNoteResult', 'CreateNoteApiResponse', 'NoteResult', 'NoteApiResponse', 'DeleteNoteApiResponse',
-           'PraiseApiResponse']
+           'PraiseApiResponse', 'HighlightPersonApiResponse', 'UnhighlightPersonApiResponse']
 
 
 class Note(ApiBase):
@@ -100,6 +100,38 @@ class DeleteNoteApiResponse(ApiResponse):
 class PraiseApiResponse(ApiResponse):
     classId: ClassVar[int] = 0x3A
     class_id: Literal[0x3A, 0x2] = Field(
+        default=classId,
+        alias='classId',
+        description="Идентификатор класса"
+    )
+
+    answer: None = Field(
+        default=None,
+        description="Всегда null"
+    )
+
+
+class HighlightPersonApiResponse(ApiResponse):
+    """Ответ на запрос выделения одноклассника в рейтингах"""
+
+    classId: ClassVar[int] = 0x3E
+    class_id: Literal[0x3E, 0x2] = Field(
+        default=classId,
+        alias='classId',
+        description="Идентификатор класса"
+    )
+
+    answer: None = Field(
+        default=None,
+        description="Всегда null"
+    )
+
+
+class UnhighlightPersonApiResponse(ApiResponse):
+    """Ответ на запрос отмены выделения одноклассника в рейтингах"""
+
+    classId: ClassVar[int] = 0x3F
+    class_id: Literal[0x3F, 0x2] = Field(
         default=classId,
         alias='classId',
         description="Идентификатор класса"

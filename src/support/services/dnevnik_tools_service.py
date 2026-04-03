@@ -1,4 +1,6 @@
 from asyncio import gather
+
+from asyncpg import UniqueViolationError
 from httpx import AsyncClient
 from typing import Callable, Optional
 
@@ -15,6 +17,8 @@ from ..schemas.dnevnik_tools_schemas import (
     PraiseApiResponse,
     DeleteNoteApiResponse,
     CreateNoteApiResponse,
+    HighlightPersonApiResponse,
+    UnhighlightPersonApiResponse
 )
 
 from ...models.parent_model import Parent
@@ -241,3 +245,75 @@ class DnevnikToolsService(BaseService[AppUnitOfWork]):
             await uow.statistic_repository.add_statistic(parent.parent_id, 'send_praise')
 
             return PraiseApiResponse()
+
+    async def highlight_person(self, session_id: str, person_key: str) -> HighlightPersonApiResponse:
+        async with self.uow_factory() as uow:
+            session = await check_session(session_id, uow.session_repository)
+            parent: Parent = session.parent
+
+            try:
+                person_id = int(person_key, 36)
+            except ValueError as e:
+                await uow.log_repository.add_log(path='highlightPerson', session_id=session_id, status=False,
+                                                 value=f"{e.__class__.__name__}: {e}")
+                return HighlightPersonApiResponse(
+                    status=False,
+                    error=ApiError(
+                        type="ValueError",
+                        errorMessage="Одноклассник не найден"
+                    )
+                )
+
+            dnr = AioDnevnikruApi(self.httpx_client, session.dnevnik_token)
+
+            try:
+                await dnr.get_person(person_id)
+            except BaseDnevnikruException as e:
+                if not await uow.session_repository.check_session_auth(session.session_id, dnr):
+                    raise SessionError(session_id=session.session_id) from e
+                return HighlightPersonApiResponse(
+                    status=False,
+                    error=ApiError(
+                        type="ValueError",
+                        errorMessage="Одноклассник не найден"
+                    )
+                )
+
+            try:
+                await uow.highlighting_person_repository.highlight_person(parent.parent_id, person_id)
+            except UniqueViolationError:
+                pass
+
+            return HighlightPersonApiResponse()
+
+    async def unhighlight_person(self, session_id: str, person_key: str) -> UnhighlightPersonApiResponse:
+        async with self.uow_factory() as uow:
+            session = await check_session(session_id, uow.session_repository)
+            parent: Parent = session.parent
+
+            try:
+                person_id = int(person_key, 36)
+            except ValueError as e:
+                await uow.log_repository.add_log(path='unhighlightPerson', session_id=session_id, status=False,
+                                                 value=f"{e.__class__.__name__}: {e}")
+                return UnhighlightPersonApiResponse(
+                    status=False,
+                    error=ApiError(
+                        type="ValueError",
+                        errorMessage="Одноклассник не найден"
+                    )
+                )
+
+            highlighting_person = await uow.highlighting_person_repository.get_highlighting_person(parent.parent_id, person_id)
+            if highlighting_person is None:
+                return UnhighlightPersonApiResponse(
+                    status=False,
+                    error=ApiError(
+                        type="ValueError",
+                        errorMessage="Одноклассник не найден"
+                    )
+                )
+
+            await uow.highlighting_person_repository.unhighlight_person(parent.parent_id, person_id)
+
+            return UnhighlightPersonApiResponse()

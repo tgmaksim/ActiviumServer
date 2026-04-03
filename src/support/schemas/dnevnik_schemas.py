@@ -164,6 +164,12 @@ class MarksOther(ApiBase):
     name: str = Field(
         description="Имя и первая буква фамилия ученика(цы)"
     )
+    person_key: Optional[str] = Field(
+        description="Ключ для выделения одноклассника в рейтингах"
+    )
+    is_highlighting: Optional[bool] = Field(
+        description="Одноклассник выделен в рейтинге"
+    )
     marks: list[MarkLog] = Field(
         description="Оценки ученика(цы)"
     )

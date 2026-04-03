@@ -7,6 +7,8 @@ from ..schemas.dnevnik_tools_schemas import (
     PraiseApiResponse,
     DeleteNoteApiResponse,
     CreateNoteApiResponse,
+    HighlightPersonApiResponse,
+    UnhighlightPersonApiResponse
 )
 
 from ..services.dnevnik_tools_service import DnevnikToolsService
@@ -26,7 +28,7 @@ router = APIRouter(prefix='/dtools', tags=["Dnevnik Tools"])
 )
 async def _createNote0(
         request: Request,
-        lessonKey: Annotated[str, Query(description="Ключ от урока, к которому нужно создать заметку", pattern=r'[0-9a-z]{1,13}', min_length=1, max_length=32)],
+        lessonKey: Annotated[str, Query(description="Ключ от урока, к которому нужно создать заметку", pattern=r'[0-9a-z]{1,13}', min_length=1, max_length=13)],
         text: Annotated[str, Body(media_type='plain/text', description="Текст заметки", min_length=1, max_length=128)],
         public: Annotated[bool, Query(description="Заметка доступна родителю")],
         sessionId: Annotated[str, Header(description="Идентификатор сессии", min_length=1, max_length=32)],
@@ -44,7 +46,7 @@ async def _createNote0(
 )
 async def _getNote0(
         request: Request,
-        lessonKey: Annotated[str, Query(description="Ключ от урока, к которому нужно создать заметку", pattern=r'[0-9a-z]{1,13}', min_length=1, max_length=32)],
+        lessonKey: Annotated[str, Query(description="Ключ от урока, к которому нужно создать заметку", pattern=r'[0-9a-z]{1,13}', min_length=1, max_length=13)],
         sessionId: Annotated[str, Header(description="Идентификатор сессии", min_length=1, max_length=32)],
         service: DnevnikToolsService = Depends(get_dnevnik_tools_service)
 ) -> NoteApiResponse:
@@ -60,7 +62,7 @@ async def _getNote0(
 )
 async def _deleteNote0(
         request: Request,
-        lessonKey: Annotated[str, Query(description="Ключ от урока, к которому нужно создать заметку", pattern=r'[0-9a-z]{1,13}', min_length=1, max_length=32)],
+        lessonKey: Annotated[str, Query(description="Ключ от урока, к которому нужно создать заметку", pattern=r'[0-9a-z]{1,13}', min_length=1, max_length=13)],
         sessionId: Annotated[str, Header(description="Идентификатор сессии", min_length=1, max_length=32)],
         service: DnevnikToolsService = Depends(get_dnevnik_tools_service)
 ) -> DeleteNoteApiResponse:
@@ -76,10 +78,44 @@ async def _deleteNote0(
 )
 async def _sendPraise0(
         request: Request,
-        lessonKey: Annotated[str, Query(description="Ключ от урока, по которому нужно отправить похвалу", pattern=r'[0-9a-z]{1,13}', min_length=1, max_length=32)],
+        lessonKey: Annotated[str, Query(description="Ключ от урока, по которому нужно отправить похвалу", pattern=r'[0-9a-z]{1,13}', min_length=1, max_length=13)],
         sessionId: Annotated[str, Header(description="Идентификатор сессии", min_length=1, max_length=32)],
         text: Annotated[Optional[str], Body(media_type="plain/text", description="Короткое сообщение ребенку", min_length=1, max_length=64)] = None,
         service: DnevnikToolsService = Depends(get_dnevnik_tools_service)
 ) -> PraiseApiResponse:
     request.state.session_id = sessionId
     return await service.send_praise(sessionId, lessonKey, text)
+
+
+@router.post(
+    "/highlightPerson/0",
+    summary="Выделение одноклассника в рейтингах",
+    description="Выделение одноклассника во всех рейтингах и списках других оценок. Такой одноклассник будет выше других, "
+                "но сохранится номер его реального места в рейтингах",
+    response_model=HighlightPersonApiResponse
+)
+async def _highlightPerson0(
+        request: Request,
+        personKey: Annotated[str, Query(description="Ключ от одноклассника, которого нужно выделить", pattern=r'[0-9a-z]{1,13}', min_length=1, max_length=13)],
+        sessionId: Annotated[str, Header(description="Идентификатор сессии", min_length=1, max_length=32)],
+        service: DnevnikToolsService = Depends(get_dnevnik_tools_service)
+) -> HighlightPersonApiResponse:
+    request.state.session_id = sessionId
+    return await service.highlight_person(sessionId, personKey)
+
+
+@router.post(
+    "/unhighlightPerson/0",
+    summary="Отмена выделения одноклассника в рейтингах",
+    description="Отмена ранее включенного выделения одноклассника в рейтингах. "
+                "После отключения его положения будет зависеть только от оценок",
+    response_model=UnhighlightPersonApiResponse
+)
+async def _unhighlightPerson0(
+        request: Request,
+        personKey: Annotated[str, Query(description="Ключ от одноклассника, у которого нужно выключить выделение", pattern=r'[0-9a-z]{1,13}', min_length=1, max_length=13)],
+        sessionId: Annotated[str, Header(description="Идентификатор сессии", min_length=1, max_length=32)],
+        service: DnevnikToolsService = Depends(get_dnevnik_tools_service)
+) -> UnhighlightPersonApiResponse:
+    request.state.session_id = sessionId
+    return await service.unhighlight_person(sessionId, personKey)
