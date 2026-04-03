@@ -18,7 +18,8 @@ class FirebaseApiError(Exception):
 
 
 class AppNotificationChannel(Enum):
-    dnevnik = 'dnevnik'
+    extracurricular_activities = 'extracurricular_activities'
+    marks = 'marks'
     service = 'service'
     praise = 'praise'
 
@@ -33,7 +34,7 @@ class Notification(BaseModel):
 
 
 async def send_notifications(notifications: list[Notification]):
-    messages = {notification.firebase_token: FCMMessage(
+    messages = [FCMMessage(
         notification=FCMNotification(
             title=notification.title,
             body=notification.message,
@@ -45,10 +46,10 @@ async def send_notifications(notifications: list[Notification]):
             channel_id=notification.channel.value,
             data=notification.data
         )
-    ) for notification in notifications}
+    ) for notification in notifications]
 
     try:
-        response = await client.send_each(list(messages.values()))
+        response = await client.send_each(messages)
         print(response)
     except Exception as e:
         raise FirebaseApiError(e)

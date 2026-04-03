@@ -18,10 +18,13 @@ from ..schemas.settings_schemas import (
     ChildrenResult,
     ChildrenApiResponse,
     UpdateFirebaseApiResponse,
+    StatusEANotificationsResult,
     SwitchActiveChildApiResponse,
-    StatusDnevnikNotificationsResult,
-    StatusDnevnikNotificationsApiResponse,
-    SwitchDnevnikNotificationsApiResponse,
+    StatusMarksNotificationsResult,
+    StatusEANotificationsApiResponse,
+    SwitchEANotificationsApiResponse,
+    StatusMarksNotificationsApiResponse,
+    SwitchMarksNotificationsApiResponse,
 )
 
 __all__ = ['SettingsService']
@@ -147,7 +150,7 @@ class SettingsService(BaseService[AppUnitOfWork]):
                 )
             )
 
-    async def getStatusDnevnikNotifications(self, session_id: str, child_id: Optional[int]) -> StatusDnevnikNotificationsApiResponse:
+    async def getStatusMarksNotifications(self, session_id: str, child_id: Optional[int]) -> StatusMarksNotificationsApiResponse:
         async with self.uow_factory() as uow:
             session = await check_session(session_id, uow.session_repository)
             parent: Parent = session.parent
@@ -155,15 +158,15 @@ class SettingsService(BaseService[AppUnitOfWork]):
             if child_id is None:
                 child_id = parent.active_child_id
 
-            status = await uow.dnevnik_notification_repository.get_status(session_id, child_id)
+            status = await uow.marks_notification_repository.get_status(session_id, child_id)
 
-            return StatusDnevnikNotificationsApiResponse(
-                answer=StatusDnevnikNotificationsResult(
+            return StatusMarksNotificationsApiResponse(
+                answer=StatusMarksNotificationsResult(
                     status=status is not None
                 )
             )
 
-    async def switchDnevnikNotifications(self, session_id: str, child_id: Optional[int], status: bool) -> SwitchDnevnikNotificationsApiResponse:
+    async def switchMarksNotifications(self, session_id: str, child_id: Optional[int], status: bool) -> SwitchMarksNotificationsApiResponse:
         async with self.uow_factory() as uow:
             session = await check_session(session_id, uow.session_repository)
             parent: Parent = session.parent
@@ -172,9 +175,9 @@ class SettingsService(BaseService[AppUnitOfWork]):
                 child_id = parent.active_child_id
 
             if not status:
-                await uow.dnevnik_notification_repository.turn_off(session_id, child_id)
-                await uow.statistic_repository.add_statistic(parent.parent_id, 'turnOffDnevnikNotifications')
-                return SwitchDnevnikNotificationsApiResponse()
+                await uow.marks_notification_repository.turn_off(session_id, child_id)
+                await uow.statistic_repository.add_statistic(parent.parent_id, 'turnOffMarksNotifications')
+                return SwitchMarksNotificationsApiResponse()
 
             dnr = AioDnevnikruApi(self.httpx_client, session.dnevnik_token)
 
@@ -190,12 +193,12 @@ class SettingsService(BaseService[AppUnitOfWork]):
                     next(filter(lambda c: c['id'] == child_id, children))
                 except StopIteration:
                     await uow.log_repository.add_log(
-                        path='setActiveChild',
+                        path='switchMarksNotifications',
                         status=False,
                         session_id=session_id,
                         value=f"Ребенок {child_id} не найден"
                     )
-                    return SwitchDnevnikNotificationsApiResponse(
+                    return SwitchMarksNotificationsApiResponse(
                         status=False,
                         error=ApiError(
                             type="ValueError",
@@ -203,24 +206,15 @@ class SettingsService(BaseService[AppUnitOfWork]):
                         )
                     )
 
-            if session.firebase_token is None:
-                return SwitchDnevnikNotificationsApiResponse(
-                    status=False,
-                    error=ApiError(
-                        type="ValueError",
-                        errorMessage="Не указан firebase token для включения уведомлений"
-                    )
-                )
-
             try:
-                await uow.dnevnik_notification_repository.turn_on(session_id, child_id)
+                await uow.marks_notification_repository.turn_on(session_id, child_id)
             except UniqueViolationError:
                 pass
-            await uow.statistic_repository.add_statistic(parent.parent_id, 'turnOnDnevnikNotifications')
+            await uow.statistic_repository.add_statistic(parent.parent_id, 'turnOnMarksNotifications')
 
-            return SwitchDnevnikNotificationsApiResponse()
+            return SwitchMarksNotificationsApiResponse()
 
-    async def update_firebase(self, session_id: str, firebase_token: Optional[str]) -> UpdateFirebaseApiResponse:
+    async def update_firebase(self, session_id: str, firebase_token: str) -> UpdateFirebaseApiResponse:
         async with self.uow_factory() as uow:
             session = await check_session(session_id, uow.session_repository)
             parent: Parent = session.parent
@@ -230,3 +224,40 @@ class SettingsService(BaseService[AppUnitOfWork]):
             await uow.statistic_repository.add_statistic(parent.parent_id, 'updateFirebase')
 
             return UpdateFirebaseApiResponse()
+
+    async def getStatusEANotifications(self, session_id: str, child_id: Optional[int]) -> StatusEANotificationsApiResponse:
+        async with self.uow_factory() as uow:
+            session = await check_session(session_id, uow.session_repository)
+            parent: Parent = session.parent
+
+            if child_id is None:
+                child_id = parent.active_child_id
+
+            status = await uow.ea_notification_repository.get_status(session_id, child_id)
+
+            return StatusEANotificationsApiResponse(
+                answer=StatusEANotificationsResult(
+                    status=status is not None
+                )
+            )
+
+    async def switchEANotifications(self, session_id: str, child_id: Optional[int], status: bool) -> SwitchEANotificationsApiResponse:
+        async with self.uow_factory() as uow:
+            session = await check_session(session_id, uow.session_repository)
+            parent: Parent = session.parent
+
+            if child_id is None:
+                child_id = parent.active_child_id
+
+            if status:
+                try:
+                    await uow.ea_notification_repository.turn_on(session_id, child_id)
+                except UniqueViolationError:
+                    pass
+            else:
+                await uow.ea_notification_repository.turn_off(session_id, child_id)
+
+            statistics_key = 'turnOnEANotifications' if status else 'turnOffEANotifications'
+            await uow.statistic_repository.add_statistic(parent.parent_id, statistics_key)
+
+            return SwitchEANotificationsApiResponse()

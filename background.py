@@ -1,6 +1,7 @@
 import asyncio
 
-from dnevnik_notifications import add_work
+from ea_notifications import add_work as add_ea_work
+from marks_notifications import add_work as add_marks_work
 
 from src.dependencies.httpx import get_httpx_client
 from src.dependencies.uow import get_app_uow_factory
@@ -14,7 +15,8 @@ __all__ = ['add_backgrounds']
 def add_backgrounds(loop: asyncio.AbstractEventLoop) -> list[asyncio.Task]:
     tasks = [
         add_polling_task(loop),
-        add_work(loop, get_app_uow_factory(), get_httpx_client())
+        add_marks_work(loop, get_app_uow_factory(), get_httpx_client()),
+        add_ea_work(loop, get_app_uow_factory(), get_httpx_client())
     ]
 
     return tasks

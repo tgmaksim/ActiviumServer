@@ -10,7 +10,7 @@ __all__ = ['Log']
 
 
 class Log(BaseModel):
-    log_id: Mapped[int] = mapped_column(BigInteger, Identity(always=False), primary_key=True)
+    log_id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
     ip: Mapped[Optional[str]] = mapped_column(String(39), nullable=True)
     path: Mapped[str] = mapped_column(String(128))
     session_id: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)

@@ -34,7 +34,7 @@ class SessionRepository(SqlAlchemyRepository[Session]):
             'dnevnik_token': dnevnik_token
         }, Session.session_id == session_id, Session.life == True)
 
-    async def update_firebase(self, session_id: str, firebase_token: Optional[str]):
+    async def update_firebase(self, session_id: str, firebase_token: str):
         return await self.update({
             'firebase_token': firebase_token
         }, Session.session_id == session_id, Session.life == True)

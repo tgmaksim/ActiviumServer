@@ -1,3 +1,5 @@
+import traceback
+
 from fastapi import Request, Response
 from fastapi.responses import JSONResponse
 
@@ -11,7 +13,7 @@ __all__ = ['validation_exception_handler']
 
 
 async def validation_exception_handler(request: Request, exc: RequestValidationError) -> Response:
-    request.state.error = f"{exc.__class__.__name__}: {exc}"
+    request.state.error = '\n'.join(traceback.format_exception(exc))
 
     return JSONResponse(ApiResponse(
         status=False,

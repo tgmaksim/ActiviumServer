@@ -6,8 +6,10 @@ from ..schemas.settings_schemas import (
     ChildrenApiResponse,
     UpdateFirebaseApiResponse,
     SwitchActiveChildApiResponse,
-    SwitchDnevnikNotificationsApiResponse,
-    StatusDnevnikNotificationsApiResponse,
+    StatusEANotificationsApiResponse,
+    SwitchEANotificationsApiResponse,
+    SwitchMarksNotificationsApiResponse,
+    StatusMarksNotificationsApiResponse,
 )
 
 from ..services.settings_service import SettingsService
@@ -52,36 +54,36 @@ async def _setActiveChild0(
 
 
 @router.get(
-    "/getStatusDnevnikNotifications/0",
-    summary="Получение статуса настройки уведомлений",
+    "/getStatusMarksNotifications/0",
+    summary="Получение статуса настройки уведомлений о новых оценках",
     description="Получение статуса (включена или выключена) настройки уведомлений о новых оценках для определенного ребенка",
-    response_model=StatusDnevnikNotificationsApiResponse
+    response_model=StatusMarksNotificationsApiResponse
 )
-async def _getStatusDnevnikNotifications0(
+async def _getStatusMarksNotifications0(
         request: Request,
         sessionId: Annotated[str, Header(description="Идентификатор сессии", min_length=1, max_length=32)],
         service: SettingsService = Depends(get_settings_service),
         childId: Annotated[Optional[int], Query(description="Идентификатор ребенка")] = None
-) -> StatusDnevnikNotificationsApiResponse:
+) -> StatusMarksNotificationsApiResponse:
     request.state.session_id = sessionId
-    return await service.getStatusDnevnikNotifications(sessionId, childId)
+    return await service.getStatusMarksNotifications(sessionId, childId)
 
 
 @router.put(
-    "/switchDnevnikNotifications/0",
-    summary="Изменение уведомлений",
+    "/switchMarksNotifications/0",
+    summary="Изменение уведомлений о новых оценках",
     description="Включение или выключение уведомлений о новых оценках для определенного ребенка",
-    response_model=SwitchDnevnikNotificationsApiResponse
+    response_model=SwitchMarksNotificationsApiResponse
 )
-async def _switchDnevnikNotifications0(
+async def _switchMarksNotifications0(
         request: Request,
         status: Annotated[bool, Query(description="Новый статус настройки")],
         sessionId: Annotated[str, Header(description="Идентификатор сессии", min_length=1, max_length=32)],
         service: SettingsService = Depends(get_settings_service),
         childId: Annotated[Optional[int], Query(description="Идентификатор ребенка")] = None,
-) -> SwitchDnevnikNotificationsApiResponse:
+) -> SwitchMarksNotificationsApiResponse:
     request.state.session_id = sessionId
-    return await service.switchDnevnikNotifications(sessionId, childId, status)
+    return await service.switchMarksNotifications(sessionId, childId, status)
 
 
 @router.put(
@@ -93,8 +95,41 @@ async def _switchDnevnikNotifications0(
 async def _updateFirebase0(
         request: Request,
         sessionId: Annotated[str, Header(description="Идентификатор сессии", min_length=1, max_length=32)],
-        firebaseToken: Annotated[Optional[str], Query(description="Firebase-токен для отправки уведомлений клиенту", min_length=1, max_length=4096)] = None,
+        firebaseToken: Annotated[str, Query(description="Firebase-токен для отправки уведомлений клиенту", min_length=1, max_length=4096)],
         service: SettingsService = Depends(get_settings_service)
 ) -> UpdateFirebaseApiResponse:
     request.state.session_id = sessionId
     return await service.update_firebase(sessionId, firebaseToken)
+
+
+@router.get(
+    "/getStatusEANotifications/0",
+    summary="Получение статуса настройки уведомлений о внеурочных занятиях",
+    description="Получение статуса (включена или выключена) настройки уведомлений о внеурочных занятиях для определенного ребенка",
+    response_model=StatusEANotificationsApiResponse
+)
+async def _getStatusEANotifications0(
+        request: Request,
+        sessionId: Annotated[str, Header(description="Идентификатор сессии", min_length=1, max_length=32)],
+        service: SettingsService = Depends(get_settings_service),
+        childId: Annotated[Optional[int], Query(description="Идентификатор ребенка")] = None
+) -> StatusEANotificationsApiResponse:
+    request.state.session_id = sessionId
+    return await service.getStatusEANotifications(sessionId, childId)
+
+
+@router.put(
+    "/switchEANotifications/0",
+    summary="Изменение уведомлений о внеурочных занятиях",
+    description="Включение или выключение уведомлений о внеурочных занятиях для определенного ребенка",
+    response_model=SwitchEANotificationsApiResponse
+)
+async def _switchEANotifications0(
+        request: Request,
+        status: Annotated[bool, Query(description="Новый статус настройки")],
+        sessionId: Annotated[str, Header(description="Идентификатор сессии", min_length=1, max_length=32)],
+        service: SettingsService = Depends(get_settings_service),
+        childId: Annotated[Optional[int], Query(description="Идентификатор ребенка")] = None,
+) -> SwitchEANotificationsApiResponse:
+    request.state.session_id = sessionId
+    return await service.switchEANotifications(sessionId, childId, status)

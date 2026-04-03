@@ -1,4 +1,5 @@
 import secrets
+import traceback
 
 from asyncio import gather
 from typing import Callable, Optional, Union, Literal
@@ -29,7 +30,7 @@ class LoginService(BaseService[AppUnitOfWork]):
         super().__init__(uow_factory)
         self.httpx_client = httpx_client
 
-    async def login(self, session_id: Optional[str], firebase_token: Optional[str]) -> LoginApiResponse:
+    async def login(self, session_id: Optional[str], firebase_token: str) -> LoginApiResponse:
         async with self.uow_factory() as uow:
             if session_id is None or await uow.session_repository.get_session(session_id) is None:
                 session_id = await self._create_session(uow.session_repository)
@@ -92,7 +93,7 @@ class LoginService(BaseService[AppUnitOfWork]):
                 dnevnik_data = await self._dnevnik_auth(dnevnik_token)
                 assert dnevnik_data is not None, "Данные авторизации пустые"
             except (BaseDnevnikruException, KeyError, IndexError, StopIteration, AssertionError) as e:
-                await log_exception(f"{e.__class__.__name__}: {e}")
+                await log_exception('\n'.join(traceback.format_exception(e)))
                 return HtmlResponse(
                     name='error.html',
                     status_code=500,

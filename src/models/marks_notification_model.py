@@ -11,11 +11,11 @@ from sqlalchemy import BigInteger, ForeignKey, TIMESTAMP, Text, func
 from .base_model import BaseModel
 
 
-__all__ = ['DnevnikNotification']
+__all__ = ['MarksNotification']
 
 
-class DnevnikNotification(BaseModel):
-    __tablename__ = 'dnevnik_notifications'
+class MarksNotification(BaseModel):
+    __tablename__ = 'marks_notifications'
 
     session_id: Mapped[str] = mapped_column(Text(32), ForeignKey("sessions.session_id", onupdate="CASCADE", ondelete="CASCADE"), primary_key=True)
     child_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("children.child_id", onupdate="CASCADE", ondelete="CASCADE"), primary_key=True)

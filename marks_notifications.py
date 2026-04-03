@@ -5,9 +5,10 @@ import traceback
 from yarl import URL
 from pathlib import Path
 from random import shuffle
-from httpx import AsyncClient
 from datetime import datetime, UTC
 from typing import Callable, Optional
+
+from httpx import AsyncClient
 from asyncio import AbstractEventLoop
 
 from PIL.ImageDraw import Draw
@@ -23,13 +24,15 @@ from src.services.log_service import LogService
 from src.dependencies.uow import get_log_uow_factory
 from src.support.schemas.dnevnik_schemas import MarkLog
 from src.support.repositories.app_uow import AppUnitOfWork
-from src.models.dnevnik_notification_model import DnevnikNotification
+from src.models.marks_notification_model import MarksNotification
 
 
-CYCLE_SECONDS = 600
+CYCLE_SECONDS = 10 * 60
+
+__all__ = ['MarksNotificationWorker', 'add_work']
 
 
-class DnevnikNotificationWorker:
+class MarksNotificationWorker:
     def __init__(self, uow_factory: Callable[[], AppUnitOfWork], httpx_client: AsyncClient):
         self._running = True
         self.uow_factory = uow_factory
@@ -38,10 +41,10 @@ class DnevnikNotificationWorker:
     async def run(self):
         service = LogService(get_log_uow_factory())
         await service.log(
-            path='dnevnik_notifications',
+            path='marks_notifications',
             value="Worker запущен"
         )
-        print("dnevnik_notifications запущен")
+        print("marks_notifications запущен")
 
         try:
             while self._running:
@@ -50,19 +53,17 @@ class DnevnikNotificationWorker:
                 children_count = 0
 
                 try:
-                    pushes = []
-
                     async with self.uow_factory() as uow:
                         children_count = await self._children_count(uow)
                         rows = await self._acquire_child(uow)
 
                         pushes = await self._process_child(uow, rows)
 
-                    await self._dispatch_pushes(pushes)
+                        await self._dispatch_pushes(pushes)
                 except Exception as e:
                     service = LogService(get_log_uow_factory())
                     await service.log(
-                        path='dnevnik_notifications',
+                        path='marks_notifications',
                         status=False,
                         value='\n'.join(traceback.format_exception(e))
                     )
@@ -71,11 +72,18 @@ class DnevnikNotificationWorker:
                 sleep_time = self._compute_sleep(children_count, elapsed)
 
                 await asyncio.sleep(sleep_time)
-        finally:
-            print("dnevnik_notifications остановлен")
+        except Exception as e:
             service = LogService(get_log_uow_factory())
             await service.log(
-                path='dnevnik_notifications',
+                path='ea_notifications',
+                status=False,
+                value='\n'.join(traceback.format_exception(e))
+            )
+        finally:
+            print("marks_notifications остановлен")
+            service = LogService(get_log_uow_factory())
+            await service.log(
+                path='marks_notifications',
                 value="Worker остановлен"
             )
 
@@ -83,15 +91,15 @@ class DnevnikNotificationWorker:
     async def _children_count(cls, uow: AppUnitOfWork) -> int:
         """Количество детей, у которых включена функция"""
 
-        return await uow.dnevnik_notification_repository.get_count()
+        return await uow.marks_notification_repository.get_count()
 
     @classmethod
-    async def _acquire_child(cls, uow: AppUnitOfWork) -> list[DnevnikNotification]:
+    async def _acquire_child(cls, uow: AppUnitOfWork) -> list[MarksNotification]:
         """Следующие пользователи, которым нужно отправить уведомление по ребенку"""
 
-        return await uow.dnevnik_notification_repository.get_next_child()
+        return await uow.marks_notification_repository.get_next_child()
 
-    async def _process_child(self, uow: AppUnitOfWork, rows: list[DnevnikNotification]) -> list[tuple[str, dict]]:
+    async def _process_child(self, uow: AppUnitOfWork, rows: list[MarksNotification]) -> list[tuple[str, dict]]:
         """Проверка новых оценок и возвращение необходимых уведомлений"""
 
         if not rows:
@@ -115,31 +123,34 @@ class DnevnikNotificationWorker:
                     turn_off = not await uow.session_repository.check_session_auth(session.session_id)  # Выключается сессия, если больше не работает
                     if not turn_off:  # Логирование ошибки
                         await uow.log_repository.add_log(
-                            path='dnevnik_notifications',
+                            path='marks_notifications',
                             session_id=session.session_id,
                             status=False,
                             value='\n'.join(traceback.format_exception(e))
                         )
 
             if turn_off:
-                await uow.dnevnik_notification_repository.turn_off(session.session_id, child.child_id)
+                await uow.marks_notification_repository.turn_off(session.session_id, child.child_id)
             else:
                 continue  # Использование следующей сессии для получения оценок
 
         pushes = []
-        parents = []
+        parents = set()
+        firebase_tokens = set()
 
         newest_date = None
         if marks:
             newest_date = max(m['date'] for m in marks)
 
             for row in rows:
-                for mark in marks:
-                    if row.session.firebase_token:
-                        parents.append(row.session.parent_id)
+                if row.session.firebase_token not in firebase_tokens:
+                    firebase_tokens.add(row.session.firebase_token)
+                    parents.add(row.session.parent_id)
+
+                    for mark in marks:
                         pushes.append((row.session.firebase_token, mark))
 
-        await uow.dnevnik_notification_repository.update_date(child.child_id, newest_date)
+        await uow.marks_notification_repository.update_date(child.child_id, newest_date)
 
         for parent in parents:
             await uow.statistic_repository.add_statistic(parent, 'dnevnik_notification')
@@ -174,7 +185,7 @@ class DnevnikNotificationWorker:
             image=self.get_mark_url(mark['value'], mark['mood']),
             title=f"{'🥳 Ура! ' * (mark['mood'] == 'good')}Новая оценка",
             message=f"Вам выставили «{mark['value']}» по предмету {mark['subject']}",
-            channel=AppNotificationChannel.dnevnik
+            channel=AppNotificationChannel.marks
         ) for firebase_token, mark in pushes])
 
     def get_mark_url(self, mark: str, mark_type: str) -> Optional[str]:
@@ -225,5 +236,5 @@ class DnevnikNotificationWorker:
 
 
 def add_work(loop: AbstractEventLoop, uow_factory: Callable[[], AppUnitOfWork], httpx_client: AsyncClient):
-    worker = DnevnikNotificationWorker(uow_factory, httpx_client)
+    worker = MarksNotificationWorker(uow_factory, httpx_client)
     return loop.create_task(worker.run())

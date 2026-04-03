@@ -23,8 +23,8 @@ class LoggingMiddleware(BaseMiddleware):
             return result
 
         except Exception as e:
-            error = f"{type(e).__name__}: {e}"
-            print(''.join(traceback.format_exception(e)))
+            error = '\n'.join(traceback.format_exception(e))
+            print(error)
 
             raise
         finally:

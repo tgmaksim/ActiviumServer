@@ -9,9 +9,10 @@ async def main():
     try:
         await service.send_stats_notification()
     except Exception as e:
-        print(''.join(traceback.format_exception(e)))
+        error = '\n'.join(traceback.format_exception(e))
+        print(error)
         await service.log(
             path='statistics',
             status=False,
-            value=f"{e.__class__.__name__}: {e}"
+            value=error
         )

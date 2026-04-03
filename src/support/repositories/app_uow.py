@@ -13,9 +13,11 @@ from .version_repository import VersionRepository
 from .lesson_note_repository import LessonNoteRepository
 from ...repositories.log_repository import LogRepository
 from .review_likes_repository import ReviewLikeRepository
+from .ea_notification_repository import EANotificationRepository
 from ...repositories.statistic_repository import StatisticRepository
-from .dnevnik_notification_repository import DnevnikNotificationRepository
+from .marks_notification_repository import MarksNotificationRepository
 from .extracurricular_activity_repository import ExtracurricularActivityRepository
+from .ea_processing_notification_repository import EAProcessingNotificationRepository
 
 from ...repositories.sqlalchemy_uow import SqlAlchemyUnitOfWork
 
@@ -37,10 +39,12 @@ class AppUnitOfWork(SqlAlchemyUnitOfWork):
         self._cache_repository: Optional[CacheRepository] = None
         self._extracurricular_activity_repository: Optional[ExtracurricularActivityRepository] = None
         self._rating_repository: Optional[RatingRepository] = None
-        self._dnevnik_notification_repository: Optional[DnevnikNotificationRepository] = None
+        self._marks_notification_repository: Optional[MarksNotificationRepository] = None
         self._review_repository: Optional[ReviewRepository] = None
         self._review_like_repository: Optional[ReviewLikeRepository] = None
         self._lesson_note_repository: Optional[LessonNoteRepository] = None
+        self._ea_notification_repository: Optional[EANotificationRepository] = None
+        self._ea_processing_notification_repository: Optional[EAProcessingNotificationRepository] = None
 
     @property
     def log_repository(self) -> LogRepository:
@@ -103,10 +107,10 @@ class AppUnitOfWork(SqlAlchemyUnitOfWork):
         return self._rating_repository
 
     @property
-    def dnevnik_notification_repository(self) -> DnevnikNotificationRepository:
-        if self._dnevnik_notification_repository is None:
-            self._dnevnik_notification_repository = DnevnikNotificationRepository(self.queue)
-        return self._dnevnik_notification_repository
+    def marks_notification_repository(self) -> MarksNotificationRepository:
+        if self._marks_notification_repository is None:
+            self._marks_notification_repository = MarksNotificationRepository(self.queue)
+        return self._marks_notification_repository
 
     @property
     def review_repository(self) -> ReviewRepository:
@@ -125,3 +129,15 @@ class AppUnitOfWork(SqlAlchemyUnitOfWork):
         if self._lesson_note_repository is None:
             self._lesson_note_repository = LessonNoteRepository(self.queue)
         return self._lesson_note_repository
+
+    @property
+    def ea_notification_repository(self) -> EANotificationRepository:
+        if self._ea_notification_repository is None:
+            self._ea_notification_repository = EANotificationRepository(self.queue)
+        return self._ea_notification_repository
+
+    @property
+    def ea_processing_notification_repository(self) -> EAProcessingNotificationRepository:
+        if self._ea_processing_notification_repository is None:
+            self._ea_processing_notification_repository = EAProcessingNotificationRepository(self.queue)
+        return self._ea_processing_notification_repository

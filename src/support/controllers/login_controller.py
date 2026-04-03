@@ -26,8 +26,8 @@ public_router = APIRouter(prefix='/login', tags=["Login"], include_in_schema=Fal
 )
 async def _login0(
         request: Request,
+        firebaseToken: Annotated[str, Query(description="Firebase-токен для отправки уведомлений клиенту", min_length=1, max_length=4096)],
         sessionId: Annotated[Optional[str], Query(description="Ранее использованный идентификатор сессии для повторной авторизации", min_length=1, max_length=32)] = None,
-        firebaseToken: Annotated[Optional[str], Query(description="Firebase-токен для отправки уведомлений клиенту", min_length=1, max_length=4096)] = None,
         service: LoginService = Depends(get_login_service)
 ) -> LoginApiResponse:
     request.state.session_id = sessionId

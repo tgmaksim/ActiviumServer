@@ -5,8 +5,9 @@ from ...schemas.base_schema import ApiBase
 from ...schemas.response_schema import ApiResponse
 
 
-__all__ = ['Child', 'ChildrenResult', 'ChildrenApiResponse', 'SwitchActiveChildApiResponse', 'StatusDnevnikNotificationsResult',
-           'StatusDnevnikNotificationsApiResponse', 'SwitchDnevnikNotificationsApiResponse', 'UpdateFirebaseApiResponse']
+__all__ = ['Child', 'ChildrenResult', 'ChildrenApiResponse', 'SwitchActiveChildApiResponse', 'StatusMarksNotificationsResult',
+           'StatusMarksNotificationsApiResponse', 'SwitchMarksNotificationsApiResponse', 'UpdateFirebaseApiResponse',
+           'StatusEANotificationsResult', 'StatusEANotificationsApiResponse', 'SwitchEANotificationsApiResponse']
 
 
 class Child(ApiBase):
@@ -80,8 +81,8 @@ class SwitchActiveChildApiResponse(ApiResponse):
     )
 
 
-class StatusDnevnikNotificationsResult(ApiBase):
-    """Результат запроса получения статуса настройки уведомлений"""
+class StatusMarksNotificationsResult(ApiBase):
+    """Результат запроса получения статуса настройки уведомлений о новых оценках"""
 
     classId: ClassVar[int] = 0x25
     class_id: Literal[0x25] = Field(
@@ -95,8 +96,8 @@ class StatusDnevnikNotificationsResult(ApiBase):
     )
 
 
-class StatusDnevnikNotificationsApiResponse(ApiResponse):
-    """Ответ на запрос получения статуса настройки уведомлений"""
+class StatusMarksNotificationsApiResponse(ApiResponse):
+    """Ответ на запрос получения статуса настройки уведомлений о новых оценках"""
 
     classId: ClassVar[int] = 0x26
     class_id: Literal[0x26, 0x2] = Field(
@@ -105,14 +106,14 @@ class StatusDnevnikNotificationsApiResponse(ApiResponse):
         description="Идентификатор класса"
     )
 
-    answer: StatusDnevnikNotificationsResult = Field(
+    answer: StatusMarksNotificationsResult = Field(
         default=None,
-        description="Статус настройки уведомлений"
+        description="Статус настройки уведомлений о новых уведомлениях"
     )
 
 
-class SwitchDnevnikNotificationsApiResponse(ApiResponse):
-    """Ответ на запрос изменения настройки уведомлений"""
+class SwitchMarksNotificationsApiResponse(ApiResponse):
+    """Ответ на запрос изменения настройки уведомлений о новых оценках"""
 
     classId: ClassVar[int] = 0x27
     class_id: Literal[0x27, 0x2] = Field(
@@ -132,6 +133,53 @@ class UpdateFirebaseApiResponse(ApiResponse):
 
     classId: ClassVar[int] = 0x28
     class_id: Literal[0x28, 0x2] = Field(
+        default=classId,
+        alias='classId',
+        description="Идентификатор класса"
+    )
+
+    answer: None = Field(
+        default=None,
+        description="Всегда null"
+    )
+
+
+class StatusEANotificationsResult(ApiBase):
+    """Результат запроса получения статуса настройки уведомлений о внеурочных занятиях"""
+
+    classId: ClassVar[int] = 0x3B
+    class_id: Literal[0x3B] = Field(
+        default=classId,
+        alias='classId',
+        description="Идентификатор класса"
+    )
+
+    status: bool = Field(
+        description="Статус функции уведомлений о внеурочных занятиях"
+    )
+
+
+class StatusEANotificationsApiResponse(ApiResponse):
+    """Ответ на запрос получения статуса настройки уведомлений о внеурочных занятиях"""
+
+    classId: ClassVar[int] = 0x3C
+    class_id: Literal[0x3C, 0x2] = Field(
+        default=classId,
+        alias='classId',
+        description="Идентификатор класса"
+    )
+
+    answer: StatusEANotificationsResult = Field(
+        default=None,
+        description="Статус настройки уведомлений о внеурочных занятиях"
+    )
+
+
+class SwitchEANotificationsApiResponse(ApiResponse):
+    """Ответ на запрос изменения настройки уведомлений о внеурочных занятиях"""
+
+    classId: ClassVar[int] = 0x3D
+    class_id: Literal[0x3D, 0x2] = Field(
         default=classId,
         alias='classId',
         description="Идентификатор класса"

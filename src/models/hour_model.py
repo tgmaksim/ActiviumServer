@@ -9,7 +9,7 @@ __all__ = ['Hour']
 
 
 class Hour(BaseModel):
-    hour_id: Mapped[int] = mapped_column(BigInteger, Identity(always=False), primary_key=True)
+    hour_id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
     school_id: Mapped[int] = mapped_column(BigInteger)
     months: Mapped[list[int]] = mapped_column(JSONB)
     weekdays: Mapped[list[int]] = mapped_column(JSONB)

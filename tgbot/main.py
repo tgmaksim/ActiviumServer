@@ -24,10 +24,11 @@ async def run_polling():
         print("Бот запущен")
         await dp.start_polling(bot)
     except Exception as e:
+        error = '\n'.join(traceback.format_exception(e))
         service = LogService(get_log_uow_factory())
-        await service.log(path='tgbot', value=f"{e.__class__.__name__}: {e}", status=False)
+        await service.log(path='tgbot', value=error, status=False)
 
-        print(''.join(traceback.format_exception(e)))
+        print(error)
     finally:
         for admin in settings.ADMIN_CHAT_IDS:
             await bot.send_message(admin, "⛔ Бот остановлен")

@@ -1,6 +1,5 @@
 import re
 
-from hashlib import md5
 from asyncio import gather
 from typing import Callable, Optional, Literal
 
@@ -83,18 +82,18 @@ class DnevnikService(BaseService[AppUnitOfWork]):
 
             dnr = AioDnevnikruApi(get_httpx_client(), session.dnevnik_token)
             now = datetime_now(child.timezone)
-            start_date = (now - timedelta(days=before)).date()
-            end_date = (now + timedelta(days=after)).date()
+            start = (now - timedelta(days=before)).replace(hour=0, minute=0, second=0, microsecond=0)
+            start_date = start.date()
+            end = (now + timedelta(days=after)).replace(hour=23, minute=59, second=59, microsecond=99999)
+            end_date = end.date()
 
-            class_schedule: list[dict]  # расписание всего класса: всех подгрупп и профилей
             person_schedule: dict  # расписание конкретно для обучающегося
             files: dict[int, list[ScheduleHomeworkDocument]]  # файлы к домашнему заданию по идентификаторам уроков
             marks: dict[int, list[MarkLog]]  # оценки по урокам
             others_marks: dict[int, list[MarksOther]]  # оценки класса по урокам и обучающимся
 
             try:
-                class_schedule, (person_schedule, files), (marks, others_marks), active_period = await gather(
-                    self._get_class_schedule(uow.cache_repository, dnr, session, child, start_date, end_date),
+                (person_schedule, files), (marks, others_marks), active_period = await gather(
                     self._get_person_schedule(dnr, child, start_date, end_date),
                     self._get_schedule_marks(uow.cache_repository, dnr, session, child, start_date, end_date),
                     self._get_period(uow.cache_repository, dnr, session, child, now.date())
@@ -104,24 +103,16 @@ class DnevnikService(BaseService[AppUnitOfWork]):
                     raise SessionError(session_id=session.session_id) from e
                 raise
 
-            class_days_schedule: dict[str, list[dict]] = {}
             lessons_id = []
-            for lesson in class_schedule:
-                if class_days_schedule.get(lesson['date']) is None:
-                    class_days_schedule[lesson['date']] = []
-                class_days_schedule[lesson['date']].append(lesson)
-                lessons_id.append(lesson['id'])
+            for day in person_schedule['days']:
+                for lesson in day['lessons']:
+                    lessons_id.append(lesson['id'])
 
             # Показывать только открытые заметки для родителя
             only_public_notes = parent.parent_id != parent.active_child_id
             notes = await uow.lesson_note_repository.get_notes(parent.active_child_id, lessons_id, only_public=only_public_notes)
 
-            days_hash: dict[datetime, str] = {}
-            for day in class_days_schedule:
-                day_date = datetime.fromisoformat(day)
-                days_hash[day_date] = md5(str(sorted([lesson['subject']['id'] for lesson in class_days_schedule[day]])).encode()).hexdigest()
-
-            ea = await self._get_extracurricular_activities(uow.extracurricular_activity_repository, child, days_hash)
+            ea = await self._get_extracurricular_activities(uow.extracurricular_activity_repository, child, (start, end))
 
             result = []
             for day in person_schedule['days']:
@@ -187,7 +178,7 @@ class DnevnikService(BaseService[AppUnitOfWork]):
                 result.append(ScheduleDay(
                     date=day_date.date(),
                     lessons=lessons,
-                    ea=ea.get(days_hash.get(day_date), []),
+                    ea=ea.get(day_date.date(), []),
                 ))
 
             await uow.statistic_repository.add_statistic(parent.parent_id, 'getSchedule')
@@ -199,24 +190,6 @@ class DnevnikService(BaseService[AppUnitOfWork]):
                     hasAbilityPraise=parent.parent_id != parent.active_child_id
                 )
             )
-
-    @classmethod
-    async def _get_class_schedule(
-            cls, cache_repository: CacheRepository, dnr: AioDnevnikruApi,
-            session: Session, child: Child,
-            start_date: date, end_date: date
-    ) -> list[dict]:
-        cache_key = f"all_schedule|{start_date}|{end_date}"
-
-        # Если в кеше актуальное (загруженное сегодня) расписание
-        if ((cache := await cache_repository.get_cache(session.session_id, cache_key)) and
-                astimezone(cache.created_at, child.timezone).date() == datetime_now(child.timezone).date()):
-            return cache.value
-        else:
-            class_schedule = await dnr.get_group_lessons(child.group_id, start_date, end_date)
-            await cache_repository.put_cache(session.session_id, cache_key, class_schedule)
-
-            return class_schedule
 
     @classmethod
     async def _get_person_schedule(
@@ -419,32 +392,29 @@ class DnevnikService(BaseService[AppUnitOfWork]):
     async def _get_extracurricular_activities(
             cls, extracurricular_activity_repository: ExtracurricularActivityRepository,
             child: Child,
-            days_hash: dict[datetime, str],
-    ) -> dict[str, list[ScheduleExtracurricularActivity]]:
+            period: tuple[datetime, datetime],
+    ) -> dict[date, list[ScheduleExtracurricularActivity]]:
         extracurricular_activities = await extracurricular_activity_repository.get_extracurricular_activities(
-            child.school_id, child.group_id, list(days_hash.values()))
-        extracurricular_activities = {ea.day_hash: ea for ea in extracurricular_activities}
+            child.school_id, child.group_id, period)
 
         results = {}
-        for day in days_hash:
-            extracurricular_activity = extracurricular_activities.get(days_hash[day])
-            if extracurricular_activity is None:
-                continue
-
-            if results.get(extracurricular_activity.day_hash) is None:
-                results[extracurricular_activity.day_hash] = []
+        for extracurricular_activity in extracurricular_activities:
+            start_time = astimezone(extracurricular_activity.start_time, child.timezone)
+            start_date = start_time.date()
+            if results.get(start_date) is None:
+                results[start_date] = []
 
             start = time.fromisoformat(extracurricular_activity.hours['start'])
             end = time.fromisoformat(extracurricular_activity.hours['end'])
-            string = extracurricular_activity.hours['string']
+            hours_string = extracurricular_activity.hours['string']
 
-            results[extracurricular_activity.day_hash].append(ScheduleExtracurricularActivity(
+            results[start_date].append(ScheduleExtracurricularActivity(
                 subject=extracurricular_activity.subject,
                 place=str(extracurricular_activity.place),
                 hours=ScheduleHours(
-                    start=astimezone(day.replace(hour=start.hour, minute=start.minute), child.timezone),
-                    end=astimezone(day.replace(hour=end.hour, minute=end.minute), child.timezone),
-                    string=string
+                    start=start_time.replace(hour=start.hour, minute=start.minute),
+                    end=start_time.replace(hour=end.hour, minute=end.minute),
+                    string=hours_string
                 )
             ))
 

@@ -96,12 +96,13 @@ class ReviewsService(BaseService[AppUnitOfWork]):
                 await uow.review_repository.delete_review(parent_id)
 
             sessions = await uow.session_repository.get_sessions(parent_id)
+            firebase_tokens = {session.firebase_token for session in sessions}
             await send_notifications([Notification(
-                firebase_token=session.firebase_token,
+                firebase_token=firebase_token,
                 title=title,
                 message=message,
                 channel=AppNotificationChannel.service
-            ) for session in sessions if session.firebase_token is not None])
+            ) for firebase_token in firebase_tokens])
 
             return publish
 
