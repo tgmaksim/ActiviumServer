@@ -87,7 +87,7 @@ async def _sendPraise0(
     return await service.send_praise(sessionId, lessonKey, text)
 
 
-@router.post(
+@router.put(
     "/highlightPerson/0",
     summary="Выделение одноклассника в рейтингах",
     description="Выделение одноклассника во всех рейтингах и списках других оценок. Такой одноклассник будет выше других, "
@@ -104,7 +104,7 @@ async def _highlightPerson0(
     return await service.highlight_person(sessionId, personKey)
 
 
-@router.post(
+@router.put(
     "/unhighlightPerson/0",
     summary="Отмена выделения одноклассника в рейтингах",
     description="Отмена ранее включенного выделения одноклассника в рейтингах. "

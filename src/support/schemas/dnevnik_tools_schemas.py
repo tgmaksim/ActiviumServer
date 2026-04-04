@@ -11,6 +11,8 @@ __all__ = ['Note', 'CreateNoteResult', 'CreateNoteApiResponse', 'NoteResult', 'N
 
 
 class Note(ApiBase):
+    """Заметка"""
+
     classId: ClassVar[int] = 0x34
     class_id: Literal[0x34] = Field(
         default=classId,
@@ -30,6 +32,8 @@ class Note(ApiBase):
 
 
 class CreateNoteResult(ApiBase):
+    """Ответ на запрос создания заметки к уроку"""
+
     classId: ClassVar[int] = 0x35
     class_id: Literal[0x35] = Field(
         default=classId,
@@ -43,6 +47,8 @@ class CreateNoteResult(ApiBase):
 
 
 class CreateNoteApiResponse(ApiResponse):
+    """Ответ на запрос создания заметки к уроку"""
+
     classId: ClassVar[int] = 0x36
     class_id: Literal[0x36, 0x2] = Field(
         default=classId,
@@ -57,6 +63,8 @@ class CreateNoteApiResponse(ApiResponse):
 
 
 class NoteResult(ApiBase):
+    """Результат запроса получения заметки к уроку"""
+
     classId: ClassVar[int] = 0x37
     class_id: Literal[0x37] = Field(
         default=classId,
@@ -70,6 +78,8 @@ class NoteResult(ApiBase):
 
 
 class NoteApiResponse(ApiResponse):
+    """Ответ на запрос получения заметки к уроку"""
+
     classId: ClassVar[int] = 0x38
     class_id: Literal[0x38, 0x2] = Field(
         default=classId,
@@ -84,6 +94,8 @@ class NoteApiResponse(ApiResponse):
 
 
 class DeleteNoteApiResponse(ApiResponse):
+    """Ответ на запрос удаления заметки к уроку"""
+
     classId: ClassVar[int] = 0x39
     class_id: Literal[0x39, 0x2] = Field(
         default=classId,
@@ -98,6 +110,8 @@ class DeleteNoteApiResponse(ApiResponse):
 
 
 class PraiseApiResponse(ApiResponse):
+    """Ответ на запрос отправки похвалы"""
+
     classId: ClassVar[int] = 0x3A
     class_id: Literal[0x3A, 0x2] = Field(
         default=classId,

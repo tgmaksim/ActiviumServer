@@ -199,7 +199,8 @@ class DnevnikToolsService(BaseService[AppUnitOfWork]):
                 )
 
             child_sessions = await uow.session_repository.get_sessions(parent.active_child_id)
-            if not child_sessions:
+            firebase_tokens = {child.firebase_token for child in child_sessions if child.firebase_token is not None}
+            if not firebase_tokens:
                 return PraiseApiResponse(
                     status=False,
                     error=ApiError(
@@ -236,11 +237,11 @@ class DnevnikToolsService(BaseService[AppUnitOfWork]):
                     parent_name = relatives.get(child_relative['type'], parent_name)
 
             await send_notifications([Notification(
-                firebase_token=child_session.firebase_token,
+                firebase_token=firebase_token,
                 title="😎 Получай похвалу 🥰",
                 message=f"{parent_name} {verb} за «{text_marks}» ({lesson['subject']['name']}){quote}",
                 channel=AppNotificationChannel.praise
-            ) for child_session in child_sessions if child_session.firebase_token is not None])
+            ) for firebase_token in firebase_tokens])
 
             await uow.statistic_repository.add_statistic(parent.parent_id, 'send_praise')
 
