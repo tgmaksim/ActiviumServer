@@ -287,8 +287,8 @@ class DnevnikService(BaseService[AppUnitOfWork]):
                         continue
                     others_marks[mark['lesson']][mark['person']] = MarksOther(
                         name=persons[mark['person']],
-                        person_key=zip_int(mark['person']),
-                        is_highlighting=mark['person'] in highlighting_persons,
+                        personKey=zip_int(mark['person']),
+                        isHighlighting=mark['person'] in highlighting_persons,
                         marks=[]
                     )
 
@@ -324,7 +324,7 @@ class DnevnikService(BaseService[AppUnitOfWork]):
 
         if len(marks) == 0:
             return 0, []
-        return other_marks.is_highlighting, sum(marks) / len(marks), marks
+        return other_marks.isHighlighting, sum(marks) / len(marks), marks
 
     @classmethod
     async def _get_work_types(
@@ -838,8 +838,8 @@ class DnevnikService(BaseService[AppUnitOfWork]):
                     elif name := persons.get(mark['person']):
                         others_marks.append(MarksOther(
                             name=name,
-                            person_key=zip_int(mark['person']),
-                            is_highlighting=mark['person'] in highlighting_persons,
+                            personKey=zip_int(mark['person']),
+                            isHighlighting=mark['person'] in highlighting_persons,
                             marks=[mark_log]
                         ))
 
@@ -901,8 +901,8 @@ class DnevnikService(BaseService[AppUnitOfWork]):
                     if (other := others_marks.get(mark['person'])) is None:
                         other = MarksOther(
                             name=name,
-                            person_key=zip_int(mark['person']),
-                            is_highlighting=mark['person'] in highlighting_persons,
+                            personKey=zip_int(mark['person']),
+                            isHighlighting=mark['person'] in highlighting_persons,
                             marks=[]
                         )
                         others_marks[mark['person']] = other
@@ -990,8 +990,8 @@ class DnevnikService(BaseService[AppUnitOfWork]):
 
                     class_rating.append((MarksOther(
                         name=name,
-                        person_key=zip_int(person['person']),
-                        is_highlighting=person['person'] in highlighting_person,
+                        personKey=zip_int(person['person']),
+                        isHighlighting=person['person'] in highlighting_person,
                         marks=[MarkLog(
                             mood=mark_moods.get(round(avg_mark), MarkLog.default_mood()),
                             value=str(avg_mark).replace('.', ','),
@@ -1013,8 +1013,8 @@ class DnevnikService(BaseService[AppUnitOfWork]):
 
                         class_rating.append((MarksOther(
                             name=name,
-                            person_key=zip_int(person['person']),
-                            is_highlighting=person['person'] in highlighting_person,
+                            personKey=zip_int(person['person']),
+                            isHighlighting=person['person'] in highlighting_person,
                             marks=[MarkLog(
                                 mood=mark_moods.get(round(avg_mark), MarkLog.default_mood()),
                                 value=subject['avg-mark-value'],
@@ -1023,7 +1023,7 @@ class DnevnikService(BaseService[AppUnitOfWork]):
                             )]
                         ), avg_mark, person['person']))
 
-            rating = sorted(class_rating, key=lambda r: (r[0].is_highlighting, r[1], r[2] == child.child_id), reverse=True)
+            rating = sorted(class_rating, key=lambda r: (r[0].isHighlighting, r[1], r[2] == child.child_id), reverse=True)
 
             me: Optional[int] = None
             last_number = 0
@@ -1042,8 +1042,8 @@ class DnevnikService(BaseService[AppUnitOfWork]):
             old_mark = MarksOther(
                 number=old.number,
                 name=persons_name.get(child.child_id, "Я"),
-                person_key=None,
-                is_highlighting=None,
+                personKey=None,
+                isHighlighting=None,
                 marks=[MarkLog(
                     mood=old.mood,
                     value=old.avg,
