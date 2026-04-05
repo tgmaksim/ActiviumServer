@@ -29,7 +29,7 @@ router = APIRouter(prefix='/dtools', tags=["Dnevnik Tools"])
 async def _createNote0(
         request: Request,
         lessonKey: Annotated[str, Query(description="Ключ от урока, к которому нужно создать заметку", pattern=r'[0-9a-z]{1,13}', min_length=1, max_length=13)],
-        text: Annotated[str, Body(media_type='plain/text', description="Текст заметки", min_length=1, max_length=128)],
+        text: Annotated[str, Body(media_type='plain/text', description="Текст заметки", min_length=1, max_length=256)],
         public: Annotated[bool, Query(description="Заметка доступна родителю")],
         sessionId: Annotated[str, Header(description="Идентификатор сессии", min_length=1, max_length=32)],
         service: DnevnikToolsService = Depends(get_dnevnik_tools_service)

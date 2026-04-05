@@ -1,4 +1,7 @@
 from typing import Optional
+from datetime import timedelta
+
+from sqlalchemy import func
 
 from dnevnikru import AioDnevnikruApi
 from ...dependencies.httpx import get_httpx_client
@@ -54,3 +57,6 @@ class SessionRepository(SqlAlchemyRepository[Session]):
         except DnevnikruApiException:
             return False
         return True
+
+    async def kill_old_sessions(self, lifetime: timedelta):
+        await self.update({'life': False}, func.now() - Session.created_at > lifetime)

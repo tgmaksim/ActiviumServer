@@ -1,4 +1,7 @@
 from typing import Optional
+from datetime import timedelta
+
+from sqlalchemy import func
 
 from ...repositories.db_queue import AsyncDBQueue
 from ...models.lesson_note_model import LessonNote
@@ -33,3 +36,6 @@ class LessonNoteRepository(SqlAlchemyRepository[LessonNote]):
         else:
             notes = await self.get_multi(LessonNote.child_id == child_id, LessonNote.lesson_id.in_(lessons_id))
         return {note.lesson_id: note for note in notes}
+
+    async def delete_old_note(self, lifetime: timedelta):
+        return await self.delete(func.now() - LessonNote.created_at > lifetime)

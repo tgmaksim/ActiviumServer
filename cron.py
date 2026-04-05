@@ -13,5 +13,8 @@ if __name__ == '__main__':
     if cron == "statistics":
         from crons import statistics
         asyncio.run(statistics.main())
+    elif cron == "clear":
+        from crons import clear
+        asyncio.run(clear.main())
     else:
         raise ValueError("cron not found")

@@ -12,7 +12,6 @@ from firebase.messaging import send_notifications, Notification, AppNotification
 from ..schemas.dnevnik_tools_schemas import (
     Note,
     NoteResult,
-    CreateNoteResult,
     NoteApiResponse,
     PraiseApiResponse,
     DeleteNoteApiResponse,
@@ -85,7 +84,7 @@ class DnevnikToolsService(BaseService[AppUnitOfWork]):
             await uow.statistic_repository.add_statistic(parent.parent_id, 'create_note')
 
             return CreateNoteApiResponse(
-                answer=CreateNoteResult(
+                answer=NoteResult(
                     note=Note(
                         lessonKey=lesson_key,
                         text=text,

@@ -235,6 +235,9 @@ class ScheduleLesson(ApiBase):
         min_length=9,
         max_length=38
     )
+    dnevnikruUrl: str = Field(
+        description="Ссылка для открытия урока в Дневнике.ру"
+    )
 
 
 class ScheduleDay(ApiBase):

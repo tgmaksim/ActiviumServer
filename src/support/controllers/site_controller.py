@@ -51,3 +51,6 @@ async def _root(
 @router.head("/", include_in_schema=False)
 async def _head_root():
     return HTMLResponse()
+
+
+# TODO: robots.txt

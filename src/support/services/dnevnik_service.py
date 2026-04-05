@@ -6,6 +6,8 @@ from typing import Callable, Optional, Literal
 from httpx import AsyncClient
 from datetime import datetime, timedelta, time, date, UTC
 
+from yarl import URL
+
 from dnevnikru.exceptions import BaseDnevnikruException
 from dnevnikru.aiodnevnikru.dnevnikru import AioDnevnikruApi
 
@@ -173,7 +175,8 @@ class DnevnikService(BaseService[AppUnitOfWork]):
                         homework='; '.join(homeworks.get(lesson['id'], [])) or None,
                         note=note.text if (note := notes.get(lesson['id'])) else None,
                         files=files.get(lesson['id'], []),
-                        ratingKey=f"{zip_int(active_period['id'])}.{zip_int(lesson['subjectId'])}.{day_date.date()}"
+                        ratingKey=f"{zip_int(active_period['id'])}.{zip_int(lesson['subjectId'])}.{day_date.date()}",
+                        dnevnikruUrl=self._get_lesson_url(child.school_id, lesson['id'])
                     ))
 
                 result.append(ScheduleDay(
@@ -458,6 +461,16 @@ class DnevnikService(BaseService[AppUnitOfWork]):
         ) if count_marks != 0 else None
 
         return avg
+
+    @classmethod
+    def _get_lesson_url(cls, school_id: int, lesson_id: int) -> str:
+        url = URL.build(
+            scheme='https',
+            host='schools.dnevnik.ru',
+            path='/lesson',
+            query={'school': school_id, 'lesson': lesson_id}
+        )
+        return str(url)
 
     async def getLessonRatingStats(self, session_id: str, rating_key: str) -> LessonRatingStatsApiResponse:
         async with self.uow_factory() as uow:

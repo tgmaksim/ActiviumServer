@@ -1,8 +1,11 @@
 from typing import Optional
+from datetime import timezone, timedelta
 
 from .base_service import BaseService
 from ..repositories.log_uow import LogUnitOfWork
 
+
+ADMIN_TIMEZONE = timezone(timedelta(hours=6))
 
 __all__ = ['LogService']
 
@@ -25,10 +28,10 @@ class LogService(BaseService[LogUnitOfWork]):
         async with self.uow_factory() as uow:
             count_all, max_created_at, min_created_at, count_errors = await uow.notification_repository.get_count()
 
-            from_date = max_created_at.strftime('%e %b. %H:%M:%S')
+            from_date = min_created_at.astimezone(ADMIN_TIMEZONE).strftime('%e %b. %H:%M:%S')
             ru_logs = 'лога' if 2 <= count_all % 10 <= 4 else ('лог' if count_all % 10 == 1 else 'логов')
 
-            text = (f"<b>Статистика Гимназии c {from_date}</b>\n\n"
+            text = (f"<b>Статистика Активиум c {from_date}</b>\n\n"
                     f"<b>Логи</b>\nСобрано {count_all} {ru_logs}\n")
 
             if count_errors:
@@ -56,7 +59,7 @@ class LogService(BaseService[LogUnitOfWork]):
             for statistic in group_statistics:
                 text += f"<i>{statistic[0]}</i>: {statistic[1]}\n"
 
-            text += "\n<i>Таким был день в Гимназии...</i>"
+            text += "\n<i>Таким был день в Активиум...</i>"
 
             await uow.notification_repository.notify(text)
 

@@ -6,7 +6,7 @@ from ...schemas.base_schema import ApiBase
 from ...schemas.response_schema import ApiResponse
 
 
-__all__ = ['Note', 'CreateNoteResult', 'CreateNoteApiResponse', 'NoteResult', 'NoteApiResponse', 'DeleteNoteApiResponse',
+__all__ = ['Note', 'CreateNoteApiResponse', 'NoteResult', 'NoteApiResponse', 'DeleteNoteApiResponse',
            'PraiseApiResponse', 'HighlightPersonApiResponse', 'UnhighlightPersonApiResponse']
 
 
@@ -31,8 +31,8 @@ class Note(ApiBase):
     )
 
 
-class CreateNoteResult(ApiBase):
-    """Ответ на запрос создания заметки к уроку"""
+class NoteResult(ApiBase):
+    """Результат запроса создания или получения заметки к уроку"""
 
     classId: ClassVar[int] = 0x35
     class_id: Literal[0x35] = Field(
@@ -41,8 +41,8 @@ class CreateNoteResult(ApiBase):
         description="Идентификатор класса"
     )
 
-    note: Note = Field(
-        description="Созданная заметка к уроку"
+    note: Optional[Note] = Field(
+        description="Заметка к уроку, если есть"
     )
 
 
@@ -56,24 +56,9 @@ class CreateNoteApiResponse(ApiResponse):
         description="Идентификатор класса"
     )
 
-    answer: Optional[CreateNoteResult] = Field(
+    answer: Optional[NoteResult] = Field(
         default=None,
         description="Созданная заметка"
-    )
-
-
-class NoteResult(ApiBase):
-    """Результат запроса получения заметки к уроку"""
-
-    classId: ClassVar[int] = 0x37
-    class_id: Literal[0x37] = Field(
-        default=classId,
-        alias='classId',
-        description="Идентификатор класса"
-    )
-
-    note: Optional[Note] = Field(
-        description="Заметка к уроку, если есть"
     )
 
 

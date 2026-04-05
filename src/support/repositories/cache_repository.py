@@ -1,8 +1,10 @@
 from typing import Optional, Union
 
+from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert
 
 from ...models.cache_model import Cache
+from ...models.session_model import Session
 from ...repositories.db_queue import AsyncDBQueue
 
 from ...repositories.sqlalchemy_repository import SqlAlchemyRepository
@@ -35,3 +37,6 @@ class CacheRepository(SqlAlchemyRepository[Cache]):
 
     async def get_cache(self, session_id: str, key: str) -> Optional[Cache]:
         return await self.get_single(Cache.session_id == session_id, Cache.key == key)
+
+    async def delete_unregistered_cache(self):
+        return await self.delete(Cache.session_id.in_(select(Session.session_id).where(Session.life == False)))

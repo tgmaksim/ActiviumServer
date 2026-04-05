@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import select
+from sqlalchemy import select, func
 
 from ...repositories.db_queue import AsyncDBQueue
 from ...models.ea_processing_notification_model import EAProcessingNotification
@@ -36,3 +36,6 @@ class EAProcessingNotificationRepository(SqlAlchemyRepository[EAProcessingNotifi
 
     async def finish_process(self, ea_id: int):
         return await self.delete(EAProcessingNotification.ea_id == ea_id)
+
+    async def delete_overdue_ea(self):
+        return await self.delete(EAProcessingNotification.start_time < func.now())
