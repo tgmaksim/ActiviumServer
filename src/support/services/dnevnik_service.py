@@ -56,7 +56,7 @@ from ..schemas.dnevnik_schemas import (
 
 __all__ = ['DnevnikService']
 
-mark_moods: dict[int, Literal["good", "average", "bad"]] = \
+mark5_moods: dict[int, Literal["good", "average", "bad"]] = \
     {5: "good", 4: "good", 3: "average", 2: "bad", 1: "bad"}
 round_or_int = lambda n: int(n) if (r := round(n, 2)) == int(n) else r
 
@@ -140,11 +140,18 @@ class DnevnikService(BaseService[AppUnitOfWork]):
 
                 lessons = []
                 for lesson in sorted(day['lessons'], key=lambda l: l['number']):
-                    lesson_works = [WorkType(
+                    lesson_marks = marks.get(lesson['id'], [])
+                    lesson_others_marks = others_marks.get(lesson['id'], [])
+
+                    log_works = {mark.work for mark in lesson_marks}
+                    for other_marks in map(lambda om: om.marks, lesson_others_marks):
+                        log_works.update(map(lambda m: m.work, other_marks))
+
+                    lesson_works = {WorkType(
                         title=work_type['name'],
                         abbr=work_type['abbreviation']
                     ) for work_id in lesson['works'] if (work_type := work_types.get(works.get(work_id, {}).get('workType')))
-                                                        and work_type['kind'] != 'DefaultNewLessonWork']
+                                                        and work_type['kind'] != 'DefaultNewLessonWork'}
 
                     if hours:
                         start = time.fromisoformat(hours.hours[lesson['number'] - 1]['start'])
@@ -160,17 +167,17 @@ class DnevnikService(BaseService[AppUnitOfWork]):
                         string=string
                     )
 
-                    avg = self._calc_avg(marks.get(lesson['id'], []), others_marks.get(lesson['id'], []))
+                    avg = self._calc_avg(lesson_marks, lesson_others_marks)
 
                     lessons.append(ScheduleLesson(
                         lessonKey=zip_int(lesson['id']),
                         number=lesson['number'] - 1,  # Начало с 0
                         subject=subjects.get(lesson['subjectId'], "Неизвестный предмет"),
                         place=lesson['place'],
-                        works=lesson_works,
+                        works=list(lesson_works.union(log_works)),
                         hours=lesson_hours,
-                        logs=marks.get(lesson['id'], []) + logs.get(lesson['id'], []),
-                        othersMarks=others_marks.get(lesson['id'], []),
+                        logs=lesson_marks + logs.get(lesson['id'], []),
+                        othersMarks=lesson_others_marks,
                         avgGroupLessonMark=avg,
                         homework='; '.join(homeworks.get(lesson['id'], [])) or None,
                         note=note.text if (note := notes.get(lesson['id'])) else None,
@@ -455,7 +462,7 @@ class DnevnikService(BaseService[AppUnitOfWork]):
 
         avg = MarkLog(
             value=str(value := round_or_int(sum_marks / count_marks)).replace('.', ','),
-            mood=moods.get(int(value), MarkLog.default_mood()),
+            mood=moods.get(int(value), mark5_moods.get(int(value), MarkLog.default_mood())),
             work=None,
             created=None
         ) if count_marks != 0 else None
@@ -553,13 +560,13 @@ class DnevnikService(BaseService[AppUnitOfWork]):
                 break
 
         old = MarkLog(
-            mood=mark_moods.get(int(float(old_avg.replace(',', '.'))), MarkLog.default_mood()),
+            mood=mark5_moods.get(int(float(old_avg.replace(',', '.'))), MarkLog.default_mood()),
             value=old_avg,
             work=None,
             created=None
         ) if old_avg else None
         new = MarkLog(
-            mood=mark_moods.get(int(float(new_avg.replace(',', '.'))), MarkLog.default_mood()),
+            mood=mark5_moods.get(int(float(new_avg.replace(',', '.'))), MarkLog.default_mood()),
             value=new_avg,
             work=None,
             created=None
@@ -771,7 +778,7 @@ class DnevnikService(BaseService[AppUnitOfWork]):
                 ) for mark in marks[subject_id]],
                 averageMark=MarkLog(
                     value=value,
-                    mood=mark_moods.get(round(float(value.replace(',', '.'))), MarkLog.default_mood()),
+                    mood=mark5_moods.get(round(float(value.replace(',', '.'))), MarkLog.default_mood()),
                     work=None,
                     created=None
                 ) if (value := avg_marks.get(subject_id, {}).get('avg-mark-value')) else None,
@@ -993,7 +1000,7 @@ class DnevnikService(BaseService[AppUnitOfWork]):
                         personKey=zip_int(person['person']),
                         isHighlighting=person['person'] in highlighting_person,
                         marks=[MarkLog(
-                            mood=mark_moods.get(round(avg_mark), MarkLog.default_mood()),
+                            mood=mark5_moods.get(round(avg_mark), MarkLog.default_mood()),
                             value=str(avg_mark).replace('.', ','),
                             work=None,
                             created=None
@@ -1016,7 +1023,7 @@ class DnevnikService(BaseService[AppUnitOfWork]):
                             personKey=zip_int(person['person']),
                             isHighlighting=person['person'] in highlighting_person,
                             marks=[MarkLog(
-                                mood=mark_moods.get(round(avg_mark), MarkLog.default_mood()),
+                                mood=mark5_moods.get(round(avg_mark), MarkLog.default_mood()),
                                 value=subject['avg-mark-value'],
                                 work=None,
                                 created=None
