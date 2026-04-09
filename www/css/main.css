@@ -9,6 +9,7 @@
     --glass-border: rgba(255,255,255,0.45);
     --glass-shadow: 0 8px 24px rgba(3,43,63,0.08);
     --button-text: #fff;
+    --link-text: #0D6EAF;
     --danger: #d9534f;
     --radius: 14px;
     --max-width: 1100px;
@@ -25,6 +26,7 @@
     --glass-border: rgba(255,255,255,0.04);
     --glass-shadow: 0 12px 36px rgba(2,8,18,0.6);
     --button-text: #0b1230;
+    --link-text: #4FC3F7;
     --danger: #ff8080;
 }
 
@@ -248,6 +250,10 @@ header{
 
 .box ul li {
     margin-bottom: 4px;
+}
+
+.box a {
+    color: var(--link-text);
 }
 
 .screenshots {

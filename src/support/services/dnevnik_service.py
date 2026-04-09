@@ -1,5 +1,7 @@
 import re
 
+from statistics import median
+
 from asyncio import gather
 from typing import Callable, Optional, Literal
 
@@ -443,29 +445,26 @@ class DnevnikService(BaseService[AppUnitOfWork]):
 
     @classmethod
     def _calc_avg(cls, marks: list[MarkLog], others_marks: list[MarksOther]) -> MarkLog:
-        sum_marks = 0
-        count_marks = 0
         moods: dict[int, Literal["good", "average", "bad", "more"]] = {}
+        all_marks = []
 
         for mark in marks:
             if (value := mark.value.replace('+', '').replace('-', '')).isnumeric():
-                sum_marks += int(value)
-                count_marks += 1
                 moods[int(value)] = mark.mood
+                all_marks.append(int(value))
 
         for other_marks in others_marks:
             for mark in other_marks.marks:
                 if (value := mark.value.replace('+', '').replace('-', '')).isnumeric():
-                    sum_marks += int(value)
-                    count_marks += 1
                     moods[int(value)] = mark.mood
+                    all_marks.append(int(value))
 
         avg = MarkLog(
-            value=str(value := round_or_int(sum_marks / count_marks)).replace('.', ','),
-            mood=moods.get(int(value), mark5_moods.get(int(value), MarkLog.default_mood())),
+            value=str(avg_value := median(all_marks)).replace('.', ','),
+            mood=moods.get(int(avg_value), mark5_moods.get(int(avg_value), MarkLog.default_mood())),
             work=None,
             created=None
-        ) if count_marks != 0 else None
+        ) if len(all_marks) != 0 else None
 
         return avg
 

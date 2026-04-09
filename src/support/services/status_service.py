@@ -27,6 +27,7 @@ class StatusService(BaseService[AppUnitOfWork]):
                     latestVersionNumber=latest.number,
                     latestVersionString=latest.version,
                     date=latest.date,
+                    versionStatusId=latest.status_id,
                     versionStatus=latest.status,
                     updateLogs=latest.logs
                 )

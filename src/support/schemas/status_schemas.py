@@ -29,14 +29,28 @@ class VersionsResult(ApiBase):
         description="Дата выпуска последней доступной версии приложения",
         examples=["09.12.2009"]
     )
+    versionStatusId: float = Field(
+        description="Числовой статус новой версии, означающий важность обновления",
+        examples=[0.1, 0.3, 0.5, 0.7, 0.9, 1]
+    )
     versionStatus: str = Field(
         description="Статус новой версии, означающий важность обновления",
-        examples=["Требуется обновить", "Новая функция", "Небольшие улучшения"]
+        examples=["Мелкие изменения", "Небольшие улучшения", "Новая(ые) функция(и)", "Требуется обновление",
+                  "Важные системные изменения", "Глобальное обновление"]
     )
     updateLogs: str = Field(
         description="Изменения в последней версии приложения (latestVersion), которые можно показать пользователю",
         examples=["1. Добавлена новая функция\n2. Исправлены ошибки"]
     )
+
+
+    class VersionStatus:
+        small = 0.1
+        minor = 0.3
+        new = 0.5
+        update = 0.7
+        system = 0.9
+        global_ = 1
 
     @classmethod
     def default(cls):
@@ -44,7 +58,8 @@ class VersionsResult(ApiBase):
             latestVersionNumber=0,
             latestVersionString="0.0.0",
             date="09.12.2009",
-            versionStatus="Новая версия",
+            versionStatusId=cls.VersionStatus.small,
+            versionStatus="Мелкие изменения",
             updateLogs="Исправлены ошибки"
         )
 
