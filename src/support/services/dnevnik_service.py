@@ -1,6 +1,6 @@
 import re
 
-from statistics import median
+from statistics import median, mean
 
 from asyncio import gather
 from typing import Callable, Optional, Literal
@@ -444,7 +444,7 @@ class DnevnikService(BaseService[AppUnitOfWork]):
         return results
 
     @classmethod
-    def _calc_avg(cls, marks: list[MarkLog], others_marks: list[MarksOther]) -> MarkLog:
+    def _calc_avg(cls, marks: list[MarkLog], others_marks: list[MarksOther], avg = False) -> MarkLog:
         moods: dict[int, Literal["good", "average", "bad", "more"]] = {}
         all_marks = []
 
@@ -460,7 +460,7 @@ class DnevnikService(BaseService[AppUnitOfWork]):
                     all_marks.append(int(value))
 
         avg = MarkLog(
-            value=str(avg_value := median(all_marks)).replace('.', ','),
+            value=str(avg_value := round((mean if avg else median)(all_marks), 2)).replace('.', ','),
             mood=moods.get(int(avg_value), mark5_moods.get(int(avg_value), MarkLog.default_mood())),
             work=None,
             created=None
@@ -774,6 +774,7 @@ class DnevnikService(BaseService[AppUnitOfWork]):
                     value=mark['textValue'],
                     work=None,
                     created=astimezone(datetime.fromisoformat(mark['date']).replace(tzinfo=UTC), child.timezone),
+                    ratingKey=f"w{zip_int(mark['work'])}" if mark['lesson'] is None else f"l{zip_int(mark['lesson'])}"
                 ) for mark in marks[subject_id]],
                 averageMark=MarkLog(
                     value=value,
@@ -821,18 +822,18 @@ class DnevnikService(BaseService[AppUnitOfWork]):
 
             if key_type == 'w':
                 try:
-                    marks = await dnr.get_marks_by_work(entity_id)
+                    _marks = await dnr.get_marks_by_work(entity_id)
                 except BaseDnevnikruException as e:
                     if not await uow.session_repository.check_session_auth(session.session_id, dnr):
                         raise SessionError(session_id=session.session_id) from e
                     raise
 
-                persons_id: set[int] = {mark['person'] for mark in marks}
+                persons_id: set[int] = {mark['person'] for mark in _marks}
                 persons = await self._get_persons_name(uow.cache_repository, dnr, session, child, persons_id)
 
                 marks = []
                 others_marks = []
-                for mark in marks:
+                for mark in _marks:
                     mark_log = MarkLog(
                         value=mark['textValue'],
                         mood=mark['mood'].lower() if mark['mood'].lower() in MarkLog.moods else MarkLog.default_mood(),
@@ -849,7 +850,7 @@ class DnevnikService(BaseService[AppUnitOfWork]):
                             marks=[mark_log]
                         ))
 
-                avg = self._calc_avg(marks, others_marks)
+                avg = self._calc_avg(marks, others_marks, avg = True)
 
                 await uow.statistic_repository.add_statistic(parent.parent_id, 'getMarksRatingStats')
 
@@ -996,10 +997,10 @@ class DnevnikService(BaseService[AppUnitOfWork]):
 
                     class_rating.append((MarksOther(
                         name=name,
-                        personKey=zip_int(person['person']),
-                        isHighlighting=person['person'] in highlighting_person,
+                        personKey=None if person['person'] == child.child_id else zip_int(person['person']),
+                        isHighlighting=None if person['person'] == child.child_id else person['person'] in highlighting_person,
                         marks=[MarkLog(
-                            mood=mark5_moods.get(round(avg_mark), MarkLog.default_mood()),
+                            mood=mark5_moods.get(int(avg_mark), MarkLog.default_mood()),
                             value=str(avg_mark).replace('.', ','),
                             work=None,
                             created=None
@@ -1019,8 +1020,8 @@ class DnevnikService(BaseService[AppUnitOfWork]):
 
                         class_rating.append((MarksOther(
                             name=name,
-                            personKey=zip_int(person['person']),
-                            isHighlighting=person['person'] in highlighting_person,
+                            personKey=None if person['person'] == child.child_id else zip_int(person['person']),
+                            isHighlighting=None if person['person'] == child.child_id else person['person'] in highlighting_person,
                             marks=[MarkLog(
                                 mood=mark5_moods.get(round(avg_mark), MarkLog.default_mood()),
                                 value=subject['avg-mark-value'],
@@ -1029,20 +1030,24 @@ class DnevnikService(BaseService[AppUnitOfWork]):
                             )]
                         ), avg_mark, person['person']))
 
-            rating = sorted(class_rating, key=lambda r: (r[0].isHighlighting, r[1], r[2] == child.child_id), reverse=True)
+            rating = sorted(class_rating, key=lambda r: (r[1], r[2] == child.child_id), reverse=True)
 
-            me: Optional[int] = None
             last_number = 0
             last_avg = None
             for i, person in enumerate(rating):
-                if person[2] == child.child_id:
-                    me = i
                 if person[1] == last_avg:
                     person[0].number = last_number
                 else:
                     person[0].number = i
                     last_number = i
                 last_avg = person[1]
+
+            rating = sorted(rating, key=lambda r: r[0].isHighlighting is True, reverse=True)
+
+            me: Optional[int] = None
+            for i, person in enumerate(rating):
+                if person[2] == child.child_id:
+                    me = i
 
             old = await uow.rating_repository.get_rating(child.child_id, period_id, subject_id or -1)
             old_mark = MarksOther(
@@ -1059,7 +1064,7 @@ class DnevnikService(BaseService[AppUnitOfWork]):
             ) if old else None
 
             if me is not None:
-                await uow.rating_repository.put_rating(child.child_id, period_id, subject_id or -1, me, rating[me][0].marks[0].value, rating[me][0].marks[0].mood)
+                await uow.rating_repository.put_rating(child.child_id, period_id, subject_id or -1, rating[me][0].number, rating[me][0].marks[0].value, rating[me][0].marks[0].mood)
             else:
                 await uow.rating_repository.delete_rating(child.child_id, period_id, subject_id or -1)
 
@@ -1106,7 +1111,8 @@ class DnevnikService(BaseService[AppUnitOfWork]):
                     mood=mark['mood'].lower() if mark['mood'].lower() in MarkLog.moods else MarkLog.default_mood(),
                     value=mark['textValue'],
                     work=None,
-                    created=astimezone(datetime.fromisoformat(mark['date']).replace(tzinfo=UTC), child.timezone)
+                    created=astimezone(datetime.fromisoformat(mark['date']).replace(tzinfo=UTC), child.timezone),
+                    ratingKey=f"w{zip_int(mark['work'])}"
                 )
 
             await uow.statistic_repository.add_statistic(parent.parent_id, 'getFinalMarksSubjectRating')

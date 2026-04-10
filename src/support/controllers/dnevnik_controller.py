@@ -62,7 +62,7 @@ async def _getLessonRatingStats0(
 )
 async def _getMarks0(
         request: Request,
-        last: Annotated[int, Query(description="Число дней, за которое будут запрошены последние по дате выставления оценки", ge=1, le=7)],
+        last: Annotated[int, Query(description="Число дней, за которое будут запрошены последние по дате выставления оценки", ge=1, le=14)],
         sessionId: Annotated[str, Header(description="Идентификатор сессии", min_length=1, max_length=32)],
         service: DnevnikService = Depends(get_dnevnik_service)
 ) -> MarksApiResponse:

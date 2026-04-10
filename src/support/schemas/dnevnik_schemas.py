@@ -125,6 +125,13 @@ class MarkLog(ApiBase):
     created: Optional[datetime.datetime] = Field(
         description="Дата и время выставления оценки"
     )
+    ratingKey: Optional[str] = Field(
+        default=None,
+        description="Ключ для получения оценок в классе за тот же урок",
+        pattern=r'[wl][0-9a-z]{1,13}',
+        min_length=2,
+        max_length=14
+    )
 
     moods: ClassVar[list[str]] = ["good", "average", "bad", "more"]
 
