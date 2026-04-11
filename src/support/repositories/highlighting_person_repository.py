@@ -23,7 +23,7 @@ class HighlightingPersonRepository(SqlAlchemyRepository[HighlightingPerson]):
         await self.create({
             'parent_id': parent_id,
             'person_id': person_id
-        })
+        }, security=['parent_id', 'person_id'], security_nothing=True)
 
     async def unhighlight_person(self, parent_id: int, person_id: int):
         return await self.delete(HighlightingPerson.parent_id == parent_id, HighlightingPerson.person_id == person_id)

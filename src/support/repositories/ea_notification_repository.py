@@ -26,7 +26,7 @@ class EANotificationRepository(SqlAlchemyRepository[EANotification]):
         return await self.create({
             'session_id': session_id,
             'child_id': child_id
-        })
+        }, security=['session_id', 'child_id'], security_nothing=True)
 
     async def get_notifications(self, groups: list[tuple[int, int]]) -> list[EANotification]:
         statement = (

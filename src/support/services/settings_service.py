@@ -1,8 +1,8 @@
 from asyncio import gather
 from typing import Callable, Optional
 
-from asyncpg import UniqueViolationError
 from httpx import AsyncClient
+from sqlalchemy.exc import IntegrityError
 from dnevnikru import AioDnevnikruApi, BaseDnevnikruException
 
 from ...dependencies.auth import check_session
@@ -206,10 +206,7 @@ class SettingsService(BaseService[AppUnitOfWork]):
                         )
                     )
 
-            try:
-                await uow.marks_notification_repository.turn_on(session_id, child_id)
-            except UniqueViolationError:
-                pass
+            await uow.marks_notification_repository.turn_on(session_id, child_id)
             await uow.statistic_repository.add_statistic(parent.parent_id, 'turnOnMarksNotifications')
 
             return SwitchMarksNotificationsApiResponse()
@@ -250,10 +247,7 @@ class SettingsService(BaseService[AppUnitOfWork]):
                 child_id = parent.active_child_id
 
             if status:
-                try:
-                    await uow.ea_notification_repository.turn_on(session_id, child_id)
-                except UniqueViolationError:
-                    pass
+                await uow.ea_notification_repository.turn_on(session_id, child_id)
             else:
                 await uow.ea_notification_repository.turn_off(session_id, child_id)
 

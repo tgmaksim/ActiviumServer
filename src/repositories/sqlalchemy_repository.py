@@ -15,13 +15,16 @@ class SqlAlchemyRepository(AbstractRepository[ModelType]):
         self.queue = queue
         self.model = model
 
-    async def create(self, data: dict, security: list[str] = None) -> ModelType:
+    async def create(self, data: dict, security: list[str] = None, security_nothing = False) -> ModelType:
         statement = insert(self.model).values(**data)
         if security:
-            statement = statement.on_conflict_do_update(
-                index_elements=security,
-                set_={field: data[field] for field in data if field not in security}
-            )
+            if security_nothing:
+                statement = statement.on_conflict_do_nothing(index_elements=security)
+            else:
+                statement = statement.on_conflict_do_update(
+                    index_elements=security,
+                    set_={field: data[field] for field in data if field not in security}
+                )
         statement = statement.returning(self.model)
         res = await self.queue.execute(statement)
         return res.scalar()

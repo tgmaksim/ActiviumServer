@@ -26,7 +26,7 @@ class MarksNotificationRepository(SqlAlchemyRepository[MarksNotification]):
         return await self.create({
             'session_id': session_id,
             'child_id': child_id
-        })
+        }, security=['session_id', 'child_id'], security_nothing=True)
 
     async def get_count(self) -> int:
         statement = select(func.count(MarksNotification.child_id))

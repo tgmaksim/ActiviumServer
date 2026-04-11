@@ -1,6 +1,5 @@
 from asyncio import gather
 
-from asyncpg import UniqueViolationError
 from httpx import AsyncClient
 from typing import Callable, Optional
 
@@ -279,10 +278,7 @@ class DnevnikToolsService(BaseService[AppUnitOfWork]):
                     )
                 )
 
-            try:
-                await uow.highlighting_person_repository.highlight_person(parent.parent_id, person_id)
-            except UniqueViolationError:
-                pass
+            await uow.highlighting_person_repository.highlight_person(parent.parent_id, person_id)
 
             return HighlightPersonApiResponse()
 
