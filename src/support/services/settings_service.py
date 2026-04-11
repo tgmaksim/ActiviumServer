@@ -2,7 +2,6 @@ from asyncio import gather
 from typing import Callable, Optional
 
 from httpx import AsyncClient
-from sqlalchemy.exc import IntegrityError
 from dnevnikru import AioDnevnikruApi, BaseDnevnikruException
 
 from ...dependencies.auth import check_session
@@ -84,6 +83,17 @@ class SettingsService(BaseService[AppUnitOfWork]):
                     raise SessionError(session_id=session.session_id) from e
                 raise
 
+            if parent.parent_id == child_id:
+                return SwitchActiveChildApiResponse(
+                    answer=ChildrenResult(
+                        children=[Child(
+                            childId=int(info['personId']),
+                            name=info['shortName']
+                        )],
+                        activeChildId=child_id
+                    )
+                )
+
             try:
                 next(filter(lambda c: c['id'] == child_id, children))
             except StopIteration:
@@ -142,10 +152,7 @@ class SettingsService(BaseService[AppUnitOfWork]):
                     children=[Child(
                         childId=int(child['id']),
                         name=child['shortName']
-                    ) for child in children] or [Child(
-                        childId=int(info['personId']),
-                        name=info['shortName']
-                    )],
+                    ) for child in children],
                     activeChildId=child_id
                 )
             )
