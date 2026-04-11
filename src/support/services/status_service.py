@@ -1,8 +1,9 @@
-from ..schemas.status_schemas import VersionsApiResponse, VersionsResult, HealthApiResponse
-
+from ...dependencies.auth import check_session
 from ...services.base_service import BaseService
 from ..repositories.app_uow import AppUnitOfWork
 
+from ..schemas.status_schemas import VersionsApiResponse, VersionsResult, HealthApiResponse, InformationApiResponse, \
+    InformationResult, Message
 
 __all__ = ['StatusService']
 
@@ -36,3 +37,30 @@ class StatusService(BaseService[AppUnitOfWork]):
     @classmethod
     async def health(cls) -> HealthApiResponse:
         return HealthApiResponse()
+
+    async def check_info_notifications(self, session_id: str) -> InformationApiResponse:
+        async with self.uow_factory() as uow:
+            session = await check_session(session_id, uow.session_repository)
+
+            _informations = await uow.information_repository.get_informations(session.parent_id)
+            informations = []
+            for info in _informations:
+                if info.type == 'review':
+                    review = await uow.review_repository.get_review(session.parent_id, only_is_open=False)
+                    if review is not None:
+                        continue  # Пользователь уже написал отзыв
+
+                informations.append(info)
+
+            await uow.information_repository.delete_informations(session.parent_id)
+
+            await uow.statistic_repository.add_statistic(session.parent_id, 'check_info_notifications')
+
+            return InformationApiResponse(
+                answer=InformationResult(
+                    messages=[Message(
+                        title=information.title,
+                        text=information.text
+                    ) for information in informations],
+                )
+            )

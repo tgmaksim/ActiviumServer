@@ -6,7 +6,8 @@ from ...schemas.base_schema import ApiBase
 from ...schemas.response_schema import ApiResponse
 
 
-__all__ = ['VersionsResult', 'VersionsApiResponse', 'HealthApiResponse', 'CheckSessionResult', 'CheckSessionApiResponse']
+__all__ = ['VersionsResult', 'VersionsApiResponse', 'HealthApiResponse', 'CheckSessionResult', 'CheckSessionApiResponse',
+           'Message', 'InformationResult', 'InformationApiResponse']
 
 
 class VersionsResult(ApiBase):
@@ -123,4 +124,53 @@ class CheckSessionApiResponse(ApiResponse):
     answer: Optional[CheckSessionResult] = Field(
         default=None,
         description="Данные о сессии: существует ли она и статус ее авторизации в сервисе дневника.ру"
+    )
+
+
+class Message(ApiBase):
+    """Информационное сообщение"""
+
+    classId: ClassVar[int] = 0x40
+    class_id: Literal[0x40, 0x2] = Field(
+        default=classId,
+        alias='classId',
+        description="Идентификатор класса"
+    )
+
+    title: str = Field(
+        description="Заголовок сообщения"
+    )
+    text: str = Field(
+        description="Текст сообщения"
+    )
+
+
+class InformationResult(ApiBase):
+    """Результат запроса получения информационных сообщений"""
+
+    classId: ClassVar[int] = 0x41
+    class_id: Literal[0x41, 0x2] = Field(
+        default=classId,
+        alias='classId',
+        description="Идентификатор класса"
+    )
+
+    messages: list[Message] = Field(
+        description="Информационные сообщения для пользователя, если есть"
+    )
+
+
+class InformationApiResponse(ApiResponse):
+    """Ответ на запрос получения информационных сообщений"""
+
+    classId: ClassVar[int] = 0x42
+    class_id: Literal[0x42, 0x2] = Field(
+        default=classId,
+        alias='classId',
+        description="Идентификатор класса"
+    )
+
+    answer: Optional[InformationResult] = Field(
+        default=None,
+        description="Различная информация для показа пользователю"
     )

@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from .hour_repository import HourRepository
 from .child_repository import ChildRepository
 from .cache_repository import CacheRepository
+from .information_repository import InformationRepository
 from .review_repository import ReviewRepository
 from .parent_repository import ParentRepository
 from .rating_repository import RatingRepository
@@ -47,6 +48,7 @@ class AppUnitOfWork(SqlAlchemyUnitOfWork):
         self._ea_notification_repository: Optional[EANotificationRepository] = None
         self._ea_processing_notification_repository: Optional[EAProcessingNotificationRepository] = None
         self._highlighting_person_repository: Optional[HighlightingPersonRepository] = None
+        self._information_repository: Optional[InformationRepository] = None
 
     @property
     def log_repository(self) -> LogRepository:
@@ -149,3 +151,9 @@ class AppUnitOfWork(SqlAlchemyUnitOfWork):
         if self._highlighting_person_repository is None:
             self._highlighting_person_repository = HighlightingPersonRepository(self.queue)
         return self._highlighting_person_repository
+
+    @property
+    def information_repository(self) -> InformationRepository:
+        if self._information_repository is None:
+            self._information_repository = InformationRepository(self.queue)
+        return self._information_repository

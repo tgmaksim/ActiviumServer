@@ -2,6 +2,7 @@ import secrets
 import traceback
 
 from asyncio import gather
+from datetime import datetime, timedelta, UTC
 from typing import Callable, Optional, Union, Literal
 
 from yarl import URL
@@ -202,6 +203,7 @@ class LoginService(BaseService[AppUnitOfWork]):
 
     @classmethod
     async def _auth_session(cls, uow: AppUnitOfWork, session_id: str, dnevnik_token: str, dnevnik_data: dict):
+        registration = False
         if me := dnevnik_data['me']:
             person_id: int = me['person_id']
             school_id: int = me['school_id']
@@ -212,6 +214,7 @@ class LoginService(BaseService[AppUnitOfWork]):
                 await uow.child_repository.create_child(person_id, school_id, group_id, timezone, security=True)
                 await uow.parent_repository.create_parent(person_id, person_id)
 
+                registration = True
                 await uow.statistic_repository.add_statistic(person_id, 'registration')
             else:
                 child = await uow.child_repository.get_child(person_id)
@@ -237,6 +240,7 @@ class LoginService(BaseService[AppUnitOfWork]):
                     )
                 await uow.parent_repository.create_parent(person_id, children[0]['person_id'])
 
+                registration = True
                 await uow.statistic_repository.add_statistic(person_id, 'registration')
             else:
                 for relevant_child in children:
@@ -244,15 +248,23 @@ class LoginService(BaseService[AppUnitOfWork]):
 
                     if (child.school_id != relevant_child['school_id'] or child.group_id != relevant_child['group_id']
                             or child.timezone != relevant_child['timezone']):
-                        await uow.child_repository.update_child(
+                        await uow.child_repository.create_child(
                             relevant_child['person_id'],
                             school_id=relevant_child['school_id'],
                             group_id=relevant_child['group_id'],
-                            timezone=relevant_child['timezone']
+                            timezone=relevant_child['timezone'],
+                            security=True
                         )
 
         await uow.session_repository.auth_session(session_id, dnevnik_token, person_id)
         await uow.statistic_repository.add_statistic(person_id, 'authorization')
+
+        if registration:
+            time = datetime.now(UTC) + timedelta(weeks=1)
+            type_ = "review"
+            title = "❤️ Оцените Активиум"
+            text = "Вы пользуетесь сервисом Активиум уже целую неделю. Оцените приложение в настройках. Мы будет очень рады!"
+            await uow.information_repository.create_information(person_id, type_, time, title, text)
 
     async def checkSession(self, session_id: str) -> CheckSessionApiResponse:
         async with self.uow_factory() as uow:
