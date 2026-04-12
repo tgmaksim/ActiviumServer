@@ -19,7 +19,7 @@
     <link rel="icon" type="image/png" sizes="512x512" href="/assets/icons/android-chrome-512x512.png">
     <link rel="icon" type="image/x-icon" sizes="32x32" href="/assets/icons/favicon.ico">
 
-    <link href="/css/main.css?v=8" rel="stylesheet">
+    <link href="/css/main.css?v=9" rel="stylesheet">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
 </head>
@@ -120,15 +120,21 @@
             <h3>Скриншоты приложения</h3>
             <div id="screenshots" class="screenshots">
                 <img src="/assets/screenshots/screen31.jpg" alt="Скриншот экрана">
-                <img src="/assets/screenshots/screen32.jpg" alt="Скриншот экрана">
+                <img src="/assets/screenshots/screen43.jpg" alt="Скриншот экрана">
+                <img src="/assets/screenshots/screen44.jpg" alt="Скриншот экрана">
                 <img src="/assets/screenshots/screen33.jpg" alt="Скриншот экрана">
                 <img src="/assets/screenshots/screen34.jpg" alt="Скриншот экрана">
                 <img src="/assets/screenshots/screen35.jpg" alt="Скриншот экрана">
+                <img src="/assets/screenshots/screen45.jpg" alt="Скриншот экрана">
                 <img src="/assets/screenshots/screen36.jpg" alt="Скриншот экрана">
+
                 <img src="/assets/screenshots/screen37.jpg" alt="Скриншот экрана">
-                <img src="/assets/screenshots/screen38.jpg" alt="Скриншот экрана">
+                <img src="/assets/screenshots/screen42.jpg" alt="Скриншот экрана">
+                <img src="/assets/screenshots/screen46.jpg" alt="Скриншот экрана">
                 <img src="/assets/screenshots/screen39.jpg" alt="Скриншот экрана">
                 <img src="/assets/screenshots/screen40.jpg" alt="Скриншот экрана">
+                <img src="/assets/screenshots/screen48.jpg" alt="Скриншот экрана">
+                <img src="/assets/screenshots/screen49.jpg" alt="Скриншот экрана">
                 <img src="/assets/screenshots/screen41.jpg" alt="Скриншот экрана">
             </div>
         </div>
@@ -173,11 +179,11 @@
                     <p class="small muted">Статус: <strong>{{ version_status }}</strong></p>
 
                     <h5 style="margin-top:10px; margin-bottom:6px">Изменения</h5>
-                    <ul class="small muted" style="padding-left:18px; margin:0">
-                        {% for item in update_log %}
-                            <li>{{ item }}</li>
-                        {% endfor %}
-                    </ul>
+                    <div class="small muted" style="margin:0">
+                        <p>{% for item in update_log %}
+                            {{ item }}<br>
+                        {% endfor %}</p>
+                    </div>
                 </div>
             </aside>
         </section>
@@ -256,11 +262,11 @@
                             <span class="pill small">{{ v.status }}</span>
                         </summary>
 
-                        <ul class="small muted">
+                        <div class="small muted">
                             {% for item in v.update_log %}
-                                <li>{{ item }}</li>
+                                {{ item }}<br>
                             {% endfor %}
-                        </ul>
+                        </div>
                     </details>
                 {% endfor %}
             </details>
