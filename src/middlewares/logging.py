@@ -33,7 +33,7 @@ class LoggingMiddleware(BaseHTTPMiddleware):
             service = LogService(get_log_uow_factory())
             await service.log(
                 ip=ip,
-                path=request.url.path,
+                path='?'.join(filter(None, (request.url.path, request.url.query))),
                 session_id=session_id,
                 status=not bool(error),
                 method=request.method,
