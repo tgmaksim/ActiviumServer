@@ -2,7 +2,8 @@ import traceback
 
 from typing import Optional
 
-from fastapi.requests import Request
+from http import HTTPStatus
+from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from ..services.log_service import LogService
@@ -15,6 +16,7 @@ __all__ = ['LoggingMiddleware']
 class LoggingMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         error: Optional[str] = None
+        response: Optional[Response] = None
 
         try:
             response = await call_next(request)
@@ -35,5 +37,5 @@ class LoggingMiddleware(BaseHTTPMiddleware):
                 session_id=session_id,
                 status=not bool(error),
                 method=request.method,
-                value=error or "200 OK"
+                value=error or (response and f"{response.status_code} {HTTPStatus(response.status_code).phrase}") or "Error status"
             )

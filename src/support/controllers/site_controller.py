@@ -1,7 +1,8 @@
 from typing import Annotated, Optional
 
 from fastapi.responses import HTMLResponse
-from fastapi import APIRouter, Depends, Request, Query
+from starlette.responses import RedirectResponse
+from fastapi import APIRouter, Depends, Request, Query, status
 
 from ..services.site_service import SiteService
 
@@ -18,20 +19,26 @@ router = APIRouter()
 async def _root(
         request: Request,
         sessionId: Annotated[Optional[str], Query(description="Идентификатор сессия для статистики и пользовательских взаимодействий на сайте")] = None,
+        likesOffset: Annotated[Optional[str], Query(alias='likes-offset', description="Смещение списка отзывов")] = None,
+        likesSort: Annotated[Optional[str], Query(alias='likes-sort', description="Тип сортировки отзывов")] = None,
         service: SiteService = Depends(get_site_service)
 ):
     likes_offset = None
-    try: likes_offset = int(request.query_params.get('likes-offset'))
+    try: likes_offset = int(likesOffset)
     except (ValueError, TypeError): pass
 
     session_id = sessionId or request.cookies.get('session_id')
     request.state.session_id = session_id
 
-    template_params = await service.get_root(
-        session_id,
-        likes_offset,
-        request.query_params.get('likes-sort')
-    )
+    if sessionId is not None:
+        response = RedirectResponse(
+            url=request.url.remove_query_params('sessionId'),
+            status_code=status.HTTP_303_SEE_OTHER
+        )
+        response.set_cookie('session_id', session_id, max_age=30 * 24 * 60 * 60, secure=True, httponly=True)
+        return response
+
+    template_params = await service.get_root(session_id, likes_offset, likesSort)
 
     templates = get_templates()
     response = templates.TemplateResponse(
