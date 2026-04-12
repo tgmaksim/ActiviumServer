@@ -37,7 +37,7 @@ class Review(ApiBase):
     text: Optional[str] = Field(
         description="Текст отзыва",
         min_length=1,
-        max_length=256
+        max_length=512
     )
     likes: int = Field(
         description="Количество реакций на отзыв",
