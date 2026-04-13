@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, Header, Query, Request
 
 from ..schemas.settings_schemas import (
     ChildrenApiResponse,
+    ReferralParamsApiResponse,
     UpdateFirebaseApiResponse,
     SwitchActiveChildApiResponse,
     StatusEANotificationsApiResponse,
@@ -133,3 +134,18 @@ async def _switchEANotifications0(
 ) -> SwitchEANotificationsApiResponse:
     request.state.session_id = sessionId
     return await service.switchEANotifications(sessionId, childId, status)
+
+
+@router.get(
+    "/getReferralParams/0",
+    summary="Получение параметров реферальной программы",
+    description="Получение количества приглашенных пользователей, ссылки для приглашения и имени, который пригласил пользователя",
+    response_model=ReferralParamsApiResponse
+)
+async def _getReferralParams0(
+        request: Request,
+        sessionId: Annotated[str, Header(description="Идентификатор сессии", min_length=1, max_length=32)],
+        service: SettingsService = Depends(get_settings_service),
+) -> ReferralParamsApiResponse:
+    request.state.session_id = sessionId
+    return await service.getReferralParams(sessionId)

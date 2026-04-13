@@ -70,7 +70,7 @@ class LoginService(BaseService[AppUnitOfWork]):
     async def firstAuthSession(cls) -> HtmlResponse:
         return HtmlResponse(name='auth_session.html')
 
-    async def secondAuthSession(self, dnevnik_token: str, session_id: str) -> HtmlResponse:
+    async def secondAuthSession(self, dnevnik_token: str, session_id: str, referral_token: Optional[str]) -> HtmlResponse:
         log_exception = lambda error: uow.log_repository.add_log(
             path='secondAuthSession',
             status=False,
@@ -91,7 +91,7 @@ class LoginService(BaseService[AppUnitOfWork]):
                 )
 
             try:
-                dnevnik_data = await self._dnevnik_auth(dnevnik_token)
+                dnevnik_data, parent_name = await self._dnevnik_auth(dnevnik_token)
                 assert dnevnik_data is not None, "Данные авторизации пустые"
             except (BaseDnevnikruException, KeyError, IndexError, StopIteration, AssertionError) as e:
                 await log_exception('\n'.join(traceback.format_exception(e)))
@@ -110,31 +110,43 @@ class LoginService(BaseService[AppUnitOfWork]):
                     status_code=403,
                     context={
                         'reason': f"Учитель, не являющийся родителем, не может пользоваться приложением {settings.PROJECT_NAME}. "
-                                  "Если вы является администратором школы или колледжа и хотите выставлять новости "
+                                  "Если вы является администратором образовательного учреждения и хотите выставлять новости "
                                   "и объявлять о мероприятиях для обучающихся своей организации, то сделайте это в "
                                   f"<a href=\"{settings.BOT_URL}\">Telegram-боте</a>"
                     }
                 )
 
-            await self._auth_session(uow, session_id, dnevnik_token, dnevnik_data)
+            parent_referral_id = None
+            if referral_token:
+                try:
+                    parent_referral_id = int(referral_token, 16)
+                except (ValueError, TypeError):
+                    pass
+                else:
+                    parent_referral = await uow.parent_repository.get_parent(parent_referral_id)
+                    if parent_referral is None:
+                        parent_referral_id = None
+
+            await self._auth_session(uow, session_id, dnevnik_token, dnevnik_data, parent_name, parent_referral_id)
 
             return HtmlResponse(
                 name='auth_session_success.html',
-                cookies={
+                cookies=[{
                     'key': 'session_id',
                     'value': session_id,
                     'max_age': 30 * 24 * 60 * 60,  # 30 дней
                     'httponly': True,
                     'secure': True
-                }
+                }]
             )
 
-    async def _dnevnik_auth(self, dnevnik_token: str) -> Union[Optional[dict[str, ...]], Literal["teacher"]]:
+    async def _dnevnik_auth(self, dnevnik_token: str) -> tuple[Union[Optional[dict[str, ...]], Literal["teacher"]], str]:
         dnr = AioDnevnikruApi(self.httpx_client, dnevnik_token)
 
         context: dict = await dnr.get_context()
 
         person_id = int(context['personId'])
+        parent_name = context['shortName']
         schools: list[dict] = context['schools']
         roles = list(map(str, context['roles']))
 
@@ -199,10 +211,10 @@ class LoginService(BaseService[AppUnitOfWork]):
         else:
             return None
 
-        return result
+        return result, parent_name
 
     @classmethod
-    async def _auth_session(cls, uow: AppUnitOfWork, session_id: str, dnevnik_token: str, dnevnik_data: dict):
+    async def _auth_session(cls, uow: AppUnitOfWork, session_id: str, dnevnik_token: str, dnevnik_data: dict, parent_name: str, parent_referral_id: Optional[int]):
         registration = False
         if me := dnevnik_data['me']:
             person_id: int = me['person_id']
@@ -260,6 +272,9 @@ class LoginService(BaseService[AppUnitOfWork]):
         await uow.statistic_repository.add_statistic(person_id, 'authorization')
 
         if registration:
+            if parent_referral_id and parent_referral_id != person_id:
+                await uow.referral_repository.link_referral(parent_referral_id, person_id, parent_name)
+
             time = datetime.now(UTC) + timedelta(weeks=1)
             type_ = "review"
             title = "❤️ Оцените Активиум"

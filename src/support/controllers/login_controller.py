@@ -49,8 +49,11 @@ async def _authSession(
         service: LoginService = Depends(get_login_service)
 ) -> HTMLResponse:
     request.state.session_id = state
+
+    referral_token = request.cookies.get('referral_token')
+
     if access_token is not None and state is not None:
-        template_params = await service.secondAuthSession(access_token, state)
+        template_params = await service.secondAuthSession(access_token, state, referral_token)
     else:
         template_params = await service.firstAuthSession()
 
@@ -63,7 +66,8 @@ async def _authSession(
     )
 
     if template_params.cookies:
-        response.set_cookie(**template_params.cookies)
+        for cookie in template_params.cookies:
+            response.set_cookie(**cookie)
 
     return response
 

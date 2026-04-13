@@ -1,8 +1,11 @@
 from asyncio import gather
 from typing import Callable, Optional
 
+from yarl import URL
 from httpx import AsyncClient
+
 from dnevnikru import AioDnevnikruApi, BaseDnevnikruException
+from ...config.project_config import settings
 
 from ...dependencies.auth import check_session
 from ...schemas.error_schema import ApiError
@@ -16,6 +19,8 @@ from ..schemas.settings_schemas import (
     Child,
     ChildrenResult,
     ChildrenApiResponse,
+    ReferralParamsResult,
+    ReferralParamsApiResponse,
     UpdateFirebaseApiResponse,
     StatusEANotificationsResult,
     SwitchActiveChildApiResponse,
@@ -262,3 +267,21 @@ class SettingsService(BaseService[AppUnitOfWork]):
             await uow.statistic_repository.add_statistic(parent.parent_id, statistics_key)
 
             return SwitchEANotificationsApiResponse()
+
+    async def getReferralParams(self, session_id: str) -> ReferralParamsApiResponse:
+        async with self.uow_factory() as uow:
+            session = await check_session(session_id, uow.session_repository)
+            parent: Parent = session.parent
+
+            me_referral = await uow.referral_repository.get_me_referral(parent.parent_id)
+            count_referrals = await uow.referral_repository.get_count_my_referrals(parent.parent_id)
+
+            link = str(URL(settings.URL).update_query(referral=hex(parent.parent_id)[2:]))
+
+            return ReferralParamsApiResponse(
+                answer=ReferralParamsResult(
+                    meReferralName=me_referral and me_referral.name,
+                    referralsCount=count_referrals,
+                    referralUrl=link
+                )
+            )

@@ -7,7 +7,8 @@ from ...schemas.response_schema import ApiResponse
 
 __all__ = ['Child', 'ChildrenResult', 'ChildrenApiResponse', 'SwitchActiveChildApiResponse', 'StatusMarksNotificationsResult',
            'StatusMarksNotificationsApiResponse', 'SwitchMarksNotificationsApiResponse', 'UpdateFirebaseApiResponse',
-           'StatusEANotificationsResult', 'StatusEANotificationsApiResponse', 'SwitchEANotificationsApiResponse']
+           'StatusEANotificationsResult', 'StatusEANotificationsApiResponse', 'SwitchEANotificationsApiResponse',
+           'ReferralParamsResult', 'ReferralParamsApiResponse']
 
 
 class Child(ApiBase):
@@ -188,4 +189,41 @@ class SwitchEANotificationsApiResponse(ApiResponse):
     answer: None = Field(
         default=None,
         description="Всегда null"
+    )
+
+
+class ReferralParamsResult(ApiBase):
+    """Результат запроса получения параметров реферальной программы для пользователя"""
+
+    classId: ClassVar[int] = 0x45
+    class_id: Literal[0x45, 0x2] = Field(
+        default=classId,
+        alias='classId',
+        description="Идентификатор класса"
+    )
+
+    meReferralName: Optional[str] = Field(
+        description="Имя пользователя, который пригласил"
+    )
+    referralsCount: int = Field(
+        description="Количество приглашенных пользователей"
+    )
+    referralUrl: str = Field(
+        description="Реферальная ссылка для приглашения"
+    )
+
+
+class ReferralParamsApiResponse(ApiResponse):
+    """Ответ на запрос получения параметров реферальной программы для пользователя"""
+
+    classId: ClassVar[int] = 0x46
+    class_id: Literal[0x46, 0x2] = Field(
+        default=classId,
+        alias='classId',
+        description="Идентификатор класса"
+    )
+
+    answer: Optional[ReferralParamsResult] = Field(
+        default=None,
+        description="Параметры реферальной программы для пользователя"
     )

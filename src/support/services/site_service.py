@@ -13,7 +13,7 @@ __all__ = ['SiteService']
 
 
 class SiteService(BaseService[AppUnitOfWork]):
-    async def get_root(self, session_id: Optional[str], likes_offset: Optional[int], likes_sort: Optional[str]) -> HtmlResponse:
+    async def get_root(self, session_id: Optional[str], likes_offset: Optional[int], likes_sort: Optional[str], referral_token: Optional[str]) -> HtmlResponse:
         async with self.uow_factory() as uow:
             session = None
             if isinstance(session_id, str):
@@ -31,13 +31,38 @@ class SiteService(BaseService[AppUnitOfWork]):
                 mode = likes_sort
 
             offset = 0
+            limit = 3
             if isinstance(likes_offset, int) and likes_offset >= 0:
                 offset = likes_offset
-
-            limit = 3 if offset == 0 else 10
+                limit = 10
 
             reviews, liked_reviews, next_offset = await ReviewsService.get_top_reviews(uow, mode, offset, limit, session)
             csrf_token = secrets.token_urlsafe(32)
+
+            cookies = [{
+                'key': 'csrf_token',
+                'value': csrf_token,
+                'max_age': 30 * 24 * 60 * 60,  # 30 дней
+                'httponly': False,
+                'samesite': 'lax'
+            }]
+
+            if referral_token:
+                try:
+                    parent_referral_id = int(referral_token, 16)
+                except (ValueError, TypeError):
+                    pass
+                else:
+                    parent_referral = await uow.parent_repository.get_parent(parent_referral_id)
+
+                    if parent_referral:
+                        cookies.append({
+                            'key': 'referral_token',
+                            'value': referral_token,
+                            'max_age': 30 * 24 * 60 * 60,  # 30 дней
+                            'httponly': True,
+                            'secure': True
+                        })
 
             await uow.statistic_repository.add_statistic(session and session.parent_id, 'site')
 
@@ -68,10 +93,5 @@ class SiteService(BaseService[AppUnitOfWork]):
                     'likes_sort': mode,
                     'csrf_token': csrf_token
                 },
-                cookies={
-                    'key': 'csrf_token',
-                    'value': csrf_token,
-                    'httponly': False,
-                    'samesite': 'lax'
-                }
+                cookies=cookies
             )

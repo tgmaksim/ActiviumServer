@@ -105,17 +105,6 @@ class VersionsResult(ApiBase):  # Начиная с версии API 1.1.0
         system = 0.9
         global_ = 1
 
-    @classmethod
-    def default(cls):
-        return cls(
-            latestVersionNumber=0,
-            latestVersionString="0.0.0",
-            date="09.12.2009",
-            versionStatusId=cls.VersionStatus.small,
-            versionStatus="Мелкие изменения",
-            updateLogs="Исправлены ошибки"
-        )
-
 
 class VersionsApiResponse(ApiResponse):  # Начиная с версии API 1.1.0
     classId: ClassVar[int] = 0x44

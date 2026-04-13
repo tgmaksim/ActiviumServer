@@ -21,6 +21,7 @@ async def _root(
         sessionId: Annotated[Optional[str], Query(description="Идентификатор сессия для статистики и пользовательских взаимодействий на сайте")] = None,
         likesOffset: Annotated[Optional[str], Query(alias='likes-offset', description="Смещение списка отзывов")] = None,
         likesSort: Annotated[Optional[str], Query(alias='likes-sort', description="Тип сортировки отзывов")] = None,
+        referral: Annotated[Optional[str], Query(description="Токен реферальной ссылки")] = None,
         service: SiteService = Depends(get_site_service)
 ):
     likes_offset = None
@@ -38,7 +39,7 @@ async def _root(
         response.set_cookie('session_id', session_id, max_age=30 * 24 * 60 * 60, secure=True, httponly=True)
         return response
 
-    template_params = await service.get_root(session_id, likes_offset, likesSort)
+    template_params = await service.get_root(session_id, likes_offset, likesSort, referral)
 
     templates = get_templates()
     response = templates.TemplateResponse(
@@ -50,7 +51,8 @@ async def _root(
 
     response.set_cookie('session_id', session_id, max_age=30 * 24 * 60 * 60, secure=True, httponly=True)
     if template_params.cookies:
-        response.set_cookie(**template_params.cookies)
+        for cookie in template_params.cookies:
+            response.set_cookie(**cookie)
 
     return response
 

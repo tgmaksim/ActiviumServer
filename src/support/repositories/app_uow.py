@@ -5,15 +5,16 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from .hour_repository import HourRepository
 from .child_repository import ChildRepository
 from .cache_repository import CacheRepository
-from .information_repository import InformationRepository
 from .review_repository import ReviewRepository
 from .parent_repository import ParentRepository
 from .rating_repository import RatingRepository
 from .session_repository import SessionRepository
 from .version_repository import VersionRepository
+from .referral_repository import ReferralRepository
 from .lesson_note_repository import LessonNoteRepository
 from ...repositories.log_repository import LogRepository
 from .review_likes_repository import ReviewLikeRepository
+from .information_repository import InformationRepository
 from .ea_notification_repository import EANotificationRepository
 from ...repositories.statistic_repository import StatisticRepository
 from .marks_notification_repository import MarksNotificationRepository
@@ -49,6 +50,7 @@ class AppUnitOfWork(SqlAlchemyUnitOfWork):
         self._ea_processing_notification_repository: Optional[EAProcessingNotificationRepository] = None
         self._highlighting_person_repository: Optional[HighlightingPersonRepository] = None
         self._information_repository: Optional[InformationRepository] = None
+        self._referral_repository: Optional[ReferralRepository] = None
 
     @property
     def log_repository(self) -> LogRepository:
@@ -157,3 +159,9 @@ class AppUnitOfWork(SqlAlchemyUnitOfWork):
         if self._information_repository is None:
             self._information_repository = InformationRepository(self.queue)
         return self._information_repository
+
+    @property
+    def referral_repository(self) -> ReferralRepository:
+        if self._referral_repository is None:
+            self._referral_repository = ReferralRepository(self.queue)
+        return self._referral_repository

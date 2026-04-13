@@ -10,4 +10,4 @@ class HtmlResponse(BaseModel):
     name: str
     status_code: int = 200
     context: Optional[dict] = {}
-    cookies: Optional[dict] = None
+    cookies: list[dict] = None
