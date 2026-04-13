@@ -96,6 +96,7 @@ class ExtracurricularActivityWorker:
 
         notifications = await uow.ea_notification_repository.get_notifications(list(groups))
 
+        parents = set()
         children_by_group: dict[tuple[int, int], set[str]] = {}
         for notification in notifications:
             if not notification.session.life:
@@ -105,6 +106,8 @@ class ExtracurricularActivityWorker:
                 if children_by_group.get(key) is None:
                     children_by_group[key] = set()
                 children_by_group[key].add(notification.session.firebase_token)
+
+                parents.add(notification.session.parent_id)
 
         pushes: list[tuple[str, dict]] = []
         processed_ids: list[int] = []
@@ -125,6 +128,9 @@ class ExtracurricularActivityWorker:
                 pushes.append((firebase_token, payload))
 
             processed_ids.append(row.ea_id)
+
+        for parent in parents:
+            await uow.statistic_repository.add_statistic(parent, 'ea_notification')
 
         return pushes, processed_ids
 

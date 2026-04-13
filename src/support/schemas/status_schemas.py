@@ -6,11 +6,11 @@ from ...schemas.base_schema import ApiBase
 from ...schemas.response_schema import ApiResponse
 
 
-__all__ = ['VersionsResult', 'VersionsApiResponse', 'HealthApiResponse', 'CheckSessionResult', 'CheckSessionApiResponse',
-           'Message', 'InformationResult', 'InformationApiResponse']
+__all__ = ['VersionsResult0x3', 'VersionsApiResponse0x4', 'HealthApiResponse', 'CheckSessionResult', 'CheckSessionApiResponse',
+           'Message', 'InformationResult', 'InformationApiResponse', 'VersionsResult', 'VersionsApiResponse']
 
 
-class VersionsResult(ApiBase):
+class VersionsResult0x3(ApiBase):  # До версии API 1.0.12.6
     classId: ClassVar[int] = 0x3
     class_id: Literal[0x3] = Field(
         default=classId,
@@ -45,6 +45,58 @@ class VersionsResult(ApiBase):
     )
 
 
+class VersionsApiResponse0x4(ApiResponse):  # До версии API 1.0.12.6
+    classId: ClassVar[int] = 0x4
+    class_id: Literal[0x4, 0x2] = Field(
+        default=classId,
+        alias='classId',
+        description="Идентификатор класса"
+    )
+
+    answer: Optional[VersionsResult0x3] = Field(
+        default=None,
+        description="Информация о последней версии приложения"
+    )
+
+
+class VersionsResult(ApiBase):  # Начиная с версии API 1.1.0
+    classId: ClassVar[int] = 0x43
+    class_id: Literal[0x43] = Field(
+        default=classId,
+        alias='classId',
+        description="Идентификатор класса"
+    )
+
+    latestVersionNumber: int = Field(
+        description="Последняя доступная версия (номер сборки) приложения",
+        examples=[500]
+    )
+    latestVersionString: str = Field(
+        description="Последняя доступная версия приложения",
+        examples=["0.3.0-beta"]
+    )
+    date: str = Field(
+        description="Дата выпуска последней доступной версии приложения",
+        examples=["09.12.2009"]
+    )
+    versionStatusId: float = Field(
+        description="Числовой статус новой версии, означающий важность обновления",
+        examples=[0.1, 0.3, 0.5, 0.7, 0.9, 1]
+    )
+    versionStatus: str = Field(
+        description="Статус новой версии, означающий важность обновления",
+        examples=["Мелкие изменения", "Небольшие улучшения", "Новая(ые) функция(и)", "Требуется обновление",
+                  "Важные системные изменения", "Глобальное обновление"]
+    )
+    info: Optional[str] = Field(
+        description="Информационное сообщение, которое нужно показать пользователю",
+        examples=["Вышла новая версия приложение. Требуется обновить его"]
+    )
+    updateLogs: str = Field(
+        description="Изменения в последней версии приложения (latestVersion), которые можно показать пользователю",
+        examples=["1. Добавлена новая функция\n2. Исправлены ошибки"]
+    )
+
     class VersionStatus:
         small = 0.1
         minor = 0.3
@@ -65,9 +117,9 @@ class VersionsResult(ApiBase):
         )
 
 
-class VersionsApiResponse(ApiResponse):
-    classId: ClassVar[int] = 0x4
-    class_id: Literal[0x4, 0x2] = Field(
+class VersionsApiResponse(ApiResponse):  # Начиная с версии API 1.1.0
+    classId: ClassVar[int] = 0x44
+    class_id: Literal[0x44, 0x2] = Field(
         default=classId,
         alias='classId',
         description="Идентификатор класса"

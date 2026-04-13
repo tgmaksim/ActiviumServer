@@ -24,6 +24,7 @@ class Settings(BaseSettings):
     DEBUG: bool = False
     AUTHOR: Optional[str] = None
     AUTHOR_LINK: Optional[str] = None
+    ADMIN_TIMEZONE: int = 0
     HIDE_VALIDATION_ERRORS_IN_DOCS: bool = True  # Скрывать сущности Validation-ошибок в документации
     TEMPLATES_DIRECTORY: str = "templates"  # Папка в основной директории с html-фалами
     DNEVNIK_CLIENT_ID: str  # API-ключ для работы с Дневником.ру

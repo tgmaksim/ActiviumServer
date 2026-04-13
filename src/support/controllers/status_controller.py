@@ -2,7 +2,7 @@ from typing import Annotated, Optional
 
 from fastapi import APIRouter, Query, Depends, Request, Header
 
-from ..schemas.status_schemas import VersionsApiResponse, HealthApiResponse, InformationApiResponse
+from ..schemas.status_schemas import VersionsApiResponse, HealthApiResponse, InformationApiResponse, VersionsApiResponse0x4
 
 from ..services.status_service import StatusService
 from ...dependencies.services import get_status_service
@@ -16,10 +16,24 @@ router = APIRouter(prefix='/status', tags=["Status"])
 @router.get(
     "/checkVersion/0",
     summary="Проверка версии приложения",
+    description="Получение информации о последней версии приложения и обновлении. Устарела с версии API 1.1.0",
+    response_model=VersionsApiResponse0x4,
+    deprecated=True  # Устарела с версии API 1.1.0
+)
+async def _checkVersion0(
+        versionNumber: Annotated[int, Query(description="Текущая версия (номер сборки) приложения")],
+        service: StatusService = Depends(get_status_service)
+) -> VersionsApiResponse0x4:
+    return await service.check_latest_version(versionNumber, api=0)
+
+
+@router.get(
+    "/checkVersion/1",  # Начиная с версии API 1.1.0
+    summary="Проверка версии приложения",
     description="Получение информации о последней версии приложения и обновлении",
     response_model=VersionsApiResponse
 )
-async def _checkVersion0(
+async def _checkVersion1(
         versionNumber: Annotated[Optional[int], Query(description="Текущая версия (номер сборки) приложения")] = None,
         service: StatusService = Depends(get_status_service)
 ) -> VersionsApiResponse:

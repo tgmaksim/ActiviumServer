@@ -19,7 +19,11 @@ class SiteService(BaseService[AppUnitOfWork]):
             if isinstance(session_id, str):
                 session = await uow.session_repository.get_session(session_id)
 
+            latest_generic = await uow.version_repository.get_latest_generic_version()
             latest = await uow.version_repository.get_latest_version()
+            latest_generic.version = latest.version
+            latest_generic.date = latest.date
+
             previous_versions = await uow.version_repository.get_all_versions()
 
             mode = 'likes'
@@ -40,10 +44,10 @@ class SiteService(BaseService[AppUnitOfWork]):
             return HtmlResponse(
                 name='main.html',
                 context={
-                    'version': "0.0.1" if latest is None else latest.version,
-                    'date': '' if latest is None else latest.date,
-                    'version_status': "Небольшие улучшения" if latest is None else latest.status,
-                    'update_log': [] if latest is None else latest.logs.split('\n'),
+                    'version': "0.0.1" if latest_generic is None else latest_generic.version,
+                    'date': '' if latest_generic is None else latest_generic.date,
+                    'version_status': "Небольшие улучшения" if latest_generic is None else latest_generic.status,
+                    'update_log': [] if latest_generic is None else latest_generic.logs.split('\n'),
                     'previous_versions': [{
                         'version': v.version,
                         'date': v.date,

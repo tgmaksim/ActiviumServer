@@ -2,10 +2,11 @@ from typing import Optional
 from datetime import timezone, timedelta
 
 from .base_service import BaseService
+from ..config.project_config import settings
 from ..repositories.log_uow import LogUnitOfWork
 
 
-ADMIN_TIMEZONE = timezone(timedelta(hours=6))
+ADMIN_TIMEZONE = timezone(timedelta(hours=settings.ADMIN_TIMEZONE))
 
 __all__ = ['LogService']
 
@@ -31,7 +32,7 @@ class LogService(BaseService[LogUnitOfWork]):
             from_date = min_created_at.astimezone(ADMIN_TIMEZONE).strftime('%e %b. %H:%M:%S')
             ru_logs = 'лога' if 2 <= count_all % 10 <= 4 else ('лог' if count_all % 10 == 1 else 'логов')
 
-            text = (f"<b>Статистика Активиум c {from_date}</b>\n\n"
+            text = (f"<b>#Статистика Активиум c {from_date}</b>\n\n"
                     f"<b>Логи</b>\nСобрано {count_all} {ru_logs}\n")
 
             if count_errors:
@@ -46,7 +47,7 @@ class LogService(BaseService[LogUnitOfWork]):
 
             text += "\n<b>Мониторинг запросов</b>\n"
             monitorings = await uow.monitoring_repository.get_stats(since)
-            for monitoring in monitorings:
+            for monitoring in sorted(monitorings, key=lambda m: m[3], reverse=True):
                 text += (f"<i>{monitoring[0]}</i>: "
                          f"от {round(monitoring[1].total_seconds() * 1000, 1)} мс "
                          f"до {round(monitoring[2].total_seconds() * 1000, 1)} мс, "

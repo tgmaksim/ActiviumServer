@@ -153,7 +153,7 @@ class MarksNotificationWorker:
         await uow.marks_notification_repository.update_date(child.child_id, newest_date)
 
         for parent in parents:
-            await uow.statistic_repository.add_statistic(parent, 'dnevnik_notification')
+            await uow.statistic_repository.add_statistic(parent, 'marks_notification')
 
         return pushes
 

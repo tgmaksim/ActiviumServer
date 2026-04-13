@@ -280,6 +280,8 @@ class DnevnikToolsService(BaseService[AppUnitOfWork]):
 
             await uow.highlighting_person_repository.highlight_person(parent.parent_id, person_id)
 
+            await uow.statistic_repository.add_statistic(parent.parent_id, 'highlight_person')
+
             return HighlightPersonApiResponse()
 
     async def unhighlight_person(self, session_id: str, person_key: str) -> UnhighlightPersonApiResponse:
@@ -311,5 +313,7 @@ class DnevnikToolsService(BaseService[AppUnitOfWork]):
                 )
 
             await uow.highlighting_person_repository.unhighlight_person(parent.parent_id, person_id)
+
+            await uow.statistic_repository.add_statistic(parent.parent_id, 'unhighlight_person')
 
             return UnhighlightPersonApiResponse()
