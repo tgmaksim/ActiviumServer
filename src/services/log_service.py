@@ -25,6 +25,10 @@ class LogService(BaseService[LogUnitOfWork]):
         async with self.uow_factory() as uow:
             await uow.log_repository.add_log(ip=ip, path=path, session_id=session_id, status=status, method=method, value=value)
 
+    async def stat(self, parent_id: Optional[int], key: str):
+        async with self.uow_factory() as uow:
+            await uow.statistics_repository.add_statistic(parent_id, key)
+
     async def send_stats_notification(self):
         async with self.uow_factory() as uow:
             count_all, max_created_at, min_created_at, count_errors = await uow.notification_repository.get_count()

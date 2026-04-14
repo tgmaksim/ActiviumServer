@@ -33,14 +33,17 @@ class LoggingMiddleware(BaseMiddleware):
     async def _log_event(self, event: Update, error: Optional[str]):
         ip = "tg"
 
-        entity = getattr(event, 'from_user', None) or getattr(event, 'user', None) or getattr(event, 'chat', None)
+        entity = (getattr(event.message, 'from_user', None) or getattr(event.message, 'chat', None) or
+                  getattr(event.callback_query, 'from_user', None) or
+                  getattr(getattr(event.callback_query, 'message', None), 'from_user', None) or
+                  getattr(getattr(event.callback_query, 'message', None), 'chat', None))
         session_id = getattr(entity, 'id', None)
 
         path = self._extract_path(event)
 
         value = error or "OK"
         if not error and event.event_type not in ('message', 'edited_message', 'callback_query'):
-            value = str(event.model_dump())
+            value = event.model_dump_json()
 
         service = LogService(get_log_uow_factory())
         await service.log(
@@ -51,13 +54,14 @@ class LoggingMiddleware(BaseMiddleware):
             method=event.event_type,
             value=value,
         )
+        await service.stat(None, f'{ip}_{event.event_type}')
 
     @staticmethod
     def _extract_path(event: Update) -> str:
         if event.message and event.message.text:
-            return event.message.text[:128]
+            return event.message.text
 
         if event.callback_query and event.callback_query.data:
-            return event.callback_query.data[:128]
+            return event.callback_query.data
 
-        return event.event_type
+        return event.model_dump_json()

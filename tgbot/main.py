@@ -37,7 +37,8 @@ async def run_polling():
         await service.log(path='tgbot', value="Бот остановлен")
 
         print("Бот остановлен")
-        await bot.session.close()
+        await dp.stop_polling()
+        await bot.close()
 
 
 def add_polling_task(loop: asyncio.AbstractEventLoop) -> asyncio.Task:

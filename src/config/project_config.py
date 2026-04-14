@@ -17,6 +17,10 @@ class Settings(BaseSettings):
     DB_ECHO: bool = False  # Выводить в консоль все sql-запросы
     URL: str  # Домен (https://example.com), на котором запускается проект
     WWW_PATH: str  # Путь к папке со статическими ресурсами, которые отправляются низкоуровневым сервером
+    NETANGELS_GATEWAY_TOKEN_URL: str
+    NETANGELS_API_KEY: str
+    NETANGELS_API_URL: str
+    VIRTUALHOST_ID: int
     API_PREFIX: str = "/api/v2"
     APK_PREFIX: str = "/apk"
     PROJECT_NAME: str = "Activium"

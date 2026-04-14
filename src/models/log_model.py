@@ -11,9 +11,9 @@ __all__ = ['Log']
 
 class Log(BaseModel):
     log_id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
-    ip: Mapped[Optional[str]] = mapped_column(String(39), nullable=True)
-    path: Mapped[str] = mapped_column(String(1024))
+    ip: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    path: Mapped[str] = mapped_column(String)
     session_id: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
     status: Mapped[bool] = mapped_column(Boolean)
-    method: Mapped[str] = mapped_column(String(8), nullable=True)
+    method: Mapped[str] = mapped_column(String(32), nullable=True)
     value: Mapped[str] = mapped_column(String)

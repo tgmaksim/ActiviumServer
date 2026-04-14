@@ -1,4 +1,4 @@
-from asyncpg.pgproto.pgproto import timedelta
+from datetime import timedelta
 
 from src.dependencies.uow import get_app_uow_factory
 

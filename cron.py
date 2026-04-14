@@ -16,5 +16,8 @@ if __name__ == '__main__':
     elif cron == "clear":
         from crons import clear
         asyncio.run(clear.main())
+    elif cron == "reload":
+        from crons import reload
+        asyncio.run(reload.main())
     else:
         raise ValueError("cron not found")
