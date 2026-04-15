@@ -53,7 +53,17 @@ class ExtracurricularActivityWorker:
                                 break
 
                             pushes, processed_ids = await self._process_batch(uow, rows)
-                            await self._dispatch_pushes(pushes)
+                            response = await self._dispatch_pushes(pushes)
+
+                            for message in (response.responses if response else []):
+                                status = message.exception is not None
+                                await uow.log_repository.add_log(
+                                    ip='ea_notifications',
+                                    path='ea_notifications',
+                                    status=status,
+                                    value=f"{message.exception}: {message.exception.http_response} {message.exception.cause} "
+                                          f"{message.exception.http_response.__dict__}" if status else message.message_id
+                                )
 
                             for ea_id in processed_ids:
                                 await uow.ea_processing_notification_repository.finish_process(ea_id)
@@ -139,13 +149,14 @@ class ExtracurricularActivityWorker:
         """Отправка уведомлений"""
 
         if not pushes:
-            return
+            return None
 
-        await send_notifications([Notification(
+        return await send_notifications([Notification(
             firebase_token=firebase_token,
             title="Скоро внеурочное занятие",
             message=f"Через {activity['minutes_left']} мин начнётся {activity['subject']} в {activity['place']}",
-            channel=AppNotificationChannel.extracurricular_activities
+            channel=AppNotificationChannel.extracurricular_activities,
+            data={"from_notification": "ea"}
         ) for firebase_token, activity in pushes])
 
     def stop(self):

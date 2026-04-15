@@ -9,7 +9,7 @@ from datetime import datetime, UTC
 from typing import Callable, Optional
 
 from httpx import AsyncClient
-from asyncio import AbstractEventLoop
+from asyncio import AbstractEventLoop, gather
 
 from PIL.ImageDraw import Draw
 from PIL import Image, ImageFont
@@ -59,7 +59,17 @@ class MarksNotificationWorker:
 
                         pushes = await self._process_child(uow, rows)
 
-                        await self._dispatch_pushes(pushes)
+                        response = await self._dispatch_pushes(pushes)
+
+                        for message in (response.responses if response else []):
+                            status = message.exception is not None
+                            await uow.log_repository.add_log(
+                                ip='marks_notifications',
+                                path='marks_notifications',
+                                status=status,
+                                value=f"{message.exception}: {message.exception.http_response} {message.exception.cause} "
+                                      f"{message.exception.http_response.__dict__}" if status else message.message_id
+                            )
                 except Exception as e:
                     service = LogService(get_log_uow_factory())
                     await service.log(
@@ -99,7 +109,7 @@ class MarksNotificationWorker:
 
         return await uow.marks_notification_repository.get_next_child()
 
-    async def _process_child(self, uow: AppUnitOfWork, rows: list[MarksNotification]) -> list[tuple[str, dict]]:
+    async def _process_child(self, uow: AppUnitOfWork, rows: list[MarksNotification]) -> list[tuple[str, dict, Optional[str]]]:
         """Проверка новых оценок и возвращение необходимых уведомлений"""
 
         if not rows:
@@ -110,6 +120,7 @@ class MarksNotificationWorker:
         last_mark = rows[0].last_mark
 
         marks: list[dict] = []
+        profile: str = ""
 
         shuffle(rows)  # Перемешивание для предотвращения частого использования одного dnevnik_token
 
@@ -118,7 +129,8 @@ class MarksNotificationWorker:
 
             if not turn_off:
                 try:
-                    marks = await self.fetch_marks(session.dnevnik_token, child, last_mark)
+                    marks, profile = await self.fetch_marks(session.dnevnik_token, child, last_mark)
+                    break
                 except BaseDnevnikruException as e:
                     turn_off = not await uow.session_repository.check_session_auth(session.session_id)  # Выключается сессия, если больше не работает
                     if not turn_off:  # Логирование ошибки
@@ -131,8 +143,6 @@ class MarksNotificationWorker:
 
             if turn_off:
                 await uow.marks_notification_repository.turn_off(session.session_id, child.child_id)
-            else:
-                continue  # Использование следующей сессии для получения оценок
 
         pushes = []
         parents = set()
@@ -146,9 +156,10 @@ class MarksNotificationWorker:
                 if row.session.firebase_token not in firebase_tokens:
                     firebase_tokens.add(row.session.firebase_token)
                     parents.add(row.session.parent_id)
+                    _profile = profile if row.session.parent_id != child.child_id else None
 
                     for mark in marks:
-                        pushes.append((row.session.firebase_token, mark))
+                        pushes.append((row.session.firebase_token, mark, _profile))
 
         await uow.marks_notification_repository.update_date(child.child_id, newest_date)
 
@@ -157,38 +168,45 @@ class MarksNotificationWorker:
 
         return pushes
 
-    async def fetch_marks(self, dnevnik_token: str, child: Child, last_mark: datetime) -> list[dict]:
+    async def fetch_marks(self, dnevnik_token: str, child: Child, last_mark: datetime) -> tuple[list[dict], str]:
         """Получение новых оценок ребенка"""
 
         dnr = AioDnevnikruApi(self.httpx_client, dnevnik_token)
 
-        result = await dnr.get_person_recent_marks(child.child_id, child.group_id, from_date=last_mark)
+        result, profile = await gather(
+            dnr.get_person_recent_marks(child.child_id, child.group_id, from_date=last_mark),
+            dnr.get_person(child.child_id)
+        )
 
         works = {work['id']: work for work in result['works']}
         subjects = {subject['id']: subject['name'] for subject in result['subjects']}
 
-        return [{
+        answer = [{
             'value': mark['textValue'],
             'mood': mark['mood'].lower() if mark['mood'].lower() in MarkLog.moods else MarkLog.default_mood(),
             'subject': subjects.get(works.get(mark['work'], {}).get('subjectId')),
             'date': date
         } for mark in result['marks'] if (date := datetime.fromisoformat(mark['date']).replace(tzinfo=UTC)) > last_mark]
 
-    async def _dispatch_pushes(self, pushes: list[tuple[str, dict]]):
+        return answer, profile['shortName']
+
+    async def _dispatch_pushes(self, pushes: list[tuple[str, dict, Optional[str]]]):
         """Отправка уведомлений"""
 
         if not pushes:
-            return
+            return None
 
-        await send_notifications([Notification(
+        return await send_notifications([Notification(
             firebase_token=firebase_token,
-            image=self.get_mark_url(mark['value'], mark['mood']),
+            image=self._get_mark_url(mark['value'], mark['mood']),
             title=f"{'🥳 Ура! ' * (mark['mood'] == 'good')}Новая оценка",
-            message=f"Вам выставили «{mark['value']}» по предмету {mark['subject']}",
-            channel=AppNotificationChannel.marks
-        ) for firebase_token, mark in pushes])
+            message=f"Получена оценка «{mark['value']}» по предмету {mark['subject']}"
+                    f"{f" — {profile}" if profile else ''}",
+            channel=AppNotificationChannel.marks,
+            data={"from_notification": "new_mark", "good_mark": mark['mood'] == 'good'}
+        ) for firebase_token, mark, profile in pushes])
 
-    def get_mark_url(self, mark: str, mark_type: str) -> Optional[str]:
+    def _get_mark_url(self, mark: str, mark_type: str) -> Optional[str]:
         """Ссылка на статический ресурс с картинкой оценки"""
 
         relative_path = ('marks', f'{mark}.{mark_type}.png')

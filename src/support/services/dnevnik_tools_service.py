@@ -20,6 +20,7 @@ from ..schemas.dnevnik_tools_schemas import (
 )
 
 from ...models.parent_model import Parent
+from ...models.child_model import Child
 from ...api.session_error import SessionError
 from ...schemas.error_schema import ApiError
 from ...dependencies.auth import check_session
@@ -39,6 +40,7 @@ class DnevnikToolsService(BaseService[AppUnitOfWork]):
         async with self.uow_factory() as uow:
             session = await check_session(session_id, uow.session_repository)
             parent: Parent = session.parent
+            child: Child = session.active_child
 
             try:
                 lesson_id = int(lesson_key, 36)
@@ -51,8 +53,8 @@ class DnevnikToolsService(BaseService[AppUnitOfWork]):
                     )
                 )
 
-            note = await uow.lesson_note_repository.get_note(parent.active_child_id, lesson_id)
-            if note is not None and not note.public and parent.parent_id != parent.active_child_id:
+            note = await uow.lesson_note_repository.get_note(child.child_id, lesson_id)
+            if note is not None and not note.public and parent.parent_id != child.child_id:
                 return CreateNoteApiResponse(
                     status=False,
                     error=ApiError(
@@ -78,7 +80,7 @@ class DnevnikToolsService(BaseService[AppUnitOfWork]):
                     )
                 raise
 
-            await uow.lesson_note_repository.create_note(parent.active_child_id, lesson_id, text, public)
+            await uow.lesson_note_repository.create_note(child.child_id, lesson_id, text, public)
 
             await uow.statistic_repository.add_statistic(parent.parent_id, 'create_note')
 
@@ -96,13 +98,14 @@ class DnevnikToolsService(BaseService[AppUnitOfWork]):
         async with self.uow_factory() as uow:
             session = await check_session(session_id, uow.session_repository)
             parent: Parent = session.parent
+            child: Child = session.active_child
 
             try:
                 lesson_id = int(lesson_key, 36)
             except ValueError:
                 lesson_id = None
 
-            note = await uow.lesson_note_repository.get_note(parent.active_child_id, lesson_id)
+            note = await uow.lesson_note_repository.get_note(child.child_id, lesson_id)
 
             return NoteApiResponse(
                 answer=NoteResult(
@@ -118,13 +121,14 @@ class DnevnikToolsService(BaseService[AppUnitOfWork]):
         async with self.uow_factory() as uow:
             session = await check_session(session_id, uow.session_repository)
             parent: Parent = session.parent
+            child: Child = session.active_child
 
             try:
                 lesson_id = int(lesson_key, 36)
             except ValueError:
                 lesson_id = None
 
-            note = await uow.lesson_note_repository.get_note(parent.active_child_id, lesson_id)
+            note = await uow.lesson_note_repository.get_note(child.child_id, lesson_id)
             if note is None:
                 return DeleteNoteApiResponse(
                     status=False,
@@ -134,7 +138,7 @@ class DnevnikToolsService(BaseService[AppUnitOfWork]):
                     )
                 )
 
-            await uow.lesson_note_repository.delete_note(parent.active_child_id, lesson_id)
+            await uow.lesson_note_repository.delete_note(child.child_id, lesson_id)
 
             await uow.statistic_repository.add_statistic(parent.parent_id, 'delete_note')
 
@@ -144,6 +148,7 @@ class DnevnikToolsService(BaseService[AppUnitOfWork]):
         async with self.uow_factory() as uow:
             session = await check_session(session_id, uow.session_repository)
             parent: Parent = session.parent
+            child: Child = session.active_child
 
             try:
                 lesson_id = int(lesson_key, 36)
@@ -163,7 +168,7 @@ class DnevnikToolsService(BaseService[AppUnitOfWork]):
                     dnr.get_info(),
                     dnr.get_children_relatives(),
                     dnr.get_lesson(lesson_id),
-                    dnr.get_person_marks_by_lesson(parent.active_child_id, lesson_id)
+                    dnr.get_person_marks_by_lesson(child.child_id, lesson_id)
                 )
             except BaseDnevnikruException as e:
                 if not await uow.session_repository.check_session_auth(session.session_id, dnr):
@@ -187,7 +192,7 @@ class DnevnikToolsService(BaseService[AppUnitOfWork]):
                     )
                 )
 
-            if parent.parent_id == parent.active_child_id:
+            if parent.parent_id == child.child_id:
                 return PraiseApiResponse(
                     status=False,
                     error=ApiError(
@@ -196,8 +201,8 @@ class DnevnikToolsService(BaseService[AppUnitOfWork]):
                     )
                 )
 
-            child_sessions = await uow.session_repository.get_sessions(parent.active_child_id)
-            firebase_tokens = {child.firebase_token for child in child_sessions if child.firebase_token is not None}
+            child_sessions = await uow.session_repository.get_sessions(child.child_id)
+            firebase_tokens = {child_session.firebase_token for child_session in child_sessions if child_session.firebase_token is not None}
             if not firebase_tokens:
                 return PraiseApiResponse(
                     status=False,
@@ -225,7 +230,7 @@ class DnevnikToolsService(BaseService[AppUnitOfWork]):
             }
 
             for child_relatives in children_relatives:
-                if child_relatives['person']['id'] != parent.active_child_id:
+                if child_relatives['person']['id'] != child.child_id:
                     continue
 
                 for child_relative in child_relatives['relatives']:
@@ -234,12 +239,32 @@ class DnevnikToolsService(BaseService[AppUnitOfWork]):
 
                     parent_name = relatives.get(child_relative['type'], parent_name)
 
-            await send_notifications([Notification(
+            response = await send_notifications([Notification(
                 firebase_token=firebase_token,
                 title="😎 Получай похвалу 🥰",
                 message=f"{parent_name} {verb} за «{text_marks}» ({lesson['subject']['name']}){quote}",
-                channel=AppNotificationChannel.praise
+                channel=AppNotificationChannel.praise,
+                data={"from_notification": "praise"}
             ) for firebase_token in firebase_tokens])
+
+            for message in response.responses:
+                status = message.exception is not None
+                await uow.log_repository.add_log(
+                    ip='praise_notifications',
+                    path='praise_notifications',
+                    status=status,
+                    value=f"{message.exception}: {message.exception.code} {message.exception.cause} "
+                          f"{message.exception.http_response.__dict__}" if status else message.message_id
+                )
+
+            if response.success_count == 0:
+                return PraiseApiResponse(
+                    status=False,
+                    error=ApiError(
+                        type="SendPraiseError",
+                        errorMessage="Произошла ошибка. Попробуйте еще раз или повторите позднее"
+                    )
+                )
 
             await uow.statistic_repository.add_statistic(parent.parent_id, 'send_praise')
 

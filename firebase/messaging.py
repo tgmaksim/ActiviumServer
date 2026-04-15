@@ -3,7 +3,7 @@ from typing import Optional, Any
 
 from pydantic import BaseModel, HttpUrl
 
-from async_firebase import AsyncFirebaseClient
+from async_firebase import AsyncFirebaseClient, FCMBatchResponse
 from async_firebase.messages import Message as FCMMessage, Notification as FCMNotification, AndroidConfig
 
 
@@ -33,12 +33,12 @@ class Notification(BaseModel):
     data: dict[str, Any] = {}
 
 
-async def send_notifications(notifications: list[Notification]):
+async def send_notifications(notifications: list[Notification]) -> FCMBatchResponse:
     messages = [FCMMessage(
         notification=FCMNotification(
             title=notification.title,
             body=notification.message,
-            image=str(notification.image)
+            image=str(notification.image) if notification.image else None
         ),
         token=notification.firebase_token,
         android=AndroidConfig.build(
@@ -50,6 +50,6 @@ async def send_notifications(notifications: list[Notification]):
 
     try:
         response = await client.send_each(messages)
-        print(response)
+        return response
     except Exception as e:
         raise FirebaseApiError(e)

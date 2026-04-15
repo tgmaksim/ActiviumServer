@@ -16,13 +16,7 @@ class ParentRepository(SqlAlchemyRepository[Parent]):
     async def get_parent(self, parent_id: int) -> Optional[Parent]:
         return await self.get_single(Parent.parent_id == parent_id)
 
-    async def create_parent(self, parent_id: int, active_child_id: int) -> Parent:
+    async def create_parent(self, parent_id: int) -> Parent:
         return await self.create({
-            'parent_id': parent_id,
-            'active_child_id': active_child_id
+            'parent_id': parent_id
         })
-
-    async def set_active_child(self, parent_id: int, active_child_id: int) -> Parent:
-        return await self.update({
-            'active_child_id': active_child_id
-        }, Parent.parent_id == parent_id)

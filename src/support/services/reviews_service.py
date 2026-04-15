@@ -97,12 +97,23 @@ class ReviewsService(BaseService[AppUnitOfWork]):
 
             sessions = await uow.session_repository.get_sessions(parent_id)
             firebase_tokens = {session.firebase_token for session in sessions}
-            await send_notifications([Notification(
+            response = await send_notifications([Notification(
                 firebase_token=firebase_token,
                 title=title,
                 message=message,
-                channel=AppNotificationChannel.service
+                channel=AppNotificationChannel.service,
+                data={"from_notification": "publish_review"}
             ) for firebase_token in firebase_tokens])
+
+            for message in response.responses:
+                status = message.exception is not None
+                await uow.log_repository.add_log(
+                    ip='review_notification',
+                    path='review_notification',
+                    status=status,
+                    value=f"{message.exception}: {message.exception.http_response} {message.exception.cause} "
+                          f"{message.exception.http_response.__dict__}" if status else message.message_id
+                )
 
             return publish
 

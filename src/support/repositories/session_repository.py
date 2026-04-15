@@ -31,9 +31,10 @@ class SessionRepository(SqlAlchemyRepository[Session]):
     async def get_sessions(self, parent_id: int) -> list[Session]:
         return await self.get_multi(Session.parent_id == parent_id, Session.life == True)
 
-    async def auth_session(self, session_id: str, dnevnik_token: str, parent_id: int) -> Optional[Session]:
+    async def auth_session(self, session_id: str, dnevnik_token: str, parent_id: int, active_child_id: int) -> Optional[Session]:
         return await self.update({
             'parent_id': parent_id,
+            'active_child_id': active_child_id,
             'dnevnik_token': dnevnik_token
         }, Session.session_id == session_id, Session.life == True)
 
@@ -41,6 +42,11 @@ class SessionRepository(SqlAlchemyRepository[Session]):
         return await self.update({
             'firebase_token': firebase_token
         }, Session.session_id == session_id, Session.life == True)
+
+    async def set_active_child(self, session_id: str, active_child_id: int) -> Session:
+        return await self.update({
+            'active_child_id': active_child_id
+        }, Session.session_id == session_id)
 
     async def kill_session(self, session_id: str) -> Optional[Session]:
         return await self.update({'life': False}, Session.session_id == session_id)

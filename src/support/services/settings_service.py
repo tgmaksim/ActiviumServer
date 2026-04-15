@@ -67,7 +67,7 @@ class SettingsService(BaseService[AppUnitOfWork]):
                         childId=int(info['personId']),
                         name=info['shortName']
                     )],
-                    activeChildId=parent.active_child_id
+                    activeChildId=session.active_child_id
                 )
             )
 
@@ -148,7 +148,7 @@ class SettingsService(BaseService[AppUnitOfWork]):
                     )
                     break
 
-            await uow.parent_repository.set_active_child(parent.parent_id, child_id)
+            await uow.session_repository.set_active_child(session_id, child_id)
 
             await uow.statistic_repository.add_statistic(parent.parent_id, 'setActiveChild')
 
@@ -165,10 +165,9 @@ class SettingsService(BaseService[AppUnitOfWork]):
     async def getStatusMarksNotifications(self, session_id: str, child_id: Optional[int]) -> StatusMarksNotificationsApiResponse:
         async with self.uow_factory() as uow:
             session = await check_session(session_id, uow.session_repository)
-            parent: Parent = session.parent
 
             if child_id is None:
-                child_id = parent.active_child_id
+                child_id = session.active_child_id
 
             status = await uow.marks_notification_repository.get_status(session_id, child_id)
 
@@ -184,7 +183,7 @@ class SettingsService(BaseService[AppUnitOfWork]):
             parent: Parent = session.parent
 
             if child_id is None:
-                child_id = parent.active_child_id
+                child_id = session.active_child_id
 
             if not status:
                 await uow.marks_notification_repository.turn_off(session_id, child_id)
@@ -200,7 +199,7 @@ class SettingsService(BaseService[AppUnitOfWork]):
                     raise SessionError(session_id=session.session_id) from e
                 raise
 
-            if child_id != parent.active_child_id:
+            if child_id != session.active_child_id:
                 try:
                     next(filter(lambda c: c['id'] == child_id, children))
                 except StopIteration:
@@ -237,10 +236,9 @@ class SettingsService(BaseService[AppUnitOfWork]):
     async def getStatusEANotifications(self, session_id: str, child_id: Optional[int]) -> StatusEANotificationsApiResponse:
         async with self.uow_factory() as uow:
             session = await check_session(session_id, uow.session_repository)
-            parent: Parent = session.parent
 
             if child_id is None:
-                child_id = parent.active_child_id
+                child_id = session.active_child_id
 
             status = await uow.ea_notification_repository.get_status(session_id, child_id)
 
@@ -256,7 +254,7 @@ class SettingsService(BaseService[AppUnitOfWork]):
             parent: Parent = session.parent
 
             if child_id is None:
-                child_id = parent.active_child_id
+                child_id = session.active_child_id
 
             if status:
                 await uow.ea_notification_repository.turn_on(session_id, child_id)

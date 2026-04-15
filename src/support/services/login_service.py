@@ -207,9 +207,9 @@ class LoginService(BaseService[AppUnitOfWork]):
             result['children'] = children_data
             result['parent_id'] = person_id
         elif 'EduTeacher' in roles:
-            return 'teacher'
+            return 'teacher', parent_name
         else:
-            return None
+            return None, parent_name
 
         return result, parent_name
 
@@ -218,13 +218,14 @@ class LoginService(BaseService[AppUnitOfWork]):
         registration = False
         if me := dnevnik_data['me']:
             person_id: int = me['person_id']
+            active_child_id = me['person_id']
             school_id: int = me['school_id']
             group_id: int = me['group_id']
             timezone: int = me['timezone']
 
             if await uow.parent_repository.get_parent(person_id) is None:
                 await uow.child_repository.create_child(person_id, school_id, group_id, timezone, security=True)
-                await uow.parent_repository.create_parent(person_id, person_id)
+                await uow.parent_repository.create_parent(person_id)
 
                 registration = True
                 await uow.statistic_repository.add_statistic(person_id, 'registration')
@@ -240,6 +241,7 @@ class LoginService(BaseService[AppUnitOfWork]):
         else:
             person_id: int = dnevnik_data['parent_id']
             children: list[dict] = dnevnik_data['children']
+            active_child_id = children[0]['person_id']
 
             if await uow.parent_repository.get_parent(person_id) is None:
                 for child in children:
@@ -250,7 +252,7 @@ class LoginService(BaseService[AppUnitOfWork]):
                         child['timezone'],
                         security=True
                     )
-                await uow.parent_repository.create_parent(person_id, children[0]['person_id'])
+                await uow.parent_repository.create_parent(person_id)
 
                 registration = True
                 await uow.statistic_repository.add_statistic(person_id, 'registration')
@@ -268,7 +270,7 @@ class LoginService(BaseService[AppUnitOfWork]):
                             security=True
                         )
 
-        await uow.session_repository.auth_session(session_id, dnevnik_token, person_id)
+        await uow.session_repository.auth_session(session_id, dnevnik_token, person_id, active_child_id)
         await uow.statistic_repository.add_statistic(person_id, 'authorization')
 
         if registration:

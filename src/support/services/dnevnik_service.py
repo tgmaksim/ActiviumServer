@@ -83,7 +83,7 @@ class DnevnikService(BaseService[AppUnitOfWork]):
 
             session = await check_session(session_id, uow.session_repository)
             parent: Parent = session.parent
-            child: Child = parent.active_child
+            child: Child = session.active_child
 
             dnr = AioDnevnikruApi(get_httpx_client(), session.dnevnik_token)
             now = datetime_now(child.timezone)
@@ -114,13 +114,13 @@ class DnevnikService(BaseService[AppUnitOfWork]):
                     lessons_id.append(lesson['id'])
 
             # Показывать только открытые заметки для родителя
-            only_public_notes = parent.parent_id != parent.active_child_id
-            notes = await uow.lesson_note_repository.get_notes(parent.active_child_id, lessons_id, only_public=only_public_notes)
+            only_public_notes = parent.parent_id != child.child_id
+            notes = await uow.lesson_note_repository.get_notes(child.child_id, lessons_id, only_public=only_public_notes)
 
             ea = await self._get_extracurricular_activities(uow.extracurricular_activity_repository, child, (start, end))
 
             result = []
-            for day in person_schedule['days']:
+            for day in sorted(person_schedule['days'], key=lambda d: datetime.fromisoformat(day['date'])):
                 subjects = {subject['id']: subject['name'] for subject in day['subjects']}
                 works = {work['id']: work for work in day['works']}
                 work_types = {work_type['id']: work_type for work_type in day['workTypes']}
@@ -200,7 +200,7 @@ class DnevnikService(BaseService[AppUnitOfWork]):
                 answer=ScheduleResult(
                     schedule=result,
                     timezone=child.timezone,
-                    hasAbilityPraise=parent.parent_id != parent.active_child_id
+                    hasAbilityPraise=parent.parent_id != child.child_id
                 )
             )
 
@@ -347,7 +347,7 @@ class DnevnikService(BaseService[AppUnitOfWork]):
         now = datetime_now()
         cache_key_factory = lambda w: f"workType|{w}"
 
-        caches = await cache_repository.get_caches(session.session_id, list(map(cache_key_factory, work_types_id)))
+        caches = await cache_repository.get_caches(session.session_id, child.child_id, list(map(cache_key_factory, work_types_id)))
         results = {int(cache.key.split("|")[1]): WorkType(
             title=cache.value['title'],
             abbr=cache.value['abbr']
@@ -372,7 +372,7 @@ class DnevnikService(BaseService[AppUnitOfWork]):
                     abbr=work_type['abbr']
                 )
 
-        await cache_repository.put_caches(session.session_id, new_caches)
+        await cache_repository.put_caches(session.session_id, child.child_id, new_caches)
 
         return results
 
@@ -388,7 +388,7 @@ class DnevnikService(BaseService[AppUnitOfWork]):
         now = datetime_now()
         cache_key_factory = lambda p: f"person|{p}"
 
-        caches = await cache_repository.get_caches(session.session_id, list(map(cache_key_factory, persons_id)))
+        caches = await cache_repository.get_caches(session.session_id, child.child_id, list(map(cache_key_factory, persons_id)))
         results = {int(cache.key.split("|")[1]): cache.value['name'] for cache in caches
                    if now - cache.updated_at < timedelta(days=28)}
 
@@ -407,7 +407,7 @@ class DnevnikService(BaseService[AppUnitOfWork]):
             if person['id'] in persons_id:
                 results[person['id']] = person['shortName']
 
-        await cache_repository.put_caches(session.session_id, new_caches)
+        await cache_repository.put_caches(session.session_id, child.child_id, new_caches)
 
         return results
 
@@ -498,7 +498,7 @@ class DnevnikService(BaseService[AppUnitOfWork]):
 
             session = await check_session(session_id, uow.session_repository)
             parent: Parent = session.parent
-            child: Child = parent.active_child
+            child: Child = session.active_child
 
             dnr = AioDnevnikruApi(self.httpx_client, session.dnevnik_token)
 
@@ -583,12 +583,12 @@ class DnevnikService(BaseService[AppUnitOfWork]):
 
         now = datetime_now()
 
-        if ((cache := await cache_repository.get_cache(session.session_id, cache_key)) and
+        if ((cache := await cache_repository.get_cache(session.session_id, child.child_id, cache_key)) and
                 now - cache.created_at < timedelta(days=28)):
             return cache.value
         else:
             periods = await dnr.get_reporting_periods(child.group_id)
-            await cache_repository.put_cache(session.session_id, cache_key, periods)
+            await cache_repository.put_cache(session.session_id, child.child_id, cache_key, periods)
 
             return periods
 
@@ -622,7 +622,7 @@ class DnevnikService(BaseService[AppUnitOfWork]):
         async with self.uow_factory() as uow:
             session = await check_session(session_id, uow.session_repository)
             parent: Parent = session.parent
-            child: Child = parent.active_child
+            child: Child = session.active_child
 
             dnr = AioDnevnikruApi(self.httpx_client, session.dnevnik_token)
 
@@ -813,7 +813,7 @@ class DnevnikService(BaseService[AppUnitOfWork]):
 
             session = await check_session(session_id, uow.session_repository)
             parent: Parent = session.parent
-            child: Child = parent.active_child
+            child: Child = session.active_child
 
             dnr = AioDnevnikruApi(self.httpx_client, session.dnevnik_token)
 
@@ -953,7 +953,7 @@ class DnevnikService(BaseService[AppUnitOfWork]):
 
             session = await check_session(session_id, uow.session_repository)
             parent: Parent = session.parent
-            child: Child = parent.active_child
+            child: Child = session.active_child
 
             dnr = AioDnevnikruApi(self.httpx_client, session.dnevnik_token)
 
@@ -1081,7 +1081,7 @@ class DnevnikService(BaseService[AppUnitOfWork]):
         async with self.uow_factory() as uow:
             session = await check_session(session_id, uow.session_repository)
             parent: Parent = session.parent
-            child: Child = parent.active_child
+            child: Child = session.active_child
 
             dnr = AioDnevnikruApi(self.httpx_client, session.dnevnik_token)
 
