@@ -1,8 +1,8 @@
-from httpx import AsyncClient, Headers, Response
 from typing import Any, Union, Sequence, Literal
+from httpx import AsyncClient, Headers, Response, TimeoutException
 
 from dnevnikru.config import dnevnikru_path, login_dnevnikru_path
-from dnevnikru.exceptions import InvalidResponseException, DnevnikruApiException
+from dnevnikru.exceptions import InvalidResponseException, DnevnikruApiException, RequestTimeoutException
 
 
 __all__ = ['BaseAioDnevnikruApi']
@@ -78,6 +78,45 @@ class BaseAioDnevnikruApi:
             state=state
         ))
 
+    async def _request(
+            self,
+            method: str,
+            path: str,
+            *,
+            data: Any = None,
+            httpx_kwargs: dict[str, Any] = None,
+            **request_params: ParamType
+    ) -> JsonType:
+        """
+        API-запрос и валидация ответа
+
+        :param method http-метод запроса
+        :param path: название (путь) метода
+        :param httpx_kwargs: дополнительные параметры для httpx
+        :param request_params: параметры API-запроса в пути (?query)
+        :return: результат в виде JSON
+        :except InvalidResponseError: Некорректный ответ от дневника.ру, привлекший к ошибке
+        :except DnevnikruApiError: Ошибка в API-запросе от дневника.ру
+        :except RequestTimeoutException: Превышен лимит ожидания ответа от дневника.ру
+        """
+
+        if httpx_kwargs is None:
+            httpx_kwargs = {}
+
+        try:
+            response: Response = await self._client.request(
+                method,
+                str(dnevnikru_path.joinpath(path)),
+                params=request_params,
+                json=data,
+                headers=self._headers,
+                **httpx_kwargs
+            )
+        except TimeoutException as e:
+            raise RequestTimeoutException(e)
+
+        return self._validate_response(response)
+
     async def get(
             self,
             method: str,
@@ -94,19 +133,10 @@ class BaseAioDnevnikruApi:
         :return: результат в виде JSON
         :except InvalidResponseError: Некорректный ответ от дневника.ру, привлекший к ошибке
         :except DnevnikruApiError: Ошибка в API-запросе от дневника.ру
+        :except RequestTimeoutException: Превышен лимит ожидания ответа от дневника.ру
         """
 
-        if httpx_kwargs is None:
-            httpx_kwargs = {}
-
-        response: Response = await self._client.get(
-            str(dnevnikru_path.joinpath(method)),
-            params=request_params,
-            headers=self._headers,
-            **httpx_kwargs
-        )
-
-        return self._validate_response(response)
+        return await self._request("GET", method, httpx_kwargs=httpx_kwargs, **request_params)
 
     async def post(
             self,
@@ -126,20 +156,13 @@ class BaseAioDnevnikruApi:
         :return: результат в виде JSON
         :except InvalidResponseError: Некорректный ответ от дневника.ру, привлекший к ошибке
         :except DnevnikruApiError: Ошибка в API-запросе от дневника.ру
+        :except RequestTimeoutException: Превышен лимит ожидания ответа от дневника.ру
         """
 
-        if httpx_kwargs is None:
-            httpx_kwargs = {}
+        if params is None:
+            params = {}
 
-        response: Response = await self._client.post(
-            str(dnevnikru_path.joinpath(method)),
-            params=params,
-            json=data,
-            headers=self._headers,
-            **httpx_kwargs
-        )
-
-        return self._validate_response(response)
+        return await self._request("POST", method, data=data, httpx_kwargs=httpx_kwargs, **params)
 
     async def put(
             self,
@@ -159,20 +182,13 @@ class BaseAioDnevnikruApi:
         :return: результат в виде JSON
         :except InvalidResponseError: Некорректный ответ от дневника.ру, привлекший к ошибке
         :except DnevnikruApiError: Ошибка в API-запросе от дневника.ру
+        :except RequestTimeoutException: Превышен лимит ожидания ответа от дневника.ру
         """
 
-        if httpx_kwargs is None:
-            httpx_kwargs = {}
+        if params is None:
+            params = {}
 
-        response: Response = await self._client.put(
-            str(dnevnikru_path.joinpath(method)),
-            params=params,
-            json=data,
-            headers=self._headers,
-            **httpx_kwargs
-        )
-
-        return self._validate_response(response)
+        return await self._request("PUT", method, data=data, httpx_kwargs=httpx_kwargs, **params)
 
     async def delete(
             self,
@@ -190,19 +206,13 @@ class BaseAioDnevnikruApi:
         :return: результат в виде JSON
         :except InvalidResponseError: Некорректный ответ от дневника.ру, привлекший к ошибке
         :except DnevnikruApiError: Ошибка в API-запросе от дневника.ру
+        :except RequestTimeoutException: Превышен лимит ожидания ответа от дневника.ру
         """
 
-        if httpx_kwargs is None:
-            httpx_kwargs = {}
+        if params is None:
+            params = {}
 
-        response: Response = await self._client.delete(
-            str(dnevnikru_path.joinpath(method)),
-            params=params,
-            headers=self._headers,
-            **httpx_kwargs
-        )
-
-        return self._validate_response(response)
+        return await self._request("DELETE", method, httpx_kwargs=httpx_kwargs, **params)
 
     @staticmethod
     def _validate_response(response: Response) -> JsonType:
@@ -222,7 +232,7 @@ class BaseAioDnevnikruApi:
         try:
             json = response.json()
         except Exception as error:
-            raise InvalidResponseException(str(error)) from error
+            raise InvalidResponseException(error) from error
 
         try:
             raise DnevnikruApiException(json['type'], json['description'])

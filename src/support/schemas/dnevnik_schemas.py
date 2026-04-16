@@ -10,8 +10,9 @@ from typing import ClassVar, Literal, Optional
 __all__ = ['ScheduleHomeworkDocument', 'ScheduleExtracurricularActivity', 'ScheduleHours', 'WorkType', 'MarkLog',
            'MarksOther', 'ScheduleLesson', 'ScheduleDay', 'ScheduleResult', 'ScheduleApiResponse',
            'LessonRatingStatsResult', 'LessonRatingStatsApiResponse', 'MarkLast', 'MarksSubjectPeriod', 'MarksResult',
-           'MarksApiResponse', 'MarksRatingStatsResult', 'MarksRatingStatsApiResponse', 'MarksSubjectRatingResult',
-           'MarksSubjectRatingApiResponse', 'MarksSubjectFinal', 'MarksFinalResult', 'MarksFinalApiResponse']
+           'MarksApiResponse', 'MarksRatingStatsResult0x1A', 'MarksRatingStatsApiResponse0x1B', 'MarksSubjectRatingResult',
+           'MarksSubjectRatingApiResponse', 'MarksSubjectFinal', 'MarksFinalResult', 'MarksFinalApiResponse',
+           'MarksRatingStatsResult', 'MarksRatingStatsApiResponse']
 
 
 class ScheduleHomeworkDocument(ApiBase):
@@ -442,7 +443,7 @@ class MarksApiResponse(ApiResponse):
     )
 
 
-class MarksRatingStatsResult(ApiBase):
+class MarksRatingStatsResult0x1A(ApiBase):
     """Результат запроса получения дополнительной статистики по последней оценке"""
 
     classId: ClassVar[int] = 0x1A
@@ -466,11 +467,54 @@ class MarksRatingStatsResult(ApiBase):
     )
 
 
-class MarksRatingStatsApiResponse(ApiResponse):
+class MarksRatingStatsResult(ApiBase):
+    """Результат запроса получения дополнительной статистики по последней оценке"""
+
+    classId: ClassVar[int] = 0x47
+    class_id: Literal[0x47] = Field(
+        default=classId,
+        alias='classId',
+        description="Идентификатор класса"
+    )
+
+    othersMarks: list[MarksOther] = Field(
+        description="Оценки класса за тот же урок"
+    )
+    avgGroupMark: Optional[MarkLog] = Field(
+        description="Средний балл оценок за урок в классе"
+    )
+    oldAvgMark: Optional[MarkLog] = Field(
+        description="Средний балл до получения оценок в день урока"
+    )
+    newAvgMark: Optional[MarkLog] = Field(
+        description="Средний балл после получения оценок в день урока"
+    )
+    hasAbilityPraise: bool = Field(
+        description="Можно ли отправить похвалу ребенку от родителя"
+    )
+
+
+class MarksRatingStatsApiResponse0x1B(ApiResponse):
     """Ответ на запрос получения дополнительной статистики по последней оценке"""
 
     classId: ClassVar[int] = 0x1B
     class_id: Literal[0x1B, 0x2] = Field(
+        default=classId,
+        alias='classId',
+        description="Идентификатор класса"
+    )
+
+    answer: Optional[MarksRatingStatsResult0x1A] = Field(
+        default=None,
+        description="Дополнительная статистика по последней оценке"
+    )
+
+
+class MarksRatingStatsApiResponse(ApiResponse):
+    """Ответ на запрос получения дополнительной статистики по последней оценке"""
+
+    classId: ClassVar[int] = 0x48
+    class_id: Literal[0x48, 0x2] = Field(
         default=classId,
         alias='classId',
         description="Идентификатор класса"

@@ -39,7 +39,15 @@ async def _root(
         response.set_cookie('session_id', session_id, max_age=30 * 24 * 60 * 60, secure=True, httponly=True)
         return response
 
-    template_params = await service.get_root(session_id, likes_offset, likesSort, referral)
+    if referral is not None:
+        response = RedirectResponse(
+            url=request.url.remove_query_params('referral'),
+            status_code=status.HTTP_303_SEE_OTHER
+        )
+        response.set_cookie('referral', referral, max_age=30 * 24 * 60 * 60, secure=True, httponly=True)
+        return response
+
+    template_params = await service.get_root(session_id, likes_offset, likesSort)
 
     templates = get_templates()
     response = templates.TemplateResponse(

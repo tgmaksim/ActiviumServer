@@ -3,7 +3,7 @@ import re
 from statistics import median, mean
 
 from asyncio import gather
-from typing import Callable, Optional, Literal
+from typing import Callable, Optional, Literal, Union
 
 from httpx import AsyncClient
 from datetime import datetime, timedelta, time, date, UTC
@@ -45,14 +45,14 @@ from ..schemas.dnevnik_schemas import (
     MarksSubjectPeriod,
     ScheduleApiResponse,
     MarksFinalApiResponse,
-    MarksRatingStatsResult,
+    MarksRatingStatsResult0x1A,
     LessonRatingStatsResult,
     ScheduleHomeworkDocument,
     MarksSubjectRatingResult,
-    MarksRatingStatsApiResponse,
+    MarksRatingStatsApiResponse0x1B,
     LessonRatingStatsApiResponse,
     MarksSubjectRatingApiResponse,
-    ScheduleExtracurricularActivity,
+    ScheduleExtracurricularActivity, MarksRatingStatsApiResponse, MarksRatingStatsResult,
 )
 
 
@@ -752,7 +752,11 @@ class DnevnikService(BaseService[AppUnitOfWork]):
 
         subjects = {subject['id']: subject['name'] for subject in final_marks['subjects']}
         works = {work['id']: work for work in final_marks['works'] if work['periodNumber'] == active_period['number']}
+        work_types_id = {mark['workType'] for mark in _marks}
+        work_types_id.update({work['workType'] for work in final_marks['works']})
         period_marks = {work['subjectId']: mark for mark in final_marks['marks'] if (work := works.get(mark['work']))}
+
+        work_types = await cls._get_work_types(cache_repository, dnr, session, child, work_types_id)
 
         result = []
         result_without_marks = []
@@ -772,7 +776,7 @@ class DnevnikService(BaseService[AppUnitOfWork]):
                 marks=[MarkLog(
                     mood=mark['mood'].lower() if mark['mood'].lower() in MarkLog.moods else MarkLog.default_mood(),
                     value=mark['textValue'],
-                    work=None,
+                    work=work_types.get(mark['workType']),
                     created=astimezone(datetime.fromisoformat(mark['date']).replace(tzinfo=UTC), child.timezone),
                     ratingKey=f"w{zip_int(mark['work'])}" if mark['lesson'] is None else f"l{zip_int(mark['lesson'])}"
                 ) for mark in marks[subject_id]],
@@ -785,7 +789,7 @@ class DnevnikService(BaseService[AppUnitOfWork]):
                 periodMark=MarkLog(
                     mood=mark['mood'].lower() if mark['mood'].lower() in MarkLog.moods else MarkLog.default_mood(),
                     value=mark['textValue'],
-                    work=None,
+                    work=work_types.get(mark['workType']),
                     created=astimezone(datetime.fromisoformat(mark['date']).replace(tzinfo=UTC), child.timezone)
                 ) if (mark := period_marks.get(subject_id)) else None,
                 ratingKey=f"{zip_int(subject_id)}.{zip_int(active_period['id'])}"
@@ -795,7 +799,14 @@ class DnevnikService(BaseService[AppUnitOfWork]):
 
         return result, active_period['id']
 
-    async def getMarksRatingStats(self, session_id: str, rating_key: str) -> MarksRatingStatsApiResponse:
+    async def getMarksRatingStats(self, session_id: str, rating_key: str, api: int = None) -> Union[MarksRatingStatsApiResponse0x1B, MarksRatingStatsApiResponse]:
+        if api == 0:
+            answer_type = MarksRatingStatsApiResponse0x1B
+            result_type = MarksRatingStatsResult0x1A
+        else:
+            answer_type = MarksRatingStatsApiResponse
+            result_type = MarksRatingStatsResult
+
         async with self.uow_factory() as uow:
             try:
                 key_type = rating_key[0]
@@ -803,7 +814,7 @@ class DnevnikService(BaseService[AppUnitOfWork]):
             except (ValueError, IndexError) as e:
                 await uow.log_repository.add_log(path='getMarksRatingStats', session_id=session_id, status=False,
                                                  value=f"{e.__class__.__name__}: {e}")
-                return MarksRatingStatsApiResponse(
+                return answer_type(
                     status=False,
                     error=ApiError(
                         type="ValueError",
@@ -854,8 +865,8 @@ class DnevnikService(BaseService[AppUnitOfWork]):
 
                 await uow.statistic_repository.add_statistic(parent.parent_id, 'getMarksRatingStats')
 
-                return MarksRatingStatsApiResponse(
-                    answer=MarksRatingStatsResult(
+                return answer_type(
+                    answer=result_type(
                         othersMarks=sorted(
                             others_marks,
                             key=self._key_others_marks,
@@ -863,7 +874,8 @@ class DnevnikService(BaseService[AppUnitOfWork]):
                         ),
                         avgGroupMark=avg,
                         oldAvgMark=None,
-                        newAvgMark=None
+                        newAvgMark=None,
+                        hasAbilityPraise=parent.parent_id != child.child_id
                     )
                 )
 
@@ -924,12 +936,13 @@ class DnevnikService(BaseService[AppUnitOfWork]):
 
             await uow.statistic_repository.add_statistic(parent.parent_id, 'getMarksRatingStats')
 
-            return MarksRatingStatsApiResponse(
-                answer=MarksRatingStatsResult(
+            return answer_type(
+                answer=result_type(
                     othersMarks=others_marks,
                     avgGroupMark=avg,
                     oldAvgMark=old,
-                    newAvgMark=new
+                    newAvgMark=new,
+                    hasAbilityPraise=parent.parent_id != child.child_id
                 )
             )
 
@@ -1096,21 +1109,27 @@ class DnevnikService(BaseService[AppUnitOfWork]):
                 raise
 
             works = {work['id']: work for work in marks['works']}
+            work_types_id = {work['workType'] for work in marks['works']}
             subjects = {subject['id']: subject['name'] for subject in marks['subjects']}
+
+            work_types = await self._get_work_types(uow.cache_repository, dnr, session, child, work_types_id)
 
             final_marks: dict[int, dict[int, MarkLog]] = {}
 
             for mark in marks['marks']:
                 work = works.get(mark['work'])
+
                 if work is None:
                     continue
                 if final_marks.get(work['subjectId']) is None:
                     final_marks[work['subjectId']] = {}
+
                 period_number = -1 if work['periodType'] == 'Year' else work['periodNumber']
+
                 final_marks[work['subjectId']][period_number] = MarkLog(
                     mood=mark['mood'].lower() if mark['mood'].lower() in MarkLog.moods else MarkLog.default_mood(),
                     value=mark['textValue'],
-                    work=None,
+                    work=work_types.get(work['workType']),
                     created=astimezone(datetime.fromisoformat(mark['date']).replace(tzinfo=UTC), child.timezone),
                     ratingKey=f"w{zip_int(mark['work'])}"
                 )

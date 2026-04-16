@@ -2,6 +2,8 @@ from fastapi.requests import Request
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 
+from dnevnikru import RequestTimeoutException
+
 from ..config.project_config import settings
 from ..dependencies.templates import get_templates
 
@@ -15,8 +17,20 @@ __all__ = ['StableMiddleware']
 class StableMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         try:
-            response = await call_next(request)
-            return response
+            try:
+                response = await call_next(request)
+                return response
+            except RequestTimeoutException:
+                if request.url.path.startswith(settings.API_PREFIX):
+                    return JSONResponse(ApiResponse(
+                        status=False,
+                        error=ApiError(
+                            type="DnevnikruError",
+                            errorMessage="Дневник.ру в данное время недоступен"
+                        )
+                    ).model_dump(by_alias=True), status_code=500)
+
+                raise
         except Exception:
             if request.url.path.startswith(settings.API_PREFIX):
                 return JSONResponse(ApiResponse(

@@ -203,7 +203,7 @@ class MarksNotificationWorker:
             message=f"Получена оценка «{mark['value']}» по предмету {mark['subject']}"
                     f"{f" — {profile}" if profile else ''}",
             channel=AppNotificationChannel.marks,
-            data={"from_notification": "new_mark", "good_mark": mark['mood'] == 'good'}
+            data={"from_notification": "new_mark", "good_mark": str(mark['mood'] == 'good').lower()}
         ) for firebase_token, mark, profile in pushes])
 
     def _get_mark_url(self, mark: str, mark_type: str) -> Optional[str]:

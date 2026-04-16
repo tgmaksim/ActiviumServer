@@ -1,7 +1,7 @@
 from asyncio import gather
 
 from httpx import AsyncClient
-from typing import Callable, Optional
+from typing import Callable, Optional, Union
 
 from dnevnikru.aiodnevnikru.dnevnikru import AioDnevnikruApi
 from dnevnikru.exceptions import BaseDnevnikruException, InvalidResponseException
@@ -13,10 +13,11 @@ from ..schemas.dnevnik_tools_schemas import (
     NoteResult,
     NoteApiResponse,
     PraiseApiResponse,
+    PraiseApiResponse0x3A,
     DeleteNoteApiResponse,
     CreateNoteApiResponse,
     HighlightPersonApiResponse,
-    UnhighlightPersonApiResponse
+    UnhighlightPersonApiResponse,
 )
 
 from ...models.parent_model import Parent
@@ -144,37 +145,54 @@ class DnevnikToolsService(BaseService[AppUnitOfWork]):
 
             return DeleteNoteApiResponse()
 
-    async def send_praise(self, session_id: str, lesson_key: str, text: Optional[str]) -> PraiseApiResponse:
+    async def send_praise(self, session_id: str, lesson_key: Optional[str], rating_key: Optional[str], text: Optional[str], api: int = None) -> Union[PraiseApiResponse0x3A, PraiseApiResponse]:
+        if api == 0:
+            answer_type = PraiseApiResponse0x3A
+        else:
+            answer_type = PraiseApiResponse
+
         async with self.uow_factory() as uow:
             session = await check_session(session_id, uow.session_repository)
             parent: Parent = session.parent
             child: Child = session.active_child
 
-            try:
-                lesson_id = int(lesson_key, 36)
-            except ValueError:
-                return PraiseApiResponse(
+            if not (lesson_key is None).__xor__(rating_key is None):
+                return answer_type(
                     status=False,
                     error=ApiError(
                         type="ValueError",
-                        errorMessage="Урок не найден"
+                        errorMessage="Неизвестный идентификатор оценки"
+                    )
+                )
+
+            try:
+                lesson_id = int(lesson_key, 36) if lesson_key is not None else None
+                lesson_id = int(rating_key[1:], 36) if rating_key is not None and rating_key[0] == 'l' else lesson_id
+                work_id = int(rating_key[1:], 36) if rating_key is not None and rating_key[0] == 'w' else None
+            except ValueError:
+                return answer_type(
+                    status=False,
+                    error=ApiError(
+                        type="ValueError",
+                        errorMessage="Урок или работа не найдены"
                     )
                 )
 
             dnr = AioDnevnikruApi(self.httpx_client, session.dnevnik_token)
 
             try:
-                info, children_relatives, lesson, marks = await gather(
+                info, children_relatives, lesson_or_work, marks = await gather(
                     dnr.get_info(),
                     dnr.get_children_relatives(),
-                    dnr.get_lesson(lesson_id),
-                    dnr.get_person_marks_by_lesson(child.child_id, lesson_id)
+                    dnr.get_lesson(lesson_id) if lesson_id is not None else dnr.get_work(work_id),
+                    dnr.get_person_marks_by_lesson(child.child_id, lesson_id) if lesson_id is not None
+                    else dnr.get_person_marks_by_work(child.child_id, work_id)
                 )
             except BaseDnevnikruException as e:
                 if not await uow.session_repository.check_session_auth(session.session_id, dnr):
                     raise SessionError(session_id=session.session_id) from e
                 if not isinstance(e, InvalidResponseException):
-                    return PraiseApiResponse(
+                    return answer_type(
                         status=False,
                         error=ApiError(
                             type="ValueError",
@@ -183,8 +201,16 @@ class DnevnikToolsService(BaseService[AppUnitOfWork]):
                     )
                 raise
 
+            if lesson_id is not None:
+                subject = lesson_or_work['subject']['name']
+            else:
+                subject = None
+                for _subject in await dnr.get_subjects(child.group_id):
+                    if _subject['id'] == lesson_or_work['subjectId']:
+                        subject = _subject['name']
+
             if not marks:
-                return PraiseApiResponse(
+                return answer_type(
                     status=False,
                     error=ApiError(
                         type="NoMarksError",
@@ -193,7 +219,7 @@ class DnevnikToolsService(BaseService[AppUnitOfWork]):
                 )
 
             if parent.parent_id == child.child_id:
-                return PraiseApiResponse(
+                return answer_type(
                     status=False,
                     error=ApiError(
                         type="ChildCanNotSendPraiseError",
@@ -204,7 +230,7 @@ class DnevnikToolsService(BaseService[AppUnitOfWork]):
             child_sessions = await uow.session_repository.get_sessions(child.child_id)
             firebase_tokens = {child_session.firebase_token for child_session in child_sessions if child_session.firebase_token is not None}
             if not firebase_tokens:
-                return PraiseApiResponse(
+                return answer_type(
                     status=False,
                     error=ApiError(
                         type="NoSessionsError",
@@ -242,7 +268,7 @@ class DnevnikToolsService(BaseService[AppUnitOfWork]):
             response = await send_notifications([Notification(
                 firebase_token=firebase_token,
                 title="😎 Получай похвалу 🥰",
-                message=f"{parent_name} {verb} за «{text_marks}» ({lesson['subject']['name']}){quote}",
+                message=f"{parent_name} {verb} за «{text_marks}»{f" ({subject})" if subject else ''}{quote}",
                 channel=AppNotificationChannel.praise,
                 data={"from_notification": "praise"}
             ) for firebase_token in firebase_tokens])
@@ -258,7 +284,7 @@ class DnevnikToolsService(BaseService[AppUnitOfWork]):
                 )
 
             if response.success_count == 0:
-                return PraiseApiResponse(
+                return answer_type(
                     status=False,
                     error=ApiError(
                         type="SendPraiseError",
@@ -268,7 +294,7 @@ class DnevnikToolsService(BaseService[AppUnitOfWork]):
 
             await uow.statistic_repository.add_statistic(parent.parent_id, 'send_praise')
 
-            return PraiseApiResponse()
+            return answer_type()
 
     async def highlight_person(self, session_id: str, person_key: str) -> HighlightPersonApiResponse:
         async with self.uow_factory() as uow:

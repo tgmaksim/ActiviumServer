@@ -33,6 +33,8 @@ class LogService(BaseService[LogUnitOfWork]):
         async with self.uow_factory() as uow:
             count_all, max_created_at, min_created_at, count_errors = await uow.notification_repository.get_count()
 
+            logs_open_url = settings.LOGS_PGADMIN_OPEN.format(min_created_at=min_created_at, max_created_at=max_created_at)
+
             from_date = min_created_at.astimezone(ADMIN_TIMEZONE).strftime('%e %b. %H:%M:%S')
             ru_logs = 'лога' if 2 <= count_all % 10 <= 4 else ('лог' if count_all % 10 == 1 else 'логов')
 
@@ -43,6 +45,8 @@ class LogService(BaseService[LogUnitOfWork]):
                 text += f"⚠️ Обнаружены ошибки ({count_errors} шт.)\n"
             else:
                 text += "Ошибок не обнаружено\n"
+
+            text += f"<a href='{logs_open_url}'>Открыть логи</a>\n"
 
             await uow.notification_repository.delete_notifications(max_created_at)
             await uow.log_repository.add_log(path='stats', value='stats')  # Для точной статистики в следующий раз

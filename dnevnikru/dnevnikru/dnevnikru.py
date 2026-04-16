@@ -158,3 +158,18 @@ class DnevnikruApi(BaseDnevnikruApi):
         """Родственные связи все своих детей"""
 
         return self.get("users/me/childrenrelatives")
+
+    def get_person_marks_by_work(self, person: int, work: int) -> list[dict]:
+        """Оценки персоны за работу"""
+
+        return self.get(f"persons/{person}/works/{work}/marks")
+
+    def get_work(self, work: int) -> dict:
+        """Работа по идентификатору"""
+
+        return self.get(f"works/{work}")
+
+    def get_subjects(self, group_id: int) -> list[dict]:
+        """Список предметов группы в текущем отчетном периоде"""
+
+        return self.get(f"edu-groups/{group_id}/subjects")

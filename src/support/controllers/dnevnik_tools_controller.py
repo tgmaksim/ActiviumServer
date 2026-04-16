@@ -4,11 +4,11 @@ from fastapi import APIRouter, Query, Depends, Body, Request, Header
 
 from ..schemas.dnevnik_tools_schemas import (
     NoteApiResponse,
-    PraiseApiResponse,
+    PraiseApiResponse0x3A,
     DeleteNoteApiResponse,
     CreateNoteApiResponse,
     HighlightPersonApiResponse,
-    UnhighlightPersonApiResponse
+    UnhighlightPersonApiResponse, PraiseApiResponse
 )
 
 from ..services.dnevnik_tools_service import DnevnikToolsService
@@ -73,8 +73,9 @@ async def _deleteNote0(
 @router.post(
     "/sendPraise/0",
     summary="Отправка похвалы ребенку от родителя",
-    description="Отправка похвалы активному ребенку от родителя на полученные оценки",
-    response_model=PraiseApiResponse
+    description="Отправка похвалы активному ребенку от родителя на полученные оценки. Устарела с версии API 1.4.0",
+    response_model=PraiseApiResponse0x3A,
+    deprecated=True  # Устарела с версии API 1.4.0
 )
 async def _sendPraise0(
         request: Request,
@@ -82,9 +83,28 @@ async def _sendPraise0(
         sessionId: Annotated[str, Header(description="Идентификатор сессии", min_length=1, max_length=32)],
         text: Annotated[Optional[str], Body(media_type="plain/text", description="Короткое сообщение ребенку", min_length=1, max_length=64)] = None,
         service: DnevnikToolsService = Depends(get_dnevnik_tools_service)
+) -> PraiseApiResponse0x3A:
+    request.state.session_id = sessionId
+    return await service.send_praise(sessionId, lessonKey, None, text, api=0)
+
+
+@router.post(
+    "/sendPraise/1",
+    summary="Отправка похвалы ребенку от родителя",
+    description="Отправка похвалы активному ребенку от родителя на полученные оценки. Должен быть выбран ровно один "
+                "идентификатор: lessonKey или ratingKey",
+    response_model=PraiseApiResponse  # Начиная с версии API 1.4.0
+)
+async def _sendPraise1(
+        request: Request,
+        sessionId: Annotated[str, Header(description="Идентификатор сессии", min_length=1, max_length=32)],
+        lessonKey: Annotated[Optional[str], Query(description="Ключ от урока, по которому нужно отправить похвалу", pattern=r'[0-9a-z]{1,13}', min_length=1, max_length=13)] = None,
+        ratingKey: Annotated[Optional[str], Query(description="Ключ от последней оценки", pattern=r'[wl][0-9a-z]{1,13}', min_length=2, max_length=14)] = None,
+        text: Annotated[Optional[str], Body(media_type="plain/text", description="Короткое сообщение ребенку", min_length=1, max_length=64)] = None,
+        service: DnevnikToolsService = Depends(get_dnevnik_tools_service)
 ) -> PraiseApiResponse:
     request.state.session_id = sessionId
-    return await service.send_praise(sessionId, lessonKey, text)
+    return await service.send_praise(sessionId, lessonKey, ratingKey, text)
 
 
 @router.put(

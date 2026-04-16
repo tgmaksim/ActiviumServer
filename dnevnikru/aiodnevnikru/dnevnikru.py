@@ -158,3 +158,18 @@ class AioDnevnikruApi(BaseAioDnevnikruApi):
         """Родственные связи все своих детей"""
 
         return await self.get("users/me/childrenrelatives")
+
+    async def get_person_marks_by_work(self, person: int, work: int) -> list[dict]:
+        """Оценки персоны за работу"""
+
+        return await self.get(f"persons/{person}/works/{work}/marks")
+
+    async def get_work(self, work: int) -> dict:
+        """Работа по идентификатору"""
+
+        return await self.get(f"works/{work}")
+
+    async def get_subjects(self, group_id: int) -> list[dict]:
+        """Список предметов группы в текущем отчетном периоде"""
+
+        return await self.get(f"edu-groups/{group_id}/subjects")

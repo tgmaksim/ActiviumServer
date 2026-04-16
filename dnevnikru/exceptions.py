@@ -13,3 +13,7 @@ class DnevnikruApiException(BaseDnevnikruException):
 
 class InvalidResponseException(BaseDnevnikruException):
     """Некорректный ответ от дневника.ру, привлекший к ошибке"""
+
+
+class RequestTimeoutException(BaseDnevnikruException):
+    """Превышен лимит ожидания ответа от дневника.ру"""

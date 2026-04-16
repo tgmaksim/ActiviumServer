@@ -8,7 +8,8 @@ from ..schemas.dnevnik_schemas import (
     MarksFinalApiResponse,
     MarksRatingStatsApiResponse,
     LessonRatingStatsApiResponse,
-    MarksSubjectRatingApiResponse
+    MarksSubjectRatingApiResponse,
+    MarksRatingStatsApiResponse0x1B,
 )
 
 from ..services.dnevnik_service import DnevnikService
@@ -73,10 +74,27 @@ async def _getMarks0(
 @router.get(
     "/getMarkRatingStats/0",
     summary="Получение дополнительной статистики по последней оценке",
+    description="Получение оценок в классе за урок и дополнительной статистики по полученной оценке. Устарела с версии API 1.4.0",
+    response_model=MarksRatingStatsApiResponse0x1B,
+    deprecated=True  # Устарела с версии API 1.4.0
+)
+async def _getMarkRatingStats0(
+        request: Request,
+        ratingKey: Annotated[str, Query(description="Ключ от последней оценки", pattern=r'[wl][0-9a-z]{1,13}', min_length=2, max_length=14)],
+        sessionId: Annotated[str, Header(description="Идентификатор сессии", min_length=1, max_length=32)],
+        service: DnevnikService = Depends(get_dnevnik_service)
+) -> MarksRatingStatsApiResponse0x1B:
+    request.state.session_id = sessionId
+    return await service.getMarksRatingStats(sessionId, ratingKey, api=0)
+
+
+@router.get(
+    "/getMarkRatingStats/1",  # Начиная с версии API 1.4.0
+    summary="Получение дополнительной статистики по последней оценке",
     description="Получение оценок в классе за урок и дополнительной статистики по полученной оценке",
     response_model=MarksRatingStatsApiResponse
 )
-async def _getMarkRatingStats0(
+async def _getMarkRatingStats1(
         request: Request,
         ratingKey: Annotated[str, Query(description="Ключ от последней оценки", pattern=r'[wl][0-9a-z]{1,13}', min_length=2, max_length=14)],
         sessionId: Annotated[str, Header(description="Идентификатор сессии", min_length=1, max_length=32)],

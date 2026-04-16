@@ -13,18 +13,15 @@ __all__ = ['SiteService']
 
 
 class SiteService(BaseService[AppUnitOfWork]):
-    async def get_root(self, session_id: Optional[str], likes_offset: Optional[int], likes_sort: Optional[str], referral_token: Optional[str]) -> HtmlResponse:
+    async def get_root(self, session_id: Optional[str], likes_offset: Optional[int], likes_sort: Optional[str]) -> HtmlResponse:
         async with self.uow_factory() as uow:
             session = None
             if isinstance(session_id, str):
                 session = await uow.session_repository.get_session(session_id)
 
-            latest_generic = await uow.version_repository.get_latest_generic_version()
             latest = await uow.version_repository.get_latest_version()
-            latest_generic.version = latest.version
-            latest_generic.date = latest.date
 
-            previous_versions = await uow.version_repository.get_all_versions()
+            previous_versions = await uow.version_repository.get_all_versions(only_generic=False)
 
             mode = 'likes'
             if likes_sort in ('likes', 'max_stars', 'min_stars'):
@@ -32,7 +29,7 @@ class SiteService(BaseService[AppUnitOfWork]):
 
             offset = 0
             limit = 3
-            if isinstance(likes_offset, int) and likes_offset >= 0:
+            if isinstance(likes_offset, int) and likes_offset > 0:
                 offset = likes_offset
                 limit = 10
 
@@ -47,32 +44,15 @@ class SiteService(BaseService[AppUnitOfWork]):
                 'samesite': 'lax'
             }]
 
-            if referral_token:
-                try:
-                    parent_referral_id = int(referral_token, 16)
-                except (ValueError, TypeError):
-                    pass
-                else:
-                    parent_referral = await uow.parent_repository.get_parent(parent_referral_id)
-
-                    if parent_referral:
-                        cookies.append({
-                            'key': 'referral_token',
-                            'value': referral_token,
-                            'max_age': 30 * 24 * 60 * 60,  # 30 дней
-                            'httponly': True,
-                            'secure': True
-                        })
-
             await uow.statistic_repository.add_statistic(session and session.parent_id, 'site')
 
             return HtmlResponse(
                 name='main.html',
                 context={
-                    'version': "0.0.1" if latest_generic is None else latest_generic.version,
-                    'date': '' if latest_generic is None else latest_generic.date,
-                    'version_status': "Небольшие улучшения" if latest_generic is None else latest_generic.status,
-                    'update_log': [] if latest_generic is None else latest_generic.logs.split('\n'),
+                    'version': "0.0.1" if latest is None else latest.version,
+                    'date': '' if latest is None else latest.date,
+                    'version_status': "Небольшие улучшения" if latest is None else latest.status,
+                    'update_log': [] if latest is None else latest.logs.split('\n'),
                     'previous_versions': [{
                         'version': v.version,
                         'date': v.date,
