@@ -8,5 +8,8 @@ __all__ = ['send_admin_message']
 async def send_admin_message(message: str, **kwargs):
     bot = get_bot()
 
+    messages = []
     for admin in settings.ADMIN_CHAT_IDS:
-        await bot.send_message(admin, message, **kwargs)
+        messages.append(await bot.send_message(admin, message, **kwargs))
+
+    return messages

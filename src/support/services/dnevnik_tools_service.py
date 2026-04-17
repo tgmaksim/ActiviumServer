@@ -1,3 +1,4 @@
+import traceback
 from asyncio import gather
 
 from httpx import AsyncClient
@@ -23,6 +24,7 @@ from ..schemas.dnevnik_tools_schemas import (
 from ...models.parent_model import Parent
 from ...models.child_model import Child
 from ...api.session_error import SessionError
+from ...repositories.statistic_repository import StatName
 from ...schemas.error_schema import ApiError
 from ...dependencies.auth import check_session
 from ...services.base_service import BaseService
@@ -45,7 +47,13 @@ class DnevnikToolsService(BaseService[AppUnitOfWork]):
 
             try:
                 lesson_id = int(lesson_key, 36)
-            except ValueError:
+            except ValueError as e:
+                await uow.log_repository.add_log(
+                    path='createNote',
+                    status=False,
+                    session_id=session_id,
+                    value='\n'.join(traceback.format_exception(e))
+                )
                 return CreateNoteApiResponse(
                     status=False,
                     error=ApiError(
@@ -56,6 +64,11 @@ class DnevnikToolsService(BaseService[AppUnitOfWork]):
 
             note = await uow.lesson_note_repository.get_note(child.child_id, lesson_id)
             if note is not None and not note.public and parent.parent_id != child.child_id:
+                await uow.log_repository.add_log(
+                    path='createNote',
+                    session_id=session_id,
+                    value=f"Попытка изменить закрытую заметку {lesson_key}"
+                )
                 return CreateNoteApiResponse(
                     status=False,
                     error=ApiError(
@@ -72,6 +85,12 @@ class DnevnikToolsService(BaseService[AppUnitOfWork]):
                 if not await uow.session_repository.check_session_auth(session.session_id, dnr):
                     raise SessionError(session_id=session.session_id) from e
                 if not isinstance(e, InvalidResponseException):
+                    await uow.log_repository.add_log(
+                        path='createNote',
+                        session_id=session_id,
+                        status=False,
+                        value=f"Урок {lesson_id} для создания заметки не найден"
+                    )
                     return CreateNoteApiResponse(
                         status=False,
                         error=ApiError(
@@ -83,7 +102,7 @@ class DnevnikToolsService(BaseService[AppUnitOfWork]):
 
             await uow.lesson_note_repository.create_note(child.child_id, lesson_id, text, public)
 
-            await uow.statistic_repository.add_statistic(parent.parent_id, 'create_note')
+            await uow.statistic_repository.add_statistic(parent.parent_id, StatName.createNote)
 
             return CreateNoteApiResponse(
                 answer=NoteResult(
@@ -98,13 +117,24 @@ class DnevnikToolsService(BaseService[AppUnitOfWork]):
     async def get_note(self, session_id: str, lesson_key: str) -> NoteApiResponse:
         async with self.uow_factory() as uow:
             session = await check_session(session_id, uow.session_repository)
-            parent: Parent = session.parent
             child: Child = session.active_child
 
             try:
                 lesson_id = int(lesson_key, 36)
-            except ValueError:
-                lesson_id = None
+            except ValueError as e:
+                await uow.log_repository.add_log(
+                    path='getNote',
+                    session_id=session_id,
+                    status=False,
+                    value='\n'.join(traceback.format_exception(e))
+                )
+                return NoteApiResponse(
+                    status=False,
+                    error=ApiError(
+                        type="ValueError",
+                        errorMessage="Урок не найден"
+                    )
+                )
 
             note = await uow.lesson_note_repository.get_note(child.child_id, lesson_id)
 
@@ -126,8 +156,20 @@ class DnevnikToolsService(BaseService[AppUnitOfWork]):
 
             try:
                 lesson_id = int(lesson_key, 36)
-            except ValueError:
-                lesson_id = None
+            except ValueError as e:
+                await uow.log_repository.add_log(
+                    path='deleteNote',
+                    session_id=session_id,
+                    status=False,
+                    value='\n'.join(traceback.format_exception(e))
+                )
+                return DeleteNoteApiResponse(
+                    status=False,
+                    error=ApiError(
+                        type="ValueError",
+                        errorMessage="Урок не найден"
+                    )
+                )
 
             note = await uow.lesson_note_repository.get_note(child.child_id, lesson_id)
             if note is None:
@@ -141,7 +183,7 @@ class DnevnikToolsService(BaseService[AppUnitOfWork]):
 
             await uow.lesson_note_repository.delete_note(child.child_id, lesson_id)
 
-            await uow.statistic_repository.add_statistic(parent.parent_id, 'delete_note')
+            await uow.statistic_repository.add_statistic(parent.parent_id, StatName.deleteNote)
 
             return DeleteNoteApiResponse()
 
@@ -157,6 +199,12 @@ class DnevnikToolsService(BaseService[AppUnitOfWork]):
             child: Child = session.active_child
 
             if not (lesson_key is None).__xor__(rating_key is None):
+                await uow.log_repository.add_log(
+                    path='sendPraise',
+                    session_id=session_id,
+                    status=False,
+                    value=f"{lesson_key} {rating_key}"
+                )
                 return answer_type(
                     status=False,
                     error=ApiError(
@@ -169,7 +217,13 @@ class DnevnikToolsService(BaseService[AppUnitOfWork]):
                 lesson_id = int(lesson_key, 36) if lesson_key is not None else None
                 lesson_id = int(rating_key[1:], 36) if rating_key is not None and rating_key[0] == 'l' else lesson_id
                 work_id = int(rating_key[1:], 36) if rating_key is not None and rating_key[0] == 'w' else None
-            except ValueError:
+            except ValueError as e:
+                await uow.log_repository.add_log(
+                    path='sendPraise',
+                    session_id=session_id,
+                    status=False,
+                    value='\n'.join(traceback.format_exception(e))
+                )
                 return answer_type(
                     status=False,
                     error=ApiError(
@@ -192,6 +246,12 @@ class DnevnikToolsService(BaseService[AppUnitOfWork]):
                 if not await uow.session_repository.check_session_auth(session.session_id, dnr):
                     raise SessionError(session_id=session.session_id) from e
                 if not isinstance(e, InvalidResponseException):
+                    await uow.log_repository.add_log(
+                        path='sendPraise',
+                        session_id=session_id,
+                        status=False,
+                        value='\n'.join(traceback.format_exception(e))
+                    )
                     return answer_type(
                         status=False,
                         error=ApiError(
@@ -210,6 +270,12 @@ class DnevnikToolsService(BaseService[AppUnitOfWork]):
                         subject = _subject['name']
 
             if not marks:
+                await uow.log_repository.add_log(
+                    path='sendPraise',
+                    session_id=session_id,
+                    status=False,
+                    value=f"Не найдены оценки для похвалы на уроке {lesson_id}"
+                )
                 return answer_type(
                     status=False,
                     error=ApiError(
@@ -219,6 +285,12 @@ class DnevnikToolsService(BaseService[AppUnitOfWork]):
                 )
 
             if parent.parent_id == child.child_id:
+                await uow.log_repository.add_log(
+                    path='sendPraise',
+                    session_id=session_id,
+                    status=False,
+                    value="Попытка отправить похвалу ребенком"
+                )
                 return answer_type(
                     status=False,
                     error=ApiError(
@@ -230,6 +302,11 @@ class DnevnikToolsService(BaseService[AppUnitOfWork]):
             child_sessions = await uow.session_repository.get_sessions(child.child_id)
             firebase_tokens = {child_session.firebase_token for child_session in child_sessions if child_session.firebase_token is not None}
             if not firebase_tokens:
+                await uow.log_repository.add_log(
+                    path='sendPraise',
+                    session_id=session_id,
+                    value=f"Ребенок {child.child_id} не имеет активных сессий"
+                )
                 return answer_type(
                     status=False,
                     error=ApiError(
@@ -274,13 +351,13 @@ class DnevnikToolsService(BaseService[AppUnitOfWork]):
             ) for firebase_token in firebase_tokens])
 
             for message in response.responses:
-                status = message.exception is not None
+                status = message.exception is None
                 await uow.log_repository.add_log(
                     ip='praise_notifications',
                     path='praise_notifications',
                     status=status,
-                    value=f"{message.exception}: {message.exception.code} {message.exception.cause} "
-                          f"{message.exception.http_response.__dict__}" if status else message.message_id
+                    value=f"{message.exception}: {message.exception.http_response} {message.exception.cause} "
+                          f"{message.exception.http_response.__dict__}" if not status else str(message)
                 )
 
             if response.success_count == 0:
@@ -292,7 +369,7 @@ class DnevnikToolsService(BaseService[AppUnitOfWork]):
                     )
                 )
 
-            await uow.statistic_repository.add_statistic(parent.parent_id, 'send_praise')
+            await uow.statistic_repository.add_statistic(parent.parent_id, StatName.sendPraise)
 
             return answer_type()
 
@@ -321,6 +398,12 @@ class DnevnikToolsService(BaseService[AppUnitOfWork]):
             except BaseDnevnikruException as e:
                 if not await uow.session_repository.check_session_auth(session.session_id, dnr):
                     raise SessionError(session_id=session.session_id) from e
+                await uow.log_repository.add_log(
+                    path='highlightPerson',
+                    session_id=session_id,
+                    status=False,
+                    value='\n'.join(traceback.format_exception(e))
+                )
                 return HighlightPersonApiResponse(
                     status=False,
                     error=ApiError(
@@ -331,7 +414,7 @@ class DnevnikToolsService(BaseService[AppUnitOfWork]):
 
             await uow.highlighting_person_repository.highlight_person(parent.parent_id, person_id)
 
-            await uow.statistic_repository.add_statistic(parent.parent_id, 'highlight_person')
+            await uow.statistic_repository.add_statistic(parent.parent_id, StatName.highlightPerson)
 
             return HighlightPersonApiResponse()
 
@@ -355,6 +438,12 @@ class DnevnikToolsService(BaseService[AppUnitOfWork]):
 
             highlighting_person = await uow.highlighting_person_repository.get_highlighting_person(parent.parent_id, person_id)
             if highlighting_person is None:
+                await uow.log_repository.add_log(
+                    path='unhighlightPerson',
+                    session_id=session_id,
+                    status=False,
+                    value=f"Одноклассник {person_id} не найден"
+                )
                 return UnhighlightPersonApiResponse(
                     status=False,
                     error=ApiError(
@@ -365,6 +454,6 @@ class DnevnikToolsService(BaseService[AppUnitOfWork]):
 
             await uow.highlighting_person_repository.unhighlight_person(parent.parent_id, person_id)
 
-            await uow.statistic_repository.add_statistic(parent.parent_id, 'unhighlight_person')
+            await uow.statistic_repository.add_statistic(parent.parent_id, StatName.unhighlightPerson)
 
             return UnhighlightPersonApiResponse()

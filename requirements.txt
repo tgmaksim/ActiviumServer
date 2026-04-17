@@ -13,3 +13,4 @@ aiogram==3.26.0
 yarl==1.23.0
 async-firebase==5.1.1
 pillow==12.1.1
+openai==2.32.0

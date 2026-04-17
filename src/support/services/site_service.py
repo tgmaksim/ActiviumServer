@@ -3,6 +3,7 @@ import secrets
 from typing import Optional
 
 from .reviews_service import ReviewsService
+from ...repositories.statistic_repository import StatName
 from ...services.html_response import HtmlResponse
 
 from ...services.base_service import BaseService
@@ -44,7 +45,7 @@ class SiteService(BaseService[AppUnitOfWork]):
                 'samesite': 'lax'
             }]
 
-            await uow.statistic_repository.add_statistic(session and session.parent_id, 'site')
+            await uow.statistic_repository.add_statistic(session and session.parent_id, StatName.site)
 
             return HtmlResponse(
                 name='main.html',

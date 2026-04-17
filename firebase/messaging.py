@@ -6,7 +6,6 @@ from pydantic import BaseModel, HttpUrl
 from async_firebase import AsyncFirebaseClient, FCMBatchResponse
 from async_firebase.messages import Message as FCMMessage, Notification as FCMNotification, AndroidConfig
 
-
 __all__ = ['send_notifications', 'FirebaseApiError', 'Notification', 'AppNotificationChannel']
 
 client = AsyncFirebaseClient()

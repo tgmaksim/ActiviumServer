@@ -7,6 +7,7 @@ from .sqlalchemy_uow import SqlAlchemyUnitOfWork
 from .statistic_repository import StatisticRepository
 from .monitoring_repository import MonitoringRepository
 from .notification_repository import NotificationRepository
+from .statistic_message_repository import StatisticMessageRepository
 
 
 __all__ = ['LogUnitOfWork']
@@ -20,6 +21,7 @@ class LogUnitOfWork(SqlAlchemyUnitOfWork):
         self._notification_repository: Optional[NotificationRepository] = None
         self._monitoring_repository: Optional[MonitoringRepository] = None
         self._statistics_repository: Optional[StatisticRepository] = None
+        self._statistic_message_repository: Optional[StatisticMessageRepository] = None
 
     @property
     def log_repository(self) -> LogRepository:
@@ -44,3 +46,9 @@ class LogUnitOfWork(SqlAlchemyUnitOfWork):
         if self._statistics_repository is None:
             self._statistics_repository = StatisticRepository(self.session)
         return self._statistics_repository
+
+    @property
+    def statistic_message_repository(self) -> StatisticMessageRepository:
+        if self._statistic_message_repository is None:
+            self._statistic_message_repository = StatisticMessageRepository(self.queue)
+        return self._statistic_message_repository

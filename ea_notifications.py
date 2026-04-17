@@ -9,6 +9,7 @@ from httpx import AsyncClient
 from asyncio import AbstractEventLoop
 
 from firebase.messaging import send_notifications, Notification, AppNotificationChannel
+from src.repositories.statistic_repository import StatName
 
 from src.services.log_service import LogService
 from src.dependencies.uow import get_log_uow_factory
@@ -56,13 +57,13 @@ class ExtracurricularActivityWorker:
                             response = await self._dispatch_pushes(pushes)
 
                             for message in (response.responses if response else []):
-                                status = message.exception is not None
+                                status = message.exception is None
                                 await uow.log_repository.add_log(
                                     ip='ea_notifications',
                                     path='ea_notifications',
                                     status=status,
                                     value=f"{message.exception}: {message.exception.http_response} {message.exception.cause} "
-                                          f"{message.exception.http_response.__dict__}" if status else message.message_id
+                                          f"{message.exception.http_response.__dict__}" if not status else str(message)
                                 )
 
                             for ea_id in processed_ids:
@@ -140,7 +141,7 @@ class ExtracurricularActivityWorker:
             processed_ids.append(row.ea_id)
 
         for parent in parents:
-            await uow.statistic_repository.add_statistic(parent, 'ea_notification')
+            await uow.statistic_repository.add_statistic(parent, StatName.ea_notifications)
 
         return pushes, processed_ids
 

@@ -25,6 +25,7 @@ from ...api.session_error import SessionError
 from ...dependencies.auth import check_session
 from ...models.parent_model import Parent
 from ...models.session_model import Session
+from ...repositories.statistic_repository import StatName
 from ...schemas.error_schema import ApiError
 
 from ...services.base_service import BaseService
@@ -63,7 +64,7 @@ class ReviewsService(BaseService[AppUnitOfWork]):
 
             await uow.review_repository.check_review(review)
 
-            await uow.statistic_repository.add_statistic(parent.parent_id, 'create_review')
+            await uow.statistic_repository.add_statistic(parent.parent_id, StatName.createReview)
 
             return CreateReviewApiResponse(
                 answer=MyReviewResult(
@@ -106,13 +107,13 @@ class ReviewsService(BaseService[AppUnitOfWork]):
             ) for firebase_token in firebase_tokens])
 
             for message in response.responses:
-                status = message.exception is not None
+                status = message.exception is None
                 await uow.log_repository.add_log(
                     ip='review_notification',
                     path='review_notification',
                     status=status,
                     value=f"{message.exception}: {message.exception.http_response} {message.exception.cause} "
-                          f"{message.exception.http_response.__dict__}" if status else message.message_id
+                          f"{message.exception.http_response.__dict__}" if not status else str(message)
                 )
 
             return publish
@@ -146,6 +147,11 @@ class ReviewsService(BaseService[AppUnitOfWork]):
 
             review = await uow.review_repository.get_review(parent.parent_id)
             if review is None:
+                await uow.log_repository.add_log(
+                    path='delete_review',
+                    session_id=session_id,
+                    value="Попытка удалить отзыв при его отсутствии"
+                )
                 return DeleteReviewApiResponse(
                     status=False,
                     error=ApiError(
@@ -156,7 +162,7 @@ class ReviewsService(BaseService[AppUnitOfWork]):
 
             await uow.review_repository.delete_review(parent.parent_id)
 
-            await uow.statistic_repository.add_statistic(parent.parent_id, 'delete_review')
+            await uow.statistic_repository.add_statistic(parent.parent_id, StatName.deleteReview)
 
             return DeleteReviewApiResponse()
 
@@ -205,6 +211,12 @@ class ReviewsService(BaseService[AppUnitOfWork]):
 
             review = await uow.review_repository.get_review(review_id)
             if review is None:
+                await uow.log_repository.add_log(
+                    path='like_review',
+                    status=False,
+                    session_id=session_id,
+                    value=f"Отзыв {review_id} не найден"
+                )
                 return LikeReviewApiResponse(
                     status=False,
                     error=ApiError(
@@ -214,6 +226,11 @@ class ReviewsService(BaseService[AppUnitOfWork]):
                 )
 
             if review_id == parent.parent_id:
+                await uow.log_repository.add_log(
+                    path='like_review',
+                    session_id=session_id,
+                    value="Попытка поставить реакцию на свой отзыв"
+                )
                 return LikeReviewApiResponse(
                     status=False,
                     error=ApiError(
@@ -225,6 +242,11 @@ class ReviewsService(BaseService[AppUnitOfWork]):
             try:
                 await uow.review_like_repository.like_review(parent.parent_id, review_id)
             except IntegrityError:
+                await uow.log_repository.add_log(
+                    path='like_review',
+                    session_id=session_id,
+                    value=f"Повторная попытка поставить реакцию на отзыв {review_id}"
+                )
                 return LikeReviewApiResponse(
                     status=False,
                     error=ApiError(
@@ -236,7 +258,7 @@ class ReviewsService(BaseService[AppUnitOfWork]):
             review = await uow.review_repository.like_review(review_id)
             assert review is not None, "review is None"
 
-            await uow.statistic_repository.add_statistic(parent.parent_id, 'like_review')
+            await uow.statistic_repository.add_statistic(parent.parent_id, StatName.likeReview)
 
             return LikeReviewApiResponse(
                 answer=LikeReviewResult(
@@ -259,6 +281,12 @@ class ReviewsService(BaseService[AppUnitOfWork]):
 
             review = await uow.review_repository.get_review(review_id)
             if review is None:
+                await uow.log_repository.add_log(
+                    path='delete_review_like',
+                    session_id=session_id,
+                    status=False,
+                    value=f"Отзыв {review_id} не найден"
+                )
                 return DeleteReviewLikeApiResponse(
                     status=False,
                     error=ApiError(
@@ -269,6 +297,12 @@ class ReviewsService(BaseService[AppUnitOfWork]):
 
             review_like = await uow.review_like_repository.get_like(parent.parent_id, review_id)
             if review_like is None:
+                await uow.log_repository.add_log(
+                    path='delete_review_like',
+                    session_id=session_id,
+                    status=False,
+                    value=f"Реакция на отзыв {review_id} не найдена"
+                )
                 return DeleteReviewLikeApiResponse(
                     status=False,
                     error=ApiError(
@@ -281,7 +315,7 @@ class ReviewsService(BaseService[AppUnitOfWork]):
             assert review is not None, "review is None"
             await uow.review_like_repository.delete_like(parent.parent_id, review_id)
 
-            await uow.statistic_repository.add_statistic(parent.parent_id, 'delete_review_like')
+            await uow.statistic_repository.add_statistic(parent.parent_id, StatName.deleteReviewLike)
 
             return DeleteReviewLikeApiResponse(
                 answer=DeleteReviewLikeResult(

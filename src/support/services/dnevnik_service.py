@@ -17,6 +17,7 @@ from ...dependencies.zip_int import zip_int
 from ...dependencies.auth import check_session
 from ...dependencies.httpx import get_httpx_client
 from ...dependencies.datetime import datetime_now, astimezone
+from ...repositories.statistic_repository import StatName
 
 from ...services.base_service import BaseService
 from ..repositories.app_uow import AppUnitOfWork
@@ -194,7 +195,7 @@ class DnevnikService(BaseService[AppUnitOfWork]):
                     ea=ea.get(day_date.date(), []),
                 ))
 
-            await uow.statistic_repository.add_statistic(parent.parent_id, 'getSchedule')
+            await uow.statistic_repository.add_statistic(parent.parent_id, StatName.getSchedule)
 
             return ScheduleApiResponse(
                 answer=ScheduleResult(
@@ -509,7 +510,7 @@ class DnevnikService(BaseService[AppUnitOfWork]):
                     raise SessionError(session_id=session.session_id) from e
                 raise
 
-            await uow.statistic_repository.add_statistic(parent.parent_id, 'getLessonRatingStats')
+            await uow.statistic_repository.add_statistic(parent.parent_id, StatName.getLessonRatingStats)
 
             return LessonRatingStatsApiResponse(
                 answer=LessonRatingStatsResult(
@@ -639,7 +640,7 @@ class DnevnikService(BaseService[AppUnitOfWork]):
                     raise SessionError(session_id=session.session_id) from e
                 raise
 
-            await uow.statistic_repository.add_statistic(parent.parent_id, 'getMarks')
+            await uow.statistic_repository.add_statistic(parent.parent_id, StatName.getMarks)
 
             return MarksApiResponse(
                 answer=MarksResult(
@@ -863,7 +864,7 @@ class DnevnikService(BaseService[AppUnitOfWork]):
 
                 avg = self._calc_avg(marks, others_marks, avg = True)
 
-                await uow.statistic_repository.add_statistic(parent.parent_id, 'getMarksRatingStats')
+                await uow.statistic_repository.add_statistic(parent.parent_id, StatName.getMarksRatingStats)
 
                 return answer_type(
                     answer=result_type(
@@ -934,7 +935,7 @@ class DnevnikService(BaseService[AppUnitOfWork]):
             )
             avg = self._calc_avg(marks, others_marks)
 
-            await uow.statistic_repository.add_statistic(parent.parent_id, 'getMarksRatingStats')
+            await uow.statistic_repository.add_statistic(parent.parent_id, StatName.getMarksRatingStats)
 
             return answer_type(
                 answer=result_type(
@@ -1081,12 +1082,12 @@ class DnevnikService(BaseService[AppUnitOfWork]):
             else:
                 await uow.rating_repository.delete_rating(child.child_id, period_id, subject_id or -1)
 
-            await uow.statistic_repository.add_statistic(parent.parent_id, 'getMarksSubjectRating')
+            await uow.statistic_repository.add_statistic(parent.parent_id, StatName.getMarksSubjectRating)
 
             return MarksSubjectRatingApiResponse(
                 answer=MarksSubjectRatingResult(
                     rating=[item[0] for item in rating],
-                    oldMark=old_mark if me and old_mark != rating[me][0] else None
+                    oldMark=old_mark if me is not None and old_mark != rating[me][0] else None
                 )
             )
 
@@ -1134,7 +1135,7 @@ class DnevnikService(BaseService[AppUnitOfWork]):
                     ratingKey=f"w{zip_int(mark['work'])}"
                 )
 
-            await uow.statistic_repository.add_statistic(parent.parent_id, 'getFinalMarksSubjectRating')
+            await uow.statistic_repository.add_statistic(parent.parent_id, StatName.getFinalMarks)
 
             return MarksFinalApiResponse(
                 answer=MarksFinalResult(

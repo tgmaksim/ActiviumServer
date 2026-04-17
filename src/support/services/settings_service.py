@@ -8,6 +8,7 @@ from dnevnikru import AioDnevnikruApi, BaseDnevnikruException
 from ...config.project_config import settings
 
 from ...dependencies.auth import check_session
+from ...repositories.statistic_repository import StatName
 from ...schemas.error_schema import ApiError
 from ...services.base_service import BaseService
 from ..repositories.app_uow import AppUnitOfWork
@@ -56,7 +57,7 @@ class SettingsService(BaseService[AppUnitOfWork]):
                     raise SessionError(session_id=session.session_id) from e
                 raise
 
-            await uow.statistic_repository.add_statistic(parent.parent_id, 'getChildren')
+            await uow.statistic_repository.add_statistic(parent.parent_id, StatName.getChildren)
 
             return ChildrenApiResponse(
                 answer=ChildrenResult(
@@ -150,7 +151,7 @@ class SettingsService(BaseService[AppUnitOfWork]):
 
             await uow.session_repository.set_active_child(session_id, child_id)
 
-            await uow.statistic_repository.add_statistic(parent.parent_id, 'setActiveChild')
+            await uow.statistic_repository.add_statistic(parent.parent_id, StatName.setActiveChild)
 
             return SwitchActiveChildApiResponse(
                 answer=ChildrenResult(
@@ -187,7 +188,7 @@ class SettingsService(BaseService[AppUnitOfWork]):
 
             if not status:
                 await uow.marks_notification_repository.turn_off(session_id, child_id)
-                await uow.statistic_repository.add_statistic(parent.parent_id, 'turnOffMarksNotifications')
+                await uow.statistic_repository.add_statistic(parent.parent_id, StatName.turnOnMarksNotifications)
                 return SwitchMarksNotificationsApiResponse()
 
             dnr = AioDnevnikruApi(self.httpx_client, session.dnevnik_token)
@@ -218,7 +219,7 @@ class SettingsService(BaseService[AppUnitOfWork]):
                     )
 
             await uow.marks_notification_repository.turn_on(session_id, child_id)
-            await uow.statistic_repository.add_statistic(parent.parent_id, 'turnOnMarksNotifications')
+            await uow.statistic_repository.add_statistic(parent.parent_id, StatName.turnOffMarksNotifications)
 
             return SwitchMarksNotificationsApiResponse()
 
@@ -229,7 +230,7 @@ class SettingsService(BaseService[AppUnitOfWork]):
 
             await uow.session_repository.update_firebase(session_id, firebase_token)
 
-            await uow.statistic_repository.add_statistic(parent.parent_id, 'updateFirebase')
+            await uow.statistic_repository.add_statistic(parent.parent_id, StatName.updateFirebase)
 
             return UpdateFirebaseApiResponse()
 
@@ -261,7 +262,7 @@ class SettingsService(BaseService[AppUnitOfWork]):
             else:
                 await uow.ea_notification_repository.turn_off(session_id, child_id)
 
-            statistics_key = 'turnOnEANotifications' if status else 'turnOffEANotifications'
+            statistics_key = StatName.turnOnEANotifications if status else StatName.turnOffEANotifications
             await uow.statistic_repository.add_statistic(parent.parent_id, statistics_key)
 
             return SwitchEANotificationsApiResponse()

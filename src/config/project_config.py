@@ -22,6 +22,7 @@ class Settings(BaseSettings):
     NETANGELS_API_URL: str
     VIRTUALHOST_ID: int
     LOGS_PGADMIN_OPEN: str
+    OPENROUTER_API_KEY: str
     API_PREFIX: str = "/api/v2"
     APK_PREFIX: str = "/apk"
     PROJECT_NAME: str = "Activium"

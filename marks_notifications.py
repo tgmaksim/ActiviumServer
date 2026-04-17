@@ -20,6 +20,7 @@ from dnevnikru import AioDnevnikruApi, BaseDnevnikruException
 
 from src.models.child_model import Child
 from src.config.project_config import settings
+from src.repositories.statistic_repository import StatName
 from src.services.log_service import LogService
 from src.dependencies.uow import get_log_uow_factory
 from src.support.schemas.dnevnik_schemas import MarkLog
@@ -62,13 +63,13 @@ class MarksNotificationWorker:
                         response = await self._dispatch_pushes(pushes)
 
                         for message in (response.responses if response else []):
-                            status = message.exception is not None
+                            status = message.exception is None
                             await uow.log_repository.add_log(
                                 ip='marks_notifications',
                                 path='marks_notifications',
                                 status=status,
                                 value=f"{message.exception}: {message.exception.http_response} {message.exception.cause} "
-                                      f"{message.exception.http_response.__dict__}" if status else message.message_id
+                                      f"{message.exception.http_response.__dict__}" if not status else str(message)
                             )
                 except Exception as e:
                     service = LogService(get_log_uow_factory())
@@ -85,7 +86,7 @@ class MarksNotificationWorker:
         except Exception as e:
             service = LogService(get_log_uow_factory())
             await service.log(
-                path='ea_notifications',
+                path='marks_notifications',
                 status=False,
                 value='\n'.join(traceback.format_exception(e))
             )
@@ -164,7 +165,7 @@ class MarksNotificationWorker:
         await uow.marks_notification_repository.update_date(child.child_id, newest_date)
 
         for parent in parents:
-            await uow.statistic_repository.add_statistic(parent, 'marks_notification')
+            await uow.statistic_repository.add_statistic(parent, StatName.marks_notifications)
 
         return pushes
 

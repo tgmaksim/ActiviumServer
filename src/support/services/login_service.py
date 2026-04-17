@@ -13,6 +13,7 @@ from sqlalchemy.exc import IntegrityError
 from dnevnikru.exceptions import BaseDnevnikruException
 from dnevnikru.aiodnevnikru.dnevnikru import AioDnevnikruApi
 from ..schemas.status_schemas import CheckSessionApiResponse, CheckSessionResult
+from ...repositories.statistic_repository import StatName
 
 from ...services.html_response import HtmlResponse
 from ..schemas.login_schemas import LoginApiResponse, LoginResult
@@ -45,7 +46,7 @@ class LoginService(BaseService[AppUnitOfWork]):
                 state=session_id
             )
 
-            await uow.statistic_repository.add_statistic(None, 'login')
+            await uow.statistic_repository.add_statistic(None, StatName.login)
 
             return LoginApiResponse(
                 answer=LoginResult(
@@ -105,6 +106,11 @@ class LoginService(BaseService[AppUnitOfWork]):
                 )
 
             if dnevnik_data == 'teacher':
+                await uow.log_repository.add_log(
+                    path='secondAuthSession',
+                    session_id=session_id,
+                    value="Попытка регистрации учителя"
+                )
                 return HtmlResponse(
                     name='auth_session_error.html',
                     status_code=403,
@@ -228,7 +234,7 @@ class LoginService(BaseService[AppUnitOfWork]):
                 await uow.parent_repository.create_parent(person_id)
 
                 registration = True
-                await uow.statistic_repository.add_statistic(person_id, 'registration')
+                await uow.statistic_repository.add_statistic(person_id, StatName.registration)
             else:
                 child = await uow.child_repository.get_child(person_id)
                 if child.school_id != school_id or child.group_id != group_id or child.timezone != timezone:
@@ -255,7 +261,7 @@ class LoginService(BaseService[AppUnitOfWork]):
                 await uow.parent_repository.create_parent(person_id)
 
                 registration = True
-                await uow.statistic_repository.add_statistic(person_id, 'registration')
+                await uow.statistic_repository.add_statistic(person_id, StatName.registration)
             else:
                 for relevant_child in children:
                     child = await uow.child_repository.get_child(relevant_child['person_id'])
@@ -271,7 +277,7 @@ class LoginService(BaseService[AppUnitOfWork]):
                         )
 
         await uow.session_repository.auth_session(session_id, dnevnik_token, person_id, active_child_id)
-        await uow.statistic_repository.add_statistic(person_id, 'authorization')
+        await uow.statistic_repository.add_statistic(person_id, StatName.authorization)
 
         if registration:
             if parent_referral_id and parent_referral_id != person_id:
@@ -287,7 +293,7 @@ class LoginService(BaseService[AppUnitOfWork]):
         async with self.uow_factory() as uow:
             session = await uow.session_repository.get_session(session_id)
 
-            await uow.statistic_repository.add_statistic(session and session.parent_id, 'checkSession')
+            await uow.statistic_repository.add_statistic(session and session.parent_id, StatName.checkSession)
 
             if session is None:
                 return CheckSessionApiResponse(

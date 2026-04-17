@@ -20,7 +20,7 @@
     <link rel="icon" type="image/png" sizes="512x512" href="/assets/icons/android-chrome-512x512.png">
     <link rel="icon" type="image/x-icon" sizes="32x32" href="/assets/icons/favicon.ico">
 
-    <link href="/css/main.css?v=9" rel="stylesheet">
+    <link href="/css/main.css?v=11" rel="stylesheet">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
 </head>
@@ -315,9 +315,26 @@
         </section>
     </div>
 
+    <div id="downloadToast" class="download-toast" hidden>
+        <div class="toast-content">
+            <div class="toast-icon">🚀</div>
+
+            <div class="toast-text">
+                <strong>Скачивание началось</strong>
+                <p class="muted">Пока файл загружается, посмотрите возможности Активиума</p>
+            </div>
+        </div>
+
+        <div class="toast-actions">
+            <button class="btn-primary" id="toastGoSite">Посмотреть</button>
+            <button class="toast-close" id="toastClose">✕</button>
+        </div>
+    </div>
+
     <script src="/js/theme.js?v=1"></script>
     <script src="/js/screenshots.js?v=1"></script>
     <script src="/js/ios.js?v=2"></script>
     <script src="/js/reviews.js"></script>
+    <script src="/js/download-toast.js?v=7"></script>
 </body>
 </html>

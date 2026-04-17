@@ -2,6 +2,7 @@ from typing import Union
 from datetime import datetime, UTC, timedelta
 
 from ...dependencies.auth import check_session
+from ...repositories.statistic_repository import StatName
 from ...services.base_service import BaseService
 from ..repositories.app_uow import AppUnitOfWork
 
@@ -34,9 +35,9 @@ class StatusService(BaseService[AppUnitOfWork]):
             if version_number < generic_latest.number or not latest_mini_versions:
                 logs = generic_latest.logs
             elif version_number < latest.number:
-                logs = '\n'.join(map(lambda v: v.logs, filter(lambda v: v.number > version_number, latest_mini_versions)))
+                logs = '\n\n'.join(map(lambda v: v.logs, filter(lambda v: v.number > version_number, latest_mini_versions)))
 
-            await uow.statistic_repository.add_statistic(None, 'check_version')
+            await uow.statistic_repository.add_statistic(None, StatName.checkVersion)
 
             if api == 0:
                 response_type = VersionsApiResponse0x4
@@ -84,7 +85,7 @@ class StatusService(BaseService[AppUnitOfWork]):
 
                 informations.append(info)
 
-            await uow.statistic_repository.add_statistic(session.parent_id, 'check_info_notifications')
+            await uow.statistic_repository.add_statistic(session.parent_id, StatName.checkInfoNotifications)
 
             return InformationApiResponse(
                 answer=InformationResult(

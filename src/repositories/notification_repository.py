@@ -36,4 +36,4 @@ class NotificationRepository(SqlAlchemyRepository[Notification]):
 
     @staticmethod
     async def notify(message: str):
-        await send_admin_message(message)
+        return await send_admin_message(message)
