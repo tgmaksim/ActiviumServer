@@ -1,12 +1,15 @@
+from datetime import datetime
 from typing import Annotated, Optional
 
 from fastapi import APIRouter, Query, Depends, Body, Request, Header
 
 from ..schemas.dnevnik_tools_schemas import (
     NoteApiResponse,
+    NoteApiResponse0x38,
     PraiseApiResponse0x3A,
     DeleteNoteApiResponse,
     CreateNoteApiResponse,
+    CreateNoteApiResponse0x36,
     HighlightPersonApiResponse,
     UnhighlightPersonApiResponse, PraiseApiResponse
 )
@@ -24,7 +27,8 @@ router = APIRouter(prefix='/dtools', tags=["Dnevnik Tools"])
     "/createNote/0",
     summary="Создание или изменение заметки",
     description="Создание или изменение текстовой заметки к уроку. Синхронизируется с родителем",
-    response_model=CreateNoteApiResponse
+    response_model=CreateNoteApiResponse0x36,
+    deprecated=True  # Устарела с версии API 1.4.1
 )
 async def _createNote0(
         request: Request,
@@ -33,18 +37,54 @@ async def _createNote0(
         public: Annotated[bool, Query(description="Заметка доступна родителю")],
         sessionId: Annotated[str, Header(description="Идентификатор сессии", min_length=1, max_length=32)],
         service: DnevnikToolsService = Depends(get_dnevnik_tools_service)
+) -> CreateNoteApiResponse0x36:
+    request.state.session_id = sessionId
+    return await service.create_note(sessionId, lessonKey, text, public, None, api=0)
+
+
+@router.post(
+    "/createNote/1",  # Начиная с версии API 1.5.0
+    summary="Создание или изменение заметки",
+    description="Создание или изменение текстовой заметки к уроку. Синхронизируется с родителем",
+    response_model=CreateNoteApiResponse
+)
+async def _createNote0(
+        request: Request,
+        lessonKey: Annotated[str, Query(description="Ключ от урока, к которому нужно создать заметку", pattern=r'[0-9a-z]{1,13}', min_length=1, max_length=13)],
+        text: Annotated[str, Body(media_type='plain/text', description="Текст заметки", min_length=1, max_length=256)],
+        public: Annotated[bool, Query(description="Заметка доступна родителю")],
+        sessionId: Annotated[str, Header(description="Идентификатор сессии", min_length=1, max_length=32)],
+        remindTime: Annotated[Optional[datetime], Query(description="Время напоминания, если требуется")] = None,
+        service: DnevnikToolsService = Depends(get_dnevnik_tools_service)
 ) -> CreateNoteApiResponse:
     request.state.session_id = sessionId
-    return await service.create_note(sessionId, lessonKey, text, public)
+    return await service.create_note(sessionId, lessonKey, text, public, remindTime)
 
 
 @router.get(
     "/getNote/0",
     summary="Получение заметки к уроку",
     description="Получение текстовой заметки к уроку",
-    response_model=NoteApiResponse
+    response_model=NoteApiResponse0x38,
+    deprecated=True  # Устарела с версии API 1.4.1
 )
 async def _getNote0(
+        request: Request,
+        lessonKey: Annotated[str, Query(description="Ключ от урока, к которому нужно создать заметку", pattern=r'[0-9a-z]{1,13}', min_length=1, max_length=13)],
+        sessionId: Annotated[str, Header(description="Идентификатор сессии", min_length=1, max_length=32)],
+        service: DnevnikToolsService = Depends(get_dnevnik_tools_service)
+) -> NoteApiResponse0x38:
+    request.state.session_id = sessionId
+    return await service.get_note(sessionId, lessonKey, api=0)
+
+
+@router.get(
+    "/getNote/1",  # Начиная с версии API 1.5.0
+    summary="Получение заметки к уроку",
+    description="Получение текстовой заметки к уроку",
+    response_model=NoteApiResponse
+)
+async def _getNote1(
         request: Request,
         lessonKey: Annotated[str, Query(description="Ключ от урока, к которому нужно создать заметку", pattern=r'[0-9a-z]{1,13}', min_length=1, max_length=13)],
         sessionId: Annotated[str, Header(description="Идентификатор сессии", min_length=1, max_length=32)],

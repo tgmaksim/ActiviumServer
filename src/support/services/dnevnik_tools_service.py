@@ -1,5 +1,6 @@
 import traceback
 from asyncio import gather
+from datetime import datetime
 
 from httpx import AsyncClient
 from typing import Callable, Optional, Union
@@ -11,24 +12,28 @@ from firebase.messaging import send_notifications, Notification, AppNotification
 
 from ..schemas.dnevnik_tools_schemas import (
     Note,
+    Note0x34,
     NoteResult,
+    NoteResult0x35,
     NoteApiResponse,
     PraiseApiResponse,
-    PraiseApiResponse0x3A,
+    NoteApiResponse0x38,
     DeleteNoteApiResponse,
+    PraiseApiResponse0x3A,
     CreateNoteApiResponse,
+    CreateNoteApiResponse0x36,
     HighlightPersonApiResponse,
     UnhighlightPersonApiResponse,
 )
 
-from ...models.parent_model import Parent
 from ...models.child_model import Child
-from ...api.session_error import SessionError
-from ...repositories.statistic_repository import StatName
+from ...models.parent_model import Parent
 from ...schemas.error_schema import ApiError
+from ...api.session_error import SessionError
 from ...dependencies.auth import check_session
 from ...services.base_service import BaseService
 from ..repositories.app_uow import AppUnitOfWork
+from ...repositories.statistic_repository import StatName
 
 
 __all__ = ['DnevnikToolsService']
@@ -39,7 +44,16 @@ class DnevnikToolsService(BaseService[AppUnitOfWork]):
         super().__init__(uow_factory)
         self.httpx_client = httpx_client
 
-    async def create_note(self, session_id: str, lesson_key: str, text: str, public: bool) -> CreateNoteApiResponse:
+    async def create_note(self, session_id: str, lesson_key: str, text: str, public: bool, remind_time: Optional[datetime], api: int = None) -> Union[CreateNoteApiResponse0x36, CreateNoteApiResponse]:
+        if api == 0:
+            answer_type = CreateNoteApiResponse0x36
+            result_type = NoteResult0x35
+            note_type = Note0x34
+        else:
+            answer_type = CreateNoteApiResponse
+            result_type = NoteResult
+            note_type = Note
+
         async with self.uow_factory() as uow:
             session = await check_session(session_id, uow.session_repository)
             parent: Parent = session.parent
@@ -54,7 +68,7 @@ class DnevnikToolsService(BaseService[AppUnitOfWork]):
                     session_id=session_id,
                     value='\n'.join(traceback.format_exception(e))
                 )
-                return CreateNoteApiResponse(
+                return answer_type(
                     status=False,
                     error=ApiError(
                         type="ValueError",
@@ -69,7 +83,7 @@ class DnevnikToolsService(BaseService[AppUnitOfWork]):
                     session_id=session_id,
                     value=f"Попытка изменить закрытую заметку {lesson_key}"
                 )
-                return CreateNoteApiResponse(
+                return answer_type(
                     status=False,
                     error=ApiError(
                         type="NoteAccessDeniedError",
@@ -91,7 +105,7 @@ class DnevnikToolsService(BaseService[AppUnitOfWork]):
                         status=False,
                         value=f"Урок {lesson_id} для создания заметки не найден"
                     )
-                    return CreateNoteApiResponse(
+                    return answer_type(
                         status=False,
                         error=ApiError(
                             type="ValueError",
@@ -100,21 +114,31 @@ class DnevnikToolsService(BaseService[AppUnitOfWork]):
                     )
                 raise
 
-            await uow.lesson_note_repository.create_note(child.child_id, lesson_id, text, public)
+            await uow.lesson_note_repository.create_note(child.child_id, lesson_id, text, public, remind_time)
 
             await uow.statistic_repository.add_statistic(parent.parent_id, StatName.createNote)
 
-            return CreateNoteApiResponse(
-                answer=NoteResult(
-                    note=Note(
+            return answer_type(
+                answer=result_type(
+                    note=note_type(
                         lessonKey=lesson_key,
                         text=text,
-                        public=public
+                        public=public,
+                        remindTime=remind_time
                     )
                 )
             )
 
-    async def get_note(self, session_id: str, lesson_key: str) -> NoteApiResponse:
+    async def get_note(self, session_id: str, lesson_key: str, api: int = None) -> Union[NoteApiResponse0x38, NoteApiResponse]:
+        if api == 0:
+            answer_type = NoteApiResponse0x38
+            result_type = NoteResult0x35
+            note_type = Note0x34
+        else:
+            answer_type = NoteApiResponse
+            result_type = NoteResult
+            note_type = Note
+
         async with self.uow_factory() as uow:
             session = await check_session(session_id, uow.session_repository)
             child: Child = session.active_child
@@ -128,7 +152,7 @@ class DnevnikToolsService(BaseService[AppUnitOfWork]):
                     status=False,
                     value='\n'.join(traceback.format_exception(e))
                 )
-                return NoteApiResponse(
+                return answer_type(
                     status=False,
                     error=ApiError(
                         type="ValueError",
@@ -138,12 +162,13 @@ class DnevnikToolsService(BaseService[AppUnitOfWork]):
 
             note = await uow.lesson_note_repository.get_note(child.child_id, lesson_id)
 
-            return NoteApiResponse(
-                answer=NoteResult(
-                    note=Note(
+            return answer_type(
+                answer=result_type(
+                    note=note_type(
                         lessonKey=lesson_key,
                         text=note.text,
-                        public=note.public
+                        public=note.public,
+                        remindTime=note.remind_time
                     ) if note else None
                 )
             )

@@ -70,7 +70,6 @@ header{
     border-radius:12px;
     display:grid;
     place-items:center;
-    background: linear-gradient(135deg,var(--accent-2),var(--accent));
     color:var(--button-text);
     box-shadow: var(--glass-shadow);
     font-weight:700;

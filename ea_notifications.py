@@ -1,3 +1,4 @@
+import time
 import asyncio
 import traceback
 
@@ -9,10 +10,10 @@ from httpx import AsyncClient
 from asyncio import AbstractEventLoop
 
 from firebase.messaging import send_notifications, Notification, AppNotificationChannel
-from src.repositories.statistic_repository import StatName
 
 from src.services.log_service import LogService
 from src.dependencies.uow import get_log_uow_factory
+from src.repositories.statistic_repository import StatName
 from src.support.repositories.app_uow import AppUnitOfWork
 from src.models.ea_processing_notification_model import EAProcessingNotification
 
@@ -40,6 +41,8 @@ class ExtracurricularActivityWorker:
 
         try:
             while self._running:
+                start = time.monotonic()
+
                 try:
                     while self._running:
                         now = datetime.now(UTC)
@@ -76,7 +79,9 @@ class ExtracurricularActivityWorker:
                         value='\n'.join(traceback.format_exception(e))
                     )
                 finally:
-                    await asyncio.sleep(CYCLE_SECONDS)
+                    elapsed = time.monotonic() - start
+
+                    await asyncio.sleep(CYCLE_SECONDS - elapsed)
         except Exception as e:
             service = LogService(get_log_uow_factory())
             await service.log(

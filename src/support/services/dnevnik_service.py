@@ -333,7 +333,7 @@ class DnevnikService(BaseService[AppUnitOfWork]):
                 marks.append(float(mark) + pm)
 
         if len(marks) == 0:
-            return 0, []
+            return other_marks.isHighlighting, 0, []
         return other_marks.isHighlighting, sum(marks) / len(marks), marks
 
     @classmethod

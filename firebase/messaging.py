@@ -21,6 +21,7 @@ class AppNotificationChannel(Enum):
     marks = 'marks'
     service = 'service'
     praise = 'praise'
+    notes = 'notes'
 
 
 class Notification(BaseModel):

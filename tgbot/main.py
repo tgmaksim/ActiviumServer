@@ -16,7 +16,7 @@ async def run_polling():
 
     try:
         for admin in settings.ADMIN_CHAT_IDS:
-            await bot.send_message(admin, "🚀 Бот запущен")
+            await bot.send_message(admin, "<tg-emoji emoji-id=\"5445284980978621387\">🚀</tg-emoji> Бот запущен")
 
         service = LogService(get_log_uow_factory())
         await service.log(path='tgbot', value="Бот запущен")
@@ -31,7 +31,7 @@ async def run_polling():
         print(error)
     finally:
         for admin in settings.ADMIN_CHAT_IDS:
-            await bot.send_message(admin, "⛔ Бот остановлен")
+            await bot.send_message(admin, "<tg-emoji emoji-id=\"5260293700088511294\">⛔️</tg-emoji> Бот остановлен")
 
         service = LogService(get_log_uow_factory())
         await service.log(path='tgbot', value="Бот остановлен")

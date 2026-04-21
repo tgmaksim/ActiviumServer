@@ -16,6 +16,7 @@ __all__ = ['StatisticRepository', 'StatName']
 class StatName(Enum):
     ea_notifications = "Отправлено уведомление с напоминанием о внеурочном занятии"
     marks_notifications = "Отправлено уведомление о новой оценке"
+    notes_notifications = "Отправлено уведомление с напоминанием о созданной заметке"
     getFinalMarks = "Запрос годовых оценок"
     getLessonRatingStats = "Запрос статистики по уроку с рейтингом в классе"
     getMarks = "Запрос своих оценок за текущий период"

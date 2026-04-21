@@ -230,7 +230,7 @@ class SettingsService(BaseService[AppUnitOfWork]):
 
             await uow.session_repository.update_firebase(session_id, firebase_token)
 
-            await uow.statistic_repository.add_statistic(parent.parent_id, StatName.updateFirebase)
+            await uow.statistic_repository.add_statistic(parent and parent.parent_id, StatName.updateFirebase)
 
             return UpdateFirebaseApiResponse()
 
