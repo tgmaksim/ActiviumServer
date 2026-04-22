@@ -10,10 +10,9 @@ from httpx import AsyncClient
 
 from sqlalchemy.exc import IntegrityError
 
-from dnevnikru.exceptions import BaseDnevnikruException
+from ...repositories.statistic_repository import StatName
 from dnevnikru.aiodnevnikru.dnevnikru import AioDnevnikruApi
 from ..schemas.status_schemas import CheckSessionApiResponse, CheckSessionResult
-from ...repositories.statistic_repository import StatName
 
 from ...services.html_response import HtmlResponse
 from ..schemas.login_schemas import LoginApiResponse, LoginResult
@@ -71,6 +70,10 @@ class LoginService(BaseService[AppUnitOfWork]):
     async def firstAuthSession(cls) -> HtmlResponse:
         return HtmlResponse(name='auth_session.html')
 
+    @classmethod
+    async def firstAuthSchoolAdmin(cls) -> HtmlResponse:
+        return HtmlResponse(name='auth_session.html')
+
     async def secondAuthSession(self, dnevnik_token: str, session_id: str, referral_token: Optional[str]) -> HtmlResponse:
         log_exception = lambda error: uow.log_repository.add_log(
             path='secondAuthSession',
@@ -94,7 +97,7 @@ class LoginService(BaseService[AppUnitOfWork]):
             try:
                 dnevnik_data, parent_name = await self._dnevnik_auth(dnevnik_token)
                 assert dnevnik_data is not None, "Данные авторизации пустые"
-            except (BaseDnevnikruException, KeyError, IndexError, StopIteration, AssertionError) as e:
+            except Exception as e:
                 await log_exception('\n'.join(traceback.format_exception(e)))
                 return HtmlResponse(
                     name='error.html',
@@ -212,7 +215,7 @@ class LoginService(BaseService[AppUnitOfWork]):
 
             result['children'] = children_data
             result['parent_id'] = person_id
-        elif 'EduTeacher' in roles:
+        elif 'EduStaff' in roles or 'EduSchoolAdministrator' in roles:
             return 'teacher', parent_name
         else:
             return None, parent_name
@@ -288,6 +291,75 @@ class LoginService(BaseService[AppUnitOfWork]):
             title = "❤️ Оцените Активиум"
             text = "Вы пользуетесь сервисом Активиум уже целую неделю. Оцените приложение в настройках. Мы будет очень рады!"
             await uow.information_repository.create_information(person_id, type_, time, title, text)
+
+    async def secondAuthSchoolAdmin(self, dnevnik_token: str, user_id: int) -> HtmlResponse:
+        log_exception = lambda error: uow.log_repository.add_log(
+            path='secondAuthSchoolAdmin',
+            status=False,
+            session_id=str(user_id),
+            value=error
+        )
+
+        async with self.uow_factory() as uow:
+            try:
+                dnevnik_data = await self._school_admin_dnevnik_auth(dnevnik_token)
+                assert dnevnik_data != 'no_admin', "Попытка авторизовать админа профилем не администратора"
+                name, person_id, school_id = dnevnik_data
+            except AssertionError as e:
+                await log_exception('\n'.join(traceback.format_exception(e)))
+                return HtmlResponse(
+                    name='auth_session_error.html',
+                    status_code=403,
+                    context={
+                        'reason': "Авторизоваться в качестве администратора ОО может только профиль с соответствующими "
+                                  "права в Дневнике.ру (EduSchoolAdministrator или EduStaff). Если Вы считаете, что "
+                                  "такие права есть, то обратитесь в поддержку (на сайте или через бота)"
+                    }
+                )
+            except Exception as e:
+                await log_exception('\n'.join(traceback.format_exception(e)))
+                return HtmlResponse(
+                    name='error.html',
+                    status_code=500,
+                    context={
+                        'summary': "Произошла ошибка авторизации",
+                        'description': "Произошла ошибка при получении основных данных от дневника.ру. Авторизация прервана"
+                    }
+                )
+
+            await self._auth_school_admin(uow, user_id, name, person_id, school_id, dnevnik_token)
+
+            return HtmlResponse(name='auth_school_admin_success.html', context={'redirect_url': settings.BOT_URL})
+
+    async def _school_admin_dnevnik_auth(self, dnevnik_token: str) -> Union[tuple[str, int, int], Literal["no_admin"]]:
+        dnr = AioDnevnikruApi(self.httpx_client, dnevnik_token)
+
+        context: dict = await dnr.get_context()
+
+        person_id = int(context['personId'])
+        name = context['shortName']
+        schools: list[dict] = context['schools']
+        roles = list(map(str, context['roles']))
+
+        if 'EduStaff' not in roles and 'EduSchoolAdministrator' not in roles:
+            return "no_admin"
+
+        schools_id: list[int] = context['schoolIds']
+        school: dict = next(filter(lambda s: s['type'] == 'Regular' and s['id'] in schools_id, schools))
+        school_id = int(school['id'])
+
+        return name, person_id, school_id
+
+    @classmethod
+    async def _auth_school_admin(cls, uow: AppUnitOfWork, user_id: int, name: str, person_id: int, school_id: int, dnevnik_token: str):
+        await uow.school_admin_repository.create_admin(user_id, name, None, person_id, school_id, dnevnik_token)
+
+        school_admin = await uow.school_admin_repository.get_admin(user_id)
+        if school_admin is None:
+            name = StatName.registrationSchoolAdmin
+        else:
+            name = StatName.authorizationSchoolAdmin
+        await uow.statistic_repository.add_statistic(user_id, name)
 
     async def checkSession(self, session_id: str) -> CheckSessionApiResponse:
         async with self.uow_factory() as uow:

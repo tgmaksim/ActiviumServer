@@ -11,10 +11,12 @@ from .rating_repository import RatingRepository
 from .session_repository import SessionRepository
 from .version_repository import VersionRepository
 from .referral_repository import ReferralRepository
+from .school_post_repository import SchoolPostRepository
 from .lesson_note_repository import LessonNoteRepository
 from ...repositories.log_repository import LogRepository
 from .review_likes_repository import ReviewLikeRepository
 from .information_repository import InformationRepository
+from .school_admin_repository import SchoolAdminRepository
 from .ea_notification_repository import EANotificationRepository
 from ...repositories.statistic_repository import StatisticRepository
 from .marks_notification_repository import MarksNotificationRepository
@@ -51,6 +53,8 @@ class AppUnitOfWork(SqlAlchemyUnitOfWork):
         self._highlighting_person_repository: Optional[HighlightingPersonRepository] = None
         self._information_repository: Optional[InformationRepository] = None
         self._referral_repository: Optional[ReferralRepository] = None
+        self._school_admin_repository: Optional[SchoolAdminRepository] = None
+        self._school_post_repository: Optional[SchoolPostRepository] = None
 
     @property
     def log_repository(self) -> LogRepository:
@@ -165,3 +169,15 @@ class AppUnitOfWork(SqlAlchemyUnitOfWork):
         if self._referral_repository is None:
             self._referral_repository = ReferralRepository(self.queue)
         return self._referral_repository
+
+    @property
+    def school_admin_repository(self) -> SchoolAdminRepository:
+        if self._school_admin_repository is None:
+            self._school_admin_repository = SchoolAdminRepository(self.queue)
+        return self._school_admin_repository
+
+    @property
+    def school_post_repository(self) -> SchoolPostRepository:
+        if self._school_post_repository is None:
+            self._school_post_repository = SchoolPostRepository(self.queue)
+        return self._school_post_repository

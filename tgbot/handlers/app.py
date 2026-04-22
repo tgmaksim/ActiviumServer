@@ -12,7 +12,7 @@ router = Router()
 
 
 @router.message(Command('app'))
-async def cmd_app(message: Message):
+async def _cmd_app(message: Message):
     await message.answer(
         "<tg-emoji emoji-id=\"5406575351272872039\">🤓</tg-emoji> Активиум — ссылки",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[

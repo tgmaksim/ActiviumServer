@@ -9,7 +9,7 @@ from openai import AsyncOpenAI
 
 client = AsyncOpenAI(
   base_url="https://openrouter.ai/api/v1",
-  api_key=settings.OPENROUTER_API_KEY
+  api_key=settings.OPENAI_API_KEY
 )
 
 
@@ -19,6 +19,6 @@ class Message(BaseModel):
 
 
 async def request(messages: list[Message]) -> str:
-    response = await client.chat.completions.create(messages=[message.model_dump() for message in messages], model='openrouter/elephant-alpha')
+    response = await client.chat.completions.create(messages=[message.model_dump() for message in messages], model=settings.OPENAI_MODEL)
 
     return response.choices[0].message.content

@@ -72,6 +72,41 @@ async def _authSession(
     return response
 
 
+@public_router.get(
+    "/authSchoolAdmin",
+    summary="Авторизация админа ОО",
+    description="Первичное и вторичное получение параметров от дневника.ру. После авторизации дневник.ру перенаправит "
+                "пользователя в данный метод, а здесь будет возвращен HTML. JS возьмет полученные параметры из url#hash "
+                "и отправит в url?query. После вторичного получения параметров от дневника.ру они используются для "
+                "авторизации админа ОО",
+    response_class=HTMLResponse
+)
+async def _authSchoolAdmin(
+        request: Request,
+        access_token: Annotated[Optional[str], Query(description="Токен для взаимодействия с дневником.ру от имени пользователя", min_length=1, max_length=64)] = None,
+        state: Annotated[Optional[int], Query(description="Дополнительные параметры от дневника.ру (telegram userId)")] = None,
+        service: LoginService = Depends(get_login_service)
+) -> HTMLResponse:
+    if access_token is not None and state is not None:
+        template_params = await service.secondAuthSchoolAdmin(access_token, state)
+    else:
+        template_params = await service.firstAuthSchoolAdmin()
+
+    templates = get_templates()
+    response = templates.TemplateResponse(
+        request=request,
+        name=template_params.name,
+        status_code=template_params.status_code,
+        context=template_params.context
+    )
+
+    if template_params.cookies:
+        for cookie in template_params.cookies:
+            response.set_cookie(**cookie)
+
+    return response
+
+
 @router.get(
     "/checkSession/0",
     summary="Проверка сессии",

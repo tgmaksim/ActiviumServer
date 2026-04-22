@@ -35,16 +35,17 @@
             </h2>
 
             <p class="muted error-subtitle">
-                Вы успешно вошли в систему. Сейчас вы будете перенаправлены в приложение.
+                Вы вошли в Активиум от имени администратора ОО. Если Вы инициировали авторизацию, то нажмите на кнопку ниже,
+                чтобы перейти в Telegram-бота, иначе сообщите тому, кто отправил Вам ссылку, что все права предоставлены в боте
             </p>
 
             <div class="error-details">
-                Если переход не произошёл автоматически, нажмите кнопку ниже.
+                Спасибо, что выбрали Активиум
             </div>
 
             <div class="error-actions">
-                <button class="btn-primary" onclick="openApp()">
-                    Открыть приложение
+                <button class="btn-primary" onclick="openBot()">
+                    Открыть Telegram-бота
                 </button>
 
                 <a href="/" class="btn-outline">
@@ -58,13 +59,11 @@
 
 <script src="/js/theme.js"></script>
 <script>
-    const redirectUrl = "tgm://activium/open";
+    const redirectUrl = "{{ redirect_url }}";
 
-    function openApp() {
+    function openBot() {
         location.replace(redirectUrl);
     }
-
-    openApp();
 </script>
 </body>
 </html>

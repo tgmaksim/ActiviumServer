@@ -5,7 +5,7 @@ __all__ = ['get_tg_router']
 
 
 def get_tg_router() -> Router:
-    from .handlers import start, reviews, app, help, admin
+    from .handlers import start, reviews, app, help, admin, school, menu
 
     router = Router()
     router.include_router(start.router)
@@ -13,4 +13,6 @@ def get_tg_router() -> Router:
     router.include_router(app.router)
     router.include_router(help.router)
     router.include_router(admin.router)
+    router.include_router(school.router)
+    router.include_router(menu.router)
     return router

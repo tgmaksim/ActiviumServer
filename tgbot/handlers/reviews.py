@@ -20,7 +20,7 @@ router = Router()
 
 
 @router.callback_query(F.data.startswith('open_review').__or__(F.data.startswith('block_review')))
-async def review_moderation(callback_query: CallbackQuery):
+async def _review_moderation(callback_query: CallbackQuery):
     parent_id = int(callback_query.data.split('|')[1])
     service = get_reviews_service(get_app_uow_factory(), get_httpx_client())
 

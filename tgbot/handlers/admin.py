@@ -14,7 +14,7 @@ router = Router()
 
 
 @router.message(Command('reload'))
-async def cmd_reload(message: Message):
+async def _cmd_reload(message: Message):
     if message.from_user.id not in settings.ADMIN_CHAT_IDS:
         await message.answer("Данная команда доступна только администраторам")
         return

@@ -29,8 +29,13 @@ class SqlAlchemyRepository(AbstractRepository[ModelType]):
         res = await self.queue.execute(statement)
         return res.scalar()
 
-    async def create_many(self, data: Iterable[dict]) -> list[ModelType]:
-        statement = insert(self.model).values(*data)
+    async def create_many(self, data: Iterable[dict], security: list[str] = None, security_nothing = False) -> list[ModelType]:
+        statement = insert(self.model).values(data)
+        if security:
+            if security_nothing:
+                statement = statement.on_conflict_do_nothing(index_elements=security)
+            else:
+                raise ValueError("Пока что данный параметр недоступен")
         statement = statement.returning(self.model)
         res = await self.queue.execute(statement)
         return list(res.scalars().all())
