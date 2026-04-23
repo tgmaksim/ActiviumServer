@@ -12,11 +12,14 @@ class TGBotSettings(BaseSettings):
     BOT_URL: str  # Ссылка на Telegram-бота
     ADMIN_CHAT_IDS: list[int] = []
     AUTHOR_LINK: str
+    TELEGRAM_PREVIEW_URL: str
 
     GITHUB: str
     GITHUB_SERVER: str
 
     DNEVNIK_CLIENT_ID: str  # API-ключ для работы с Дневником.ру
+
+    WWW_PATH: str
 
     NETANGELS_GATEWAY_TOKEN_URL: str
     NETANGELS_API_KEY: str

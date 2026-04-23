@@ -25,7 +25,7 @@ async def _cmd_school(message: Message):
     )
 
     await message.answer(
-        "Еще раз приветствуем от лица Активиум!\n"
+        "Еще раз приветствуем от Активиум!\n"
         "<tg-emoji emoji-id=\"5447644880824181073\">⚠️</tg-emoji> Прочитайте внимательно<tg-emoji emoji-id=\"5470177992950946662\">👇</tg-emoji>\n\n"
         
         "<blockquote expandable>"

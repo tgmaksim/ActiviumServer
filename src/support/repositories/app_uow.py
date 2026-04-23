@@ -11,6 +11,7 @@ from .rating_repository import RatingRepository
 from .session_repository import SessionRepository
 from .version_repository import VersionRepository
 from .referral_repository import ReferralRepository
+from .tgbot_state_repository import TgbotStateRepository
 from .school_post_repository import SchoolPostRepository
 from .lesson_note_repository import LessonNoteRepository
 from ...repositories.log_repository import LogRepository
@@ -55,6 +56,7 @@ class AppUnitOfWork(SqlAlchemyUnitOfWork):
         self._referral_repository: Optional[ReferralRepository] = None
         self._school_admin_repository: Optional[SchoolAdminRepository] = None
         self._school_post_repository: Optional[SchoolPostRepository] = None
+        self._tgbot_state_repository: Optional[TgbotStateRepository] = None
 
     @property
     def log_repository(self) -> LogRepository:
@@ -181,3 +183,9 @@ class AppUnitOfWork(SqlAlchemyUnitOfWork):
         if self._school_post_repository is None:
             self._school_post_repository = SchoolPostRepository(self.queue)
         return self._school_post_repository
+
+    @property
+    def tgbot_state_repository(self) -> TgbotStateRepository:
+        if self._tgbot_state_repository is None:
+            self._tgbot_state_repository = TgbotStateRepository(self.queue)
+        return self._tgbot_state_repository

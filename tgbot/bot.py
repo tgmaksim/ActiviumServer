@@ -2,15 +2,10 @@ from typing import Optional
 
 from aiogram import Bot, Dispatcher
 from aiogram.enums import ParseMode
-from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.client.default import DefaultBotProperties
-
-from .config import settings
-from .routers import get_tg_router
 
 
 __all__ = ['create_bot_and_dispatcher', 'get_bot']
-
 
 _bot: Optional[Bot] = None
 _dp: Optional[Dispatcher] = None
@@ -25,9 +20,15 @@ def get_bot() -> Bot:
 
 
 def create_bot_and_dispatcher() -> tuple[Bot, Dispatcher]:
+    from .config import settings
+    from .routers import get_tg_router
+    from .fcm_storage import PostgresStorage
+
+    from src.dependencies.uow import get_app_uow_factory
+
     bot = Bot(token=settings.BOT_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
 
-    storage = MemoryStorage()
+    storage = PostgresStorage(get_app_uow_factory())
     dp = Dispatcher(storage=storage)
 
     from .middlewares.logging import LoggingMiddleware  # fix circular import
