@@ -20,9 +20,11 @@ def get_bot() -> Bot:
 
 
 def create_bot_and_dispatcher() -> tuple[Bot, Dispatcher]:
+    # fix circular import
     from .config import settings
     from .routers import get_tg_router
     from .fcm_storage import PostgresStorage
+    from .middlewares.logging import LoggingMiddleware
 
     from src.dependencies.uow import get_app_uow_factory
 
@@ -31,7 +33,6 @@ def create_bot_and_dispatcher() -> tuple[Bot, Dispatcher]:
     storage = PostgresStorage(get_app_uow_factory())
     dp = Dispatcher(storage=storage)
 
-    from .middlewares.logging import LoggingMiddleware  # fix circular import
     dp.update.outer_middleware(LoggingMiddleware())
 
     dp.include_router(get_tg_router())

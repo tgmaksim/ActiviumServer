@@ -1,8 +1,13 @@
+import re
+
+from typing import Optional
+from datetime import datetime, date, UTC
+
 from yarl import URL
 from pathlib import Path
 
 from aiogram import Router, F
-from aiogram.enums import ContentType
+from aiogram.enums import ContentType, MessageEntityType
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
 from aiogram.exceptions import TelegramBadRequest
@@ -173,7 +178,7 @@ async def _school_post(callback_query: CallbackQuery):
 
     uow_factory = get_app_uow_factory()
     async with uow_factory() as uow:
-        answer = await menu_school_post(uow, callback_query.from_user.id, post_id, f"school_post|{post_id}|{offset}")
+        answer = await menu_school_post(uow, callback_query.from_user.id, post_id, f"admin_posts|{offset}")
         try:
             await callback_query.message.edit_text(**answer)
         except TelegramBadRequest as e:
@@ -192,25 +197,26 @@ async def menu_school_post(uow: AppUnitOfWork, user_id: int, post_id: int, callb
     if post is None:
         return await menu_school_posts(uow, user_id, 0)
 
-    image_relative_path = ('posts', 'images', f'{post_id}.jpg')
+    image_relative_path = ('posts', str(post_id), 'image.jpg')
     image_url = str(URL(settings.URL).joinpath(*image_relative_path))
 
     preview_options = LinkPreviewOptions(
         is_disabled=False,
         url=settings.TELEGRAM_PREVIEW_URL + image_url,
-        prefer_large_media=True
+        prefer_large_media=True,
+        show_above_text=True
     ) if post.has_image else None
 
-    text = (f"<b>{post.title}</b>\n"
-            f"{post.description}\n\n"
+    text = ('\n'.join(filter(None, (f"<b>{post.title}</b>", post.description))) +
+            "\n\n"
             f"Публикация от {post.created_at.strftime('%e %b.')}\n"
-            f"В расписании: {post.schedule_date.strftime('%e %b.')}\n"
-            f"Обновлено: {'да' if post.is_updated else 'нет'}\n"
-            f"Заходы: {post.count_clicks}\n"
+            f"В расписании: {post.schedule_date.strftime('%e %b.') if post.schedule_date is not None else 'нет'}\n"
+            f"Отредактировано: {'да' if post.is_updated else 'нет'}\n"
+            f"Клики: {post.count_clicks}\n"
             f"Просмотры: {post.count_viewings}\n"
             f"Реакции: {post.count_likes}")
 
-    post_relative_path = ('posts', post_id)
+    post_relative_path = ('posts', str(post_id))
     url = str(URL(settings.URL).joinpath(*post_relative_path))
 
     buttons = [[InlineKeyboardButton(text="Посмотреть", icon_custom_emoji_id="5210956306952758910", url=url),
@@ -231,20 +237,27 @@ async def _create_post(callback_query: CallbackQuery, state: FSMContext):
             await callback_query.message.edit_text("Меню Активиум доступно только администраторам ОО\nДля подключения: /school")
             return
 
-        await callback_query.message.answer(
-            f"Вы начали создание поста\nОтправьте заголовок (от 1 до {POST_TITLE_LIMIT} символов)\n"
-            "В любой момент нажмите на кнопку Отмена для сброса операции",
-            reply_markup=ReplyKeyboardMarkup(
-                keyboard=[[KeyboardButton(text="Отмена", icon_custom_emoji_id="5210952531676504517")]],
-                resize_keyboard=True
-            )
-        )
+        temp_post_relative_path = ('temp', 'posts', str(callback_query.from_user.id))
+        temp_post_path = Path(settings.WWW_PATH, *temp_post_relative_path)
+        temp_post_path.mkdir(parents=True, exist_ok=True)
+
+        answer = wait_post_title()
+        await callback_query.message.answer(**answer)
         await state.set_state(CreatePostStatesGroup.title)
         await callback_query.message.delete()
 
 
+def wait_post_title() -> dict:
+    return {'text': f"Вы начали создание поста\nОтправьте заголовок (от 1 до {POST_TITLE_LIMIT} символов)\n"
+                    "В любой момент нажмите на кнопку Отмена для сброса операции",
+            'reply_markup': ReplyKeyboardMarkup(
+                keyboard=[[KeyboardButton(text="Отмена", icon_custom_emoji_id="5210952531676504517")]],
+                resize_keyboard=True
+            )}
+
+
 @router.message(CreatePostStatesGroup.title)
-async def _create_post(message: Message, state: FSMContext):
+async def _post_title(message: Message, state: FSMContext):
     uow_factory = get_app_uow_factory()
     async with uow_factory() as uow:
         school_admin = await uow.school_admin_repository.get_admin(message.from_user.id)
@@ -270,21 +283,25 @@ async def _create_post(message: Message, state: FSMContext):
 
         await state.update_data(title=message.text)
 
-        await message.answer(
-            f"Отлично! Теперь отправьте короткое описание (от 1 до {POST_DESCRIPTION_LIMIT} символов), "
-            "которое будет сопровождать заголовок. Если оно не требуется, нажмите на кнопку Пропустить",
-            reply_markup=ReplyKeyboardMarkup(
-                keyboard=[[KeyboardButton(text="Пропустить", icon_custom_emoji_id="5416117059207572332")],
-                          [KeyboardButton(text="Отмена", icon_custom_emoji_id="5210952531676504517")]],
-                resize_keyboard=True
-            )
-        )
+        answer = wait_post_description()
+        await message.answer(**answer)
 
         await state.set_state(CreatePostStatesGroup.description)
 
 
+def wait_post_description() -> dict:
+    return {'text': f"Отлично! Теперь отправьте короткое описание (от 1 до {POST_DESCRIPTION_LIMIT} символов), "
+                    "которое будет сопровождать заголовок. Если оно не требуется, нажмите на кнопку Пропустить",
+            'reply_markup': ReplyKeyboardMarkup(
+                keyboard=[[KeyboardButton(text="Пропустить", icon_custom_emoji_id="5416117059207572332")],
+                          [KeyboardButton(text="Прошлый шаг", icon_custom_emoji_id="5467864676320681402")],
+                          [KeyboardButton(text="Отмена", icon_custom_emoji_id="5210952531676504517")]],
+                resize_keyboard=True
+            )}
+
+
 @router.message(CreatePostStatesGroup.description)
-async def _create_post(message: Message, state: FSMContext):
+async def _post_description(message: Message, state: FSMContext):
     uow_factory = get_app_uow_factory()
     async with uow_factory() as uow:
         school_admin = await uow.school_admin_repository.get_admin(message.from_user.id)
@@ -298,6 +315,12 @@ async def _create_post(message: Message, state: FSMContext):
             await (await message.answer(".", reply_markup=ReplyKeyboardRemove())).delete()
             answer = await menu_school_posts(uow, message.from_user.id, 0)
             await message.answer(**answer)
+            return
+
+        if message.text == "Прошлый шаг":
+            answer = wait_post_title()
+            await message.answer(**answer)
+            await state.set_state(CreatePostStatesGroup.title)
             return
 
         if message.content_type != ContentType.TEXT:
@@ -310,20 +333,24 @@ async def _create_post(message: Message, state: FSMContext):
 
         await state.update_data(description=None if message.text == "Пропустить" else message.text)
 
-        await message.answer(
-            f"Продолжим. Отправьте главную фотографию статьи. Если она не требуется, нажмите на кнопку Пропустить",
-            reply_markup=ReplyKeyboardMarkup(
-                keyboard=[[KeyboardButton(text="Пропустить", icon_custom_emoji_id="5416117059207572332")],
-                          [KeyboardButton(text="Отмена", icon_custom_emoji_id="5210952531676504517")]],
-                resize_keyboard=True
-            )
-        )
+        answer = wait_post_image()
+        await message.answer(**answer)
 
         await state.set_state(CreatePostStatesGroup.image)
 
 
+def wait_post_image() -> dict:
+    return {'text': "Продолжим. Отправьте главную фотографию статьи. Если она не требуется, нажмите на кнопку Пропустить",
+            'reply_markup': ReplyKeyboardMarkup(
+                keyboard=[[KeyboardButton(text="Пропустить", icon_custom_emoji_id="5416117059207572332")],
+                          [KeyboardButton(text="Прошлый шаг", icon_custom_emoji_id="5467864676320681402")],
+                          [KeyboardButton(text="Отмена", icon_custom_emoji_id="5210952531676504517")]],
+                resize_keyboard=True
+            )}
+
+
 @router.message(CreatePostStatesGroup.image)
-async def _create_image(message: Message, state: FSMContext):
+async def _post_image(message: Message, state: FSMContext):
     uow_factory = get_app_uow_factory()
     async with uow_factory() as uow:
         school_admin = await uow.school_admin_repository.get_admin(message.from_user.id)
@@ -339,26 +366,266 @@ async def _create_image(message: Message, state: FSMContext):
             await message.answer(**answer)
             return
 
-        if message.content_type != ContentType.PHOTO:
-            await message.answer("Отправьте фото статьи!")
+        if message.text == "Прошлый шаг":
+            answer = wait_post_description()
+            await message.answer(**answer)
+            await state.set_state(CreatePostStatesGroup.description)
             return
 
-        image_relative_path = ('temp', 'posts', 'images', f'{message.from_user.id}.jpg')
-        path = Path(settings.WWW_PATH, *image_relative_path)
+        if message.text != "Пропустить":
+            if message.content_type != ContentType.PHOTO:
+                await message.answer("Отправьте фото статьи!")
+                return
 
-        await message.answer("Фото загружается <tg-emoji emoji-id=\"5235997383627658618\">🔵</tg-emoji>")
+            image_relative_path = ('temp', 'posts', str(message.from_user.id), 'image.jpg')
+            path = Path(settings.WWW_PATH, *image_relative_path)
 
-        try:
-            photo = max(message.photo, key=lambda ph: ph.file_size)
-            await message.bot.download(photo.file_id, path)
-        except Exception:
-            await message.answer("Произошла ошибка при загрузка фото, попробуйте еще раз")
-            raise
+            loading = await message.answer("Фото загружается <tg-emoji emoji-id=\"5235997383627658618\">🔵</tg-emoji>")
+
+            try:
+                photo = max(message.photo, key=lambda ph: ph.file_size)
+                await message.bot.download(photo.file_id, path)
+            except Exception:
+                await message.answer("Произошла ошибка при загрузке фото, попробуйте еще раз")
+                raise
+
+            await loading.delete()
 
         await state.update_data(has_image=message.text != "Пропустить")
 
-        await message.answer("На данный момент функционал ограничен. Возвращайтесь позже")
-        await state.clear()
+        answer = wait_schedule_date()
+        await message.answer(**answer)
+
+        await state.set_state(CreatePostStatesGroup.show_schedule_date)
+
+
+def wait_schedule_date() -> dict:
+    return {'text': "Предпоследнее. Вы можете выбрать дату события, тогда в расписании после списка уроков будет "
+                    "располагаться данная публикация. Отправьте дату в формате ДД.ММ.ГГГГ или введите любой текст, выделите его и "
+                    "там же, где можно сделать текст жирным, выберите дату (в самом низу списка). Если дата не требуется, "
+                    "нажмите на кнопку Пропустить",
+            'reply_markup': ReplyKeyboardMarkup(
+                keyboard=[[KeyboardButton(text="Пропустить", icon_custom_emoji_id="5416117059207572332")],
+                          [KeyboardButton(text="Прошлый шаг", icon_custom_emoji_id="5467864676320681402")],
+                          [KeyboardButton(text="Отмена", icon_custom_emoji_id="5210952531676504517")]],
+                resize_keyboard=True
+            )}
+
+
+@router.message(CreatePostStatesGroup.show_schedule_date)
+async def _post_schedule_date(message: Message, state: FSMContext):
+    uow_factory = get_app_uow_factory()
+    async with uow_factory() as uow:
+        school_admin = await uow.school_admin_repository.get_admin(message.from_user.id)
+        if school_admin is None:
+            await state.clear()
+            await message.answer("Меню Активиум доступно только администраторам ОО\nДля подключения: /school")
+            return
+
+        if message.text == "Отмена":
+            await state.clear()
+            await (await message.answer(".", reply_markup=ReplyKeyboardRemove())).delete()
+            answer = await menu_school_posts(uow, message.from_user.id, 0)
+            await message.answer(**answer)
+            return
+
+        if message.text == "Прошлый шаг":
+            answer = wait_post_image()
+            await message.answer(**answer)
+            await state.set_state(CreatePostStatesGroup.image)
+            return
+
+        if message.content_type != ContentType.TEXT:
+            await message.answer("Отправьте дату в текстовом формате!")
+            return
+
+        schedule_date: Optional[date] = None
+
+        if message.text != "Пропустить":
+            for entity in (message.entities or []):
+                if entity.type == MessageEntityType.DATE_TIME:
+                    schedule_date = datetime.fromtimestamp(entity.unix_time, UTC).date()
+                    break
+
+            if date is None and (match := re.match(r'(?P<day>\d{1,2}).(?P<month>\d{1,2}).(?P<year>(\d{2}){1,2})', message.text)):
+                data = match.groupdict()
+                schedule_date = date(day=int(data['day']), month=int(data['month']), year=int(data['year']))
+
+            if schedule_date is None:
+                await message.answer("Дата не найдена!")
+                return
+
+        await state.update_data(schedule_date=schedule_date and schedule_date.isoformat(), offset=0)
+
+        await message.answer(
+            "Наконец-то можно писать. Теперь отправляйте содержание публикации: текст (каждый абзац отдельным сообщением), "
+            "фото и видео (до 20МБ). В тексте можете использовать форматирование (жирный, курсив и др.)",
+            reply_markup=ReplyKeyboardMarkup(
+                keyboard=[[KeyboardButton(text="Прошлый шаг", icon_custom_emoji_id="5467864676320681402")],
+                          [KeyboardButton(text="Отмена", icon_custom_emoji_id="5210952531676504517")]],
+                resize_keyboard=True
+            )
+        )
+
+        await state.set_state(CreatePostStatesGroup.content)
+
+
+@router.message(CreatePostStatesGroup.content)
+async def _post_content(message: Message, state: FSMContext):
+    uow_factory = get_app_uow_factory()
+    async with uow_factory() as uow:
+        school_admin = await uow.school_admin_repository.get_admin(message.from_user.id)
+        if school_admin is None:
+            await state.clear()
+            await message.answer("Меню Активиум доступно только администраторам ОО\nДля подключения: /school")
+            return
+
+        if message.text == "Отмена":
+            await state.clear()
+            await (await message.answer(".", reply_markup=ReplyKeyboardRemove())).delete()
+            answer = await menu_school_posts(uow, message.from_user.id, 0)
+            await message.answer(**answer)
+            return
+
+        offset: int = (await state.get_data())['offset']
+        old_offset = offset - 1
+        new_offset = offset + 1
+        last_content_key = f'content|{old_offset}'
+        next_content_key = f'content|{offset}'
+
+        if message.text == "Опубликовать":
+            data = await state.get_data()
+
+            content: dict[int, dict] = {}
+            for key, value in data.items():
+                if key.startswith('content'):
+                    index = int(key.split('|')[1])
+                    content[index] = value
+
+            post = await uow.school_post_repository.create_post(
+                school_admin.admin_school_id,
+                title=data['title'],
+                description=data['description'],
+                has_image=data['has_image'],
+                schedule_date=(schedule_date := data['schedule_date']) and date.fromisoformat(schedule_date),
+                content=list(map(lambda c: c[1], sorted(content.items(), key=lambda c: c[0])))
+            )
+
+            temp_media_relative_path = ('temp', 'posts', str(message.from_user.id))
+            temp_media_path = Path(settings.WWW_PATH, *temp_media_relative_path)
+            media_relative_path = ('posts', str(post.post_id))
+            media_path = Path(settings.WWW_PATH, *media_relative_path)
+
+            temp_media_path.replace(media_path)
+
+            await state.clear()
+
+            await (await message.answer(".", reply_markup=ReplyKeyboardRemove())).delete()
+
+            answer = await menu_school_post(uow, message.from_user.id, post.post_id, 'admin_posts|0')
+            await message.answer(**answer)
+            return
+
+        if message.text == "Прошлый шаг":
+            if offset == 0:
+                answer = wait_schedule_date()
+                await message.answer(**answer)
+                await state.set_state(CreatePostStatesGroup.show_schedule_date)
+            else:
+                await state.update_data({last_content_key: None}, offset=old_offset)
+                await message.answer("Прошлая часть поста была удалена. Вы можете написать ее снова")
+            return
+
+        entities = []
+        for entity in (message.entities or message.caption_entities or []):
+            if entity.type in (
+                    MessageEntityType.URL, MessageEntityType.BOLD, MessageEntityType.ITALIC,
+                    MessageEntityType.UNDERLINE, MessageEntityType.STRIKETHROUGH, MessageEntityType.BLOCKQUOTE,
+                    MessageEntityType.EXPANDABLE_BLOCKQUOTE
+            ):
+                entities.append({'type': entity.type, 'offset': entity.offset, 'length': entity.length})
+            elif entity.type == MessageEntityType.TEXT_LINK:
+                entities.append({'type': entity.type, 'offset': entity.offset, 'length': entity.length, 'url': entity.url})
+
+        if message.content_type == ContentType.TEXT:
+            await state.update_data({
+                next_content_key: {
+                    'type': 'text',
+                    'text': message.text,
+                    'entities': entities
+                }
+            }, offset=new_offset)
+
+        elif message.content_type in (ContentType.PHOTO, ContentType.VIDEO, ContentType.VIDEO_NOTE, ContentType.ANIMATION):
+            ext = 'jpg' if message.content_type == ContentType.PHOTO else 'mp4'
+            media_relative_path = ('temp', 'posts', str(message.from_user.id), f'{offset}.{ext}')
+            path = Path(settings.WWW_PATH, *media_relative_path)
+
+            loading = await message.answer("Медиа загружается <tg-emoji emoji-id=\"5235997383627658618\">🔵</tg-emoji>")
+
+            if message.content_type == ContentType.PHOTO:
+                media = max(message.photo, key=lambda ph: ph.file_size)
+            else:
+                media = message.video or message.video_note or message.animation
+
+            try:
+                await message.bot.download(media.file_id, path)
+            except Exception:
+                await message.answer("Произошла ошибка при загрузке медиа, попробуйте еще раз")
+                raise
+
+            await loading.delete()
+
+            await state.update_data({
+                next_content_key: {
+                    'type': 'photo' if message.content_type == ContentType.PHOTO else 'video',
+                    'text': message.caption,
+                    'entities': entities,
+                    **({} if message.content_type == ContentType.PHOTO
+                       else {'round': message.content_type == ContentType.VIDEO_NOTE})
+                }
+            }, offset=new_offset)
+        else:
+            await message.answer("Неподдерживаемый тип медиа")
+            return
+
+        await message.answer("Обработано! Продолжайте писать статью", reply_markup=ReplyKeyboardMarkup(
+            keyboard=[[KeyboardButton(text="Прошлый шаг", icon_custom_emoji_id="5467864676320681402")],
+                      [KeyboardButton(text="Опубликовать", icon_custom_emoji_id="5406575351272872039")],
+                      [KeyboardButton(text="Отмена", icon_custom_emoji_id="5210952531676504517")]],
+            resize_keyboard=True
+        ))
+
+
+@router.callback_query(F.data.startswith("delete_post|"))
+async def _delete_post(callback_query: CallbackQuery):
+    post_id = int(callback_query.data.split("|")[1])
+
+    uow_factory = get_app_uow_factory()
+    async with uow_factory() as uow:
+        school_admin = await uow.school_admin_repository.get_admin(callback_query.from_user.id)
+        if school_admin is None:
+            await callback_query.message.edit_text("Меню Активиум доступно только администраторам ОО\nДля подключения: /school")
+            return
+
+        await uow.school_post_repository.delete_post(post_id)
+
+        answer = await menu_school_posts(uow, callback_query.from_user.id, 0)
+        await callback_query.message.edit_text(**answer)
+
+
+@router.callback_query(F.data.startswith("edit_post|"))
+async def _edit_post(callback_query: CallbackQuery):
+    post_id = int(callback_query.data.split("|")[1])
+
+    uow_factory = get_app_uow_factory()
+    async with uow_factory() as uow:
+        school_admin = await uow.school_admin_repository.get_admin(callback_query.from_user.id)
+        if school_admin is None:
+            await callback_query.message.edit_text("Меню Активиум доступно только администраторам ОО\nДля подключения: /school")
+            return
+
+        await callback_query.answer("Данный функционал еще в разработке!", show_alert=True)
 
 
 @router.callback_query(F.data == "my_admins")
