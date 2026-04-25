@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+
+    <title>{{ title }}</title>
+
+    <link href="/css/post.css?v=7" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<div class="wrap">
+
+    <div class="top">
+        <img src="/assets/icons/preview.png?v=2" class="logo">
+        <span class="brand">Активиум</span>
+    </div>
+
+    <article class="post">
+
+        <div class="header">
+
+            <div class="stats">
+                <span>👁 {{ count_viewings }}</span>
+                <span>👍 {{ count_likes }}</span>
+            </div>
+
+            <div class="header-block">
+                <h1>{{ title }}</h1>
+
+                {% if description %}
+                    <p class="description">{{ description }}</p>
+                {% endif %}
+
+            </div>
+
+            {% if has_image %}
+                <div class="main-image-wrapper">
+                    <img src="image.jpg" class="main-image">
+                </div>
+            {% endif %}
+
+            <div class="meta">
+                <span>{{ created_at }}</span>
+
+                {% if is_updated %}
+                    <span class="updated">· изменено</span>
+                {% endif %}
+
+                {% if schedule_date %}
+                    <div class="schedule">
+                        📅 Мероприятие: {{ schedule_date }}
+                    </div>
+                {% endif %}
+            </div>
+
+        </div>
+
+        <div class="content">
+            {% for block in content %}
+
+                {% if block.type == 'text' and block.text and block.text.strip() %}
+                    <div class="text">
+                        {{ block.text | safe }}
+                    </div>
+                {% endif %}
+
+                {% if block.type == 'photo' %}
+                    <div class="media-block">
+                        <img src="{{ loop.index0 }}.jpg" class="media">
+
+                        {% if block.text %}
+                            <div class="caption">{{ block.text | safe }}</div>
+                        {% endif %}
+                    </div>
+                {% endif %}
+
+                {% if block.type == 'video' %}
+                    <div class="media-block">
+                        <video controls class="media">
+                            <source src="{{ loop.index0 }}.mp4" type="video/mp4">
+                        </video>
+
+                        {% if block.text %}
+                            <div class="caption">{{ block.text }}</div>
+                        {% endif %}
+                    </div>
+                {% endif %}
+
+            {% endfor %}
+        </div>
+
+    </article>
+
+    <div class="footer">
+        <span>Активиум · образовательная платформа</span>
+    </div>
+
+</div>
+
+<script src="/js/blockquote.js?v=1"></script>
+
+</body>
+</html>

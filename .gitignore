@@ -38,3 +38,4 @@ doc-dev
 .vscode/*
 
 firebase-adminsdk.json
+tests

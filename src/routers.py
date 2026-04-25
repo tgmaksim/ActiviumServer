@@ -7,6 +7,7 @@ from .support.controllers import (
     site_controller,
     login_controller,
     status_controller,
+    school_controller,
     dnevnik_controller,
     reviews_controller,
     settings_controller,
@@ -29,6 +30,7 @@ def get_api_router() -> APIRouter:
     router.include_router(settings_controller.router, prefix=settings.API_PREFIX)
     router.include_router(reviews_controller.router, prefix=settings.API_PREFIX)
     router.include_router(dnevnik_tools_controller.router, prefix=settings.API_PREFIX)
+    router.include_router(school_controller.router, prefix=settings.API_PREFIX)
 
     return router
 
@@ -40,6 +42,7 @@ def get_public_api_router() -> APIRouter:
     })
     public_router.include_router(login_controller.public_router)
     public_router.include_router(reviews_controller.public_router)
+    public_router.include_router(school_controller.public_router)
 
     return public_router
 

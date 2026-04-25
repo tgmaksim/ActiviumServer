@@ -1,4 +1,5 @@
 import re
+import shutil
 
 from typing import Optional
 from datetime import datetime, date, UTC
@@ -12,6 +13,9 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
 from aiogram.exceptions import TelegramBadRequest
 
+from src.dependencies.datetime import astimezone
+from src.dependencies.uow import get_app_uow_factory
+from src.models.school_admin_model import SchoolAdmin
 from src.repositories.statistic_repository import StatName
 
 from tgbot.config import settings
@@ -20,8 +24,6 @@ from src.support.repositories.app_uow import AppUnitOfWork
 from aiogram.filters import Command
 from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery, ReplyKeyboardMarkup, \
     KeyboardButton, KeyboardButtonRequestUsers, ReplyKeyboardRemove, LinkPreviewOptions
-
-from src.dependencies.uow import get_app_uow_factory
 
 
 __all__ = ['router']
@@ -67,7 +69,7 @@ def admin_menu() -> dict:
             [InlineKeyboardButton(text="Звонки", icon_custom_emoji_id="5458603043203327669", callback_data="admin_bells"),
              InlineKeyboardButton(text="Статистика", icon_custom_emoji_id="5231200819986047254", callback_data="admin_stats")],
             [InlineKeyboardButton(text="Внеурочные занятия", icon_custom_emoji_id="5265002646397285605", callback_data="admin_ea")],
-            [InlineKeyboardButton(text="Новости и мероприятия", icon_custom_emoji_id="5382013970905309819", callback_data="admin_posts|0")],
+            [InlineKeyboardButton(text="Новости и мероприятия", icon_custom_emoji_id="5382013970905309819", callback_data="school_posts|0")],
             [InlineKeyboardButton(text="Мои администраторы", icon_custom_emoji_id="5440712623219822019", callback_data="my_admins")],
             [InlineKeyboardButton(text="Назад", icon_custom_emoji_id="5467864676320681402", callback_data="start")]])}
 
@@ -121,8 +123,8 @@ async def _admin_ea(callback_query: CallbackQuery):
         await callback_query.answer("Данная функция в разработке", show_alert=True)
 
 
-@router.callback_query(F.data.startswith("admin_posts|"))
-async def _admin_posts(callback_query: CallbackQuery):
+@router.callback_query(F.data.startswith("school_posts|"))
+async def _school_posts(callback_query: CallbackQuery):
     offset = int(callback_query.data.split("|")[1])
 
     uow_factory = get_app_uow_factory()
@@ -144,7 +146,7 @@ async def menu_school_posts(uow: AppUnitOfWork, user_id: int, offset: int) -> di
         return {'text': "Меню Активиум доступно только администраторам ОО\nДля подключения: /school"}
 
     posts = await uow.school_post_repository.get_school_posts(
-        school_admin.admin_school_id,
+        school_admin.dnevnik_admin.school_id,
         offset=offset,
         limit=SHOWN_POSTS_LIMIT + 1
     )
@@ -158,11 +160,11 @@ async def menu_school_posts(uow: AppUnitOfWork, user_id: int, offset: int) -> di
 
     buttons.append([
         InlineKeyboardButton(text=" ", icon_custom_emoji_id="5877536313623711363" if left_offset != offset else None,
-                             callback_data=f"admin_posts|{left_offset}"),
+                             callback_data=f"school_posts|{left_offset}"),
         InlineKeyboardButton(text=" ", icon_custom_emoji_id="5030872266716480568",
-                             callback_data=f"admin_posts|{offset}"),
+                             callback_data=f"school_posts|{offset}"),
         InlineKeyboardButton(text=" ", icon_custom_emoji_id="5875506366050734240" if len(posts) > SHOWN_POSTS_LIMIT else None,
-                             callback_data=f"admin_posts|{right_offset}")
+                             callback_data=f"school_posts|{right_offset}")
     ])
 
     buttons.append([InlineKeyboardButton(text="Создать публикацию", icon_custom_emoji_id="5397916757333654639", callback_data="create_post")])
@@ -178,7 +180,7 @@ async def _school_post(callback_query: CallbackQuery):
 
     uow_factory = get_app_uow_factory()
     async with uow_factory() as uow:
-        answer = await menu_school_post(uow, callback_query.from_user.id, post_id, f"admin_posts|{offset}")
+        answer = await menu_school_post(uow, callback_query.from_user.id, post_id, f"school_posts|{offset}")
         try:
             await callback_query.message.edit_text(**answer)
         except TelegramBadRequest as e:
@@ -197,7 +199,7 @@ async def menu_school_post(uow: AppUnitOfWork, user_id: int, post_id: int, callb
     if post is None:
         return await menu_school_posts(uow, user_id, 0)
 
-    image_relative_path = ('posts', str(post_id), 'image.jpg')
+    image_relative_path = ('school', 'posts', str(post_id), 'image.jpg')
     image_url = str(URL(settings.URL).joinpath(*image_relative_path))
 
     preview_options = LinkPreviewOptions(
@@ -209,14 +211,14 @@ async def menu_school_post(uow: AppUnitOfWork, user_id: int, post_id: int, callb
 
     text = ('\n'.join(filter(None, (f"<b>{post.title}</b>", post.description))) +
             "\n\n"
-            f"Публикация от {post.created_at.strftime('%e %b.')}\n"
-            f"В расписании: {post.schedule_date.strftime('%e %b.') if post.schedule_date is not None else 'нет'}\n"
+            f"Публикация от {astimezone(post.created_at, school_admin.dnevnik_admin.timezone).strftime('%e %b. в %H:%M').strip()}\n"
+            f"В расписании: {post.schedule_date.strftime('%e %b.').strip() if post.schedule_date is not None else 'нет'}\n"
             f"Отредактировано: {'да' if post.is_updated else 'нет'}\n"
             f"Клики: {post.count_clicks}\n"
             f"Просмотры: {post.count_viewings}\n"
             f"Реакции: {post.count_likes}")
 
-    post_relative_path = ('posts', str(post_id))
+    post_relative_path = ('school', 'posts', str(post_id))
     url = str(URL(settings.URL).joinpath(*post_relative_path))
 
     buttons = [[InlineKeyboardButton(text="Посмотреть", icon_custom_emoji_id="5210956306952758910", url=url),
@@ -237,7 +239,7 @@ async def _create_post(callback_query: CallbackQuery, state: FSMContext):
             await callback_query.message.edit_text("Меню Активиум доступно только администраторам ОО\nДля подключения: /school")
             return
 
-        temp_post_relative_path = ('temp', 'posts', str(callback_query.from_user.id))
+        temp_post_relative_path = ('temp', 'school', 'posts', str(callback_query.from_user.id))
         temp_post_path = Path(settings.WWW_PATH, *temp_post_relative_path)
         temp_post_path.mkdir(parents=True, exist_ok=True)
 
@@ -256,6 +258,16 @@ def wait_post_title() -> dict:
             )}
 
 
+async def cancel_create_post(uow: AppUnitOfWork, user_id: int, state: FSMContext) -> dict:
+    await state.clear()
+
+    temp_post_relative_path = ('temp', 'school', 'posts', str(user_id))
+    temp_post_path = Path(settings.WWW_PATH, *temp_post_relative_path)
+    shutil.rmtree(temp_post_path)
+
+    return await menu_school_posts(uow, user_id, 0)
+
+
 @router.message(CreatePostStatesGroup.title)
 async def _post_title(message: Message, state: FSMContext):
     uow_factory = get_app_uow_factory()
@@ -267,9 +279,8 @@ async def _post_title(message: Message, state: FSMContext):
             return
 
         if message.text == "Отмена":
-            await state.clear()
             await (await message.answer(".", reply_markup=ReplyKeyboardRemove())).delete()
-            answer = await menu_school_posts(uow, message.from_user.id, 0)
+            answer = await cancel_create_post(uow, message.from_user.id, state)
             await message.answer(**answer)
             return
 
@@ -311,9 +322,8 @@ async def _post_description(message: Message, state: FSMContext):
             return
 
         if message.text == "Отмена":
-            await state.clear()
             await (await message.answer(".", reply_markup=ReplyKeyboardRemove())).delete()
-            answer = await menu_school_posts(uow, message.from_user.id, 0)
+            answer = await cancel_create_post(uow, message.from_user.id, state)
             await message.answer(**answer)
             return
 
@@ -360,9 +370,8 @@ async def _post_image(message: Message, state: FSMContext):
             return
 
         if message.text == "Отмена":
-            await state.clear()
             await (await message.answer(".", reply_markup=ReplyKeyboardRemove())).delete()
-            answer = await menu_school_posts(uow, message.from_user.id, 0)
+            answer = await cancel_create_post(uow, message.from_user.id, state)
             await message.answer(**answer)
             return
 
@@ -377,7 +386,7 @@ async def _post_image(message: Message, state: FSMContext):
                 await message.answer("Отправьте фото статьи!")
                 return
 
-            image_relative_path = ('temp', 'posts', str(message.from_user.id), 'image.jpg')
+            image_relative_path = ('temp', 'school', 'posts', str(message.from_user.id), 'image.jpg')
             path = Path(settings.WWW_PATH, *image_relative_path)
 
             loading = await message.answer("Фото загружается <tg-emoji emoji-id=\"5235997383627658618\">🔵</tg-emoji>")
@@ -423,13 +432,16 @@ async def _post_schedule_date(message: Message, state: FSMContext):
             return
 
         if message.text == "Отмена":
-            await state.clear()
             await (await message.answer(".", reply_markup=ReplyKeyboardRemove())).delete()
-            answer = await menu_school_posts(uow, message.from_user.id, 0)
+            answer = await cancel_create_post(uow, message.from_user.id, state)
             await message.answer(**answer)
             return
 
         if message.text == "Прошлый шаг":
+            temp_image_relative_path = ('temp', 'school', 'posts', str(message.from_user.id), 'image.jpg')
+            temp_image_path = Path(settings.WWW_PATH, *temp_image_relative_path)
+            temp_image_path.unlink(missing_ok=True)
+
             answer = wait_post_image()
             await message.answer(**answer)
             await state.set_state(CreatePostStatesGroup.image)
@@ -481,9 +493,8 @@ async def _post_content(message: Message, state: FSMContext):
             return
 
         if message.text == "Отмена":
-            await state.clear()
             await (await message.answer(".", reply_markup=ReplyKeyboardRemove())).delete()
-            answer = await menu_school_posts(uow, message.from_user.id, 0)
+            answer = await cancel_create_post(uow, message.from_user.id, state)
             await message.answer(**answer)
             return
 
@@ -494,39 +505,22 @@ async def _post_content(message: Message, state: FSMContext):
         next_content_key = f'content|{offset}'
 
         if message.text == "Опубликовать":
-            data = await state.get_data()
-
-            content: dict[int, dict] = {}
-            for key, value in data.items():
-                if key.startswith('content'):
-                    index = int(key.split('|')[1])
-                    content[index] = value
-
-            post = await uow.school_post_repository.create_post(
-                school_admin.admin_school_id,
-                title=data['title'],
-                description=data['description'],
-                has_image=data['has_image'],
-                schedule_date=(schedule_date := data['schedule_date']) and date.fromisoformat(schedule_date),
-                content=list(map(lambda c: c[1], sorted(content.items(), key=lambda c: c[0])))
-            )
-
-            temp_media_relative_path = ('temp', 'posts', str(message.from_user.id))
-            temp_media_path = Path(settings.WWW_PATH, *temp_media_relative_path)
-            media_relative_path = ('posts', str(post.post_id))
-            media_path = Path(settings.WWW_PATH, *media_relative_path)
-
-            temp_media_path.replace(media_path)
-
-            await state.clear()
+            post_id = await create_post(uow, message.from_user.id, school_admin, state)
 
             await (await message.answer(".", reply_markup=ReplyKeyboardRemove())).delete()
 
-            answer = await menu_school_post(uow, message.from_user.id, post.post_id, 'admin_posts|0')
+            answer = await menu_school_post(uow, message.from_user.id, post_id, 'school_posts|0')
             await message.answer(**answer)
             return
 
         if message.text == "Прошлый шаг":
+            temp_media_relative_path = ('temp', 'school', 'posts', str(message.from_user.id))
+            temp_media_path = Path(settings.WWW_PATH, *temp_media_relative_path)
+
+            for file in temp_media_path.iterdir():
+                if file.is_file() and file.stem == str(offset):
+                    file.unlink(missing_ok=True)
+
             if offset == 0:
                 answer = wait_schedule_date()
                 await message.answer(**answer)
@@ -558,7 +552,7 @@ async def _post_content(message: Message, state: FSMContext):
 
         elif message.content_type in (ContentType.PHOTO, ContentType.VIDEO, ContentType.VIDEO_NOTE, ContentType.ANIMATION):
             ext = 'jpg' if message.content_type == ContentType.PHOTO else 'mp4'
-            media_relative_path = ('temp', 'posts', str(message.from_user.id), f'{offset}.{ext}')
+            media_relative_path = ('temp', 'school', 'posts', str(message.from_user.id), f'{offset}.{ext}')
             path = Path(settings.WWW_PATH, *media_relative_path)
 
             loading = await message.answer("Медиа загружается <tg-emoji emoji-id=\"5235997383627658618\">🔵</tg-emoji>")
@@ -597,6 +591,39 @@ async def _post_content(message: Message, state: FSMContext):
         ))
 
 
+async def create_post(uow: AppUnitOfWork, user_id: int, school_admin: SchoolAdmin, state: FSMContext) -> int:
+    data = await state.get_data()
+
+    content: dict[int, dict] = {}
+    for key, value in data.items():
+        if value is None:
+            break
+        if key.startswith('content'):
+            index = int(key.split('|')[1])
+            content[index] = value
+
+    post = await uow.school_post_repository.create_post(
+        school_admin.dnevnik_admin.school_id,
+        school_admin.dnevnik_admin.timezone,
+        title=data['title'],
+        description=data['description'],
+        has_image=data['has_image'],
+        schedule_date=(schedule_date := data['schedule_date']) and date.fromisoformat(schedule_date),
+        content=list(map(lambda c: c[1], sorted(content.items(), key=lambda c: c[0])))
+    )
+
+    temp_media_relative_path = ('temp', 'school', 'posts', str(user_id))
+    temp_media_path = Path(settings.WWW_PATH, *temp_media_relative_path)
+    media_relative_path = ('school', 'posts', str(post.post_id))
+    media_path = Path(settings.WWW_PATH, *media_relative_path)
+
+    temp_media_path.replace(media_path)
+
+    await state.clear()
+
+    return post.post_id
+
+
 @router.callback_query(F.data.startswith("delete_post|"))
 async def _delete_post(callback_query: CallbackQuery):
     post_id = int(callback_query.data.split("|")[1])
@@ -607,6 +634,10 @@ async def _delete_post(callback_query: CallbackQuery):
         if school_admin is None:
             await callback_query.message.edit_text("Меню Активиум доступно только администраторам ОО\nДля подключения: /school")
             return
+
+        media_relative_path = ('school', 'posts', str(post_id))
+        media_path = Path(settings.WWW_PATH, *media_relative_path)
+        shutil.rmtree(media_path)
 
         await uow.school_post_repository.delete_post(post_id)
 
