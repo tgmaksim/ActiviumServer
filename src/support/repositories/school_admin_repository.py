@@ -32,7 +32,7 @@ class SchoolAdminRepository(SqlAlchemyRepository[SchoolAdmin]):
     async def add_my_admins(self, user_id: int, admins: list[tuple[int, str]]) -> list[SchoolAdmin]:
         return await self.create_many([{
             'user_id': admin_id,
-            'name': admin_name,
+            'name': admin_name[:64],
             'parent_admin_id': user_id
         } for admin_id, admin_name in admins], security=['user_id'], security_nothing=True)
 

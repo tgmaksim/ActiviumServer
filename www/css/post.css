@@ -46,6 +46,7 @@ body {
 .logo {
     width: 32px;
     height: 32px;
+    border-radius: 20%;
 }
 
 .brand {
@@ -66,7 +67,7 @@ body {
     gap: 16px;
     font-size: 13px;
     color: var(--muted);
-    margin-bottom: 10px;
+    margin-top: 5px;
 }
 
 .header-block {
@@ -106,6 +107,15 @@ h1 {
     font-size: 13px;
     color: var(--muted);
     margin-top: 16px;
+}
+
+.author {
+    font-weight: 600;
+}
+
+.author-verified {
+    height: 12px;
+    margin-right: 5px;
 }
 
 .updated {

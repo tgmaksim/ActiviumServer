@@ -6,7 +6,7 @@
 
     <title>{{ title }}</title>
 
-    <link href="/css/post.css?v=7" rel="stylesheet">
+    <link href="/css/post.css?v=11" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
@@ -21,11 +21,6 @@
     <article class="post">
 
         <div class="header">
-
-            <div class="stats">
-                <span>👁 {{ count_viewings }}</span>
-                <span>👍 {{ count_likes }}</span>
-            </div>
 
             <div class="header-block">
                 <h1>{{ title }}</h1>
@@ -43,6 +38,11 @@
             {% endif %}
 
             <div class="meta">
+                <span class="author">{{ author }}</span>
+                {% if author_verified %}
+                    <img src="/assets/posts/verified.svg" class="author-verified">
+                {% endif %}
+
                 <span>{{ created_at }}</span>
 
                 {% if is_updated %}
@@ -54,6 +54,11 @@
                         📅 Мероприятие: {{ schedule_date }}
                     </div>
                 {% endif %}
+            </div>
+
+            <div class="stats">
+                <span id="count_viewings">👁 {{ count_viewings }}</span>
+                <span id="count_likes">👍 {{ count_likes }}</span>
             </div>
 
         </div>
@@ -101,6 +106,7 @@
 </div>
 
 <script src="/js/blockquote.js?v=1"></script>
+<script src="/js/application.js"></script>
 
 </body>
 </html>

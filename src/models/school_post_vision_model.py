@@ -4,11 +4,11 @@ from sqlalchemy.orm import Mapped, mapped_column
 from .base_model import BaseModel
 
 
-__all__ = ['ReviewLike']
+__all__ = ['SchoolPostVision']
 
 
-class ReviewLike(BaseModel):
-    __tablename__ = 'review_likes'
+class SchoolPostVision(BaseModel):
+    __tablename__ = 'school_post_visions'
 
     parent_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("parents.parent_id", onupdate="CASCADE", ondelete="CASCADE"), primary_key=True)
-    review_id: Mapped[str] = mapped_column(BigInteger, ForeignKey("reviews.parent_id", onupdate="CASCADE", ondelete="CASCADE"), primary_key=True)
+    post_id: Mapped[str] = mapped_column(BigInteger, ForeignKey("school_posts.post_id", onupdate="CASCADE", ondelete="CASCADE"), primary_key=True)

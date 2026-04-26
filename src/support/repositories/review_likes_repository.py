@@ -2,8 +2,8 @@ from typing import Optional
 
 from sqlalchemy import select
 
-from ...models.likes_review import ReviewLike
 from ...repositories.db_queue import AsyncDBQueue
+from ...models.review_like_model import ReviewLike
 
 from ...repositories.sqlalchemy_repository import SqlAlchemyRepository
 

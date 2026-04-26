@@ -1,7 +1,6 @@
 from typing import Callable, Optional, Literal
 
 from httpx import AsyncClient
-from sqlalchemy.exc import IntegrityError
 
 from dnevnikru import AioDnevnikruApi, BaseDnevnikruException
 from firebase.messaging import send_notifications, Notification, AppNotificationChannel
@@ -239,9 +238,10 @@ class ReviewsService(BaseService[AppUnitOfWork]):
                     )
                 )
 
-            try:
+            like = await uow.review_like_repository.get_like(session.parent_id, review_id)
+            if like is None:
                 await uow.review_like_repository.like_review(parent.parent_id, review_id)
-            except IntegrityError:
+            else:
                 await uow.log_repository.add_log(
                     path='like_review',
                     session_id=session_id,

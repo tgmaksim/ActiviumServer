@@ -1,7 +1,6 @@
 from typing import Annotated, Optional, Literal
 
-from fastapi.params import Header
-from fastapi import APIRouter, Query, Depends, Body, Request
+from fastapi import APIRouter, Query, Depends, Body, Request, Header
 
 from ..schemas.reviews_schemas import (
     ReviewsApiResponse,

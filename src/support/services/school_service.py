@@ -1,11 +1,21 @@
 from html import escape
+from datetime import timedelta
 from typing import Callable, Any, Optional
 
+from yarl import URL
 from httpx import AsyncClient
 from fastapi import HTTPException
 
+from ...schemas.error_schema import ApiError
+from ...config.project_config import settings
+from ...dependencies.auth import check_session
 from ...dependencies.datetime import astimezone
 from ...services.html_response import HtmlResponse
+
+from ..schemas.school_schemas import SchoolPostsApiResponse, SchoolPostsResult, SchoolPost, \
+    SchoolPostsWithoutVisionApiResponse, SchoolPostsWithoutVisionResult, SeeSchoolPostApiResponse, \
+    ClickSchoolPostApiResponse, ViewSchoolPostApiResponse, ViewSchoolPostResult, LikeSchoolPostApiResponse, \
+    LikeSchoolPostResult, UnlikeSchoolPostApiResponse, UnlikeSchoolPostResult
 
 from ...services.base_service import BaseService
 from ..repositories.app_uow import AppUnitOfWork
@@ -36,6 +46,8 @@ class SchoolService(BaseService[AppUnitOfWork]):
                 'description': post.description,
                 'has_image': post.has_image,
                 'schedule_date': post.schedule_date and post.schedule_date.strftime('%e %b.').strip(),
+                'author': post.author,
+                'author_verified': post.author_verified,
                 'is_updated': post.is_updated,
                 'count_viewings': post.count_viewings,
                 'count_likes': post.count_likes,
@@ -103,3 +115,254 @@ class SchoolService(BaseService[AppUnitOfWork]):
         result.append(escape(cls._remove_surogate(surogate_text[last_pos:])))
 
         return ''.join(result)
+
+    async def getPosts(self, session_id: str, offset: int) -> SchoolPostsApiResponse:
+        async with self.uow_factory() as uow:
+            session = await check_session(session_id, uow.session_repository)
+
+            limit = 10
+            posts = await uow.school_post_repository.get_school_posts(session.active_child.school_id, offset=offset, limit=limit + 1)
+
+            likes = await uow.school_post_like_repository.has_my_likes(session.parent_id, [post.post_id for post in posts])
+            my_likes = [like.post_id for like in likes]
+
+            next_offset = None
+            if len(posts) > limit:
+                next_offset = offset + limit
+
+            return SchoolPostsApiResponse(
+                answer=SchoolPostsResult(
+                    posts=[SchoolPost(
+                        postId=post.post_id,
+                        title=post.title,
+                        description=post.description,
+                        imageUrl=str(URL(settings.URL).joinpath('school', 'posts', str(post.post_id), 'image.jpg')) if post.has_image else None,
+                        author=post.author,
+                        authorVerified=post.author_verified,
+                        scheduleDate=post.schedule_date,
+                        isUpdated=post.is_updated,
+                        countViewings=post.count_viewings,
+                        countLikes=post.count_likes,
+                        hasMyLike=post.post_id in my_likes,
+                        postUrl=str(URL(settings.URL).joinpath('school', 'posts', str(post.post_id)))
+                    ) for i, post in enumerate(posts) if i < limit],
+                    nextOffset=next_offset
+                )
+            )
+
+    async def checkNewPosts(self, session_id: str) -> SchoolPostsWithoutVisionApiResponse:
+        async with self.uow_factory() as uow:
+            session = await check_session(session_id, uow.session_repository)
+
+            posts = await uow.school_post_repository.get_school_posts(session.active_child.school_id, last=timedelta(days=14))
+            saw_posts = await uow.school_post_vision_repository.has_my_visions(session.parent_id, [post.post_id for post in posts])
+
+            return SchoolPostsWithoutVisionApiResponse(
+                answer=SchoolPostsWithoutVisionResult(
+                    countPosts=len(posts) - len(saw_posts)
+                )
+            )
+
+    async def seePost(self, session_id: str, post_id: int) -> SeeSchoolPostApiResponse:
+        async with self.uow_factory() as uow:
+            session = await check_session(session_id, uow.session_repository)
+
+            post = await uow.school_post_repository.get_post(post_id)
+            if post is None:
+                await uow.log_repository.add_log(
+                    path='seePost',
+                    session_id=session_id,
+                    status=False,
+                    value=f"Пост {post_id} не найден"
+                )
+                return SeeSchoolPostApiResponse(
+                    status=False,
+                    error=ApiError(
+                        type="SchoolPostNotFoundError",
+                        errorMessage="Пост не найден"
+                    )
+                )
+
+            vision = await uow.school_post_vision_repository.get_vision(session.parent_id, post_id)
+            if vision is None:
+                await uow.school_post_vision_repository.see_post(session.parent_id, post_id)
+                await uow.school_post_repository.see_post(post_id)
+
+            return SeeSchoolPostApiResponse()
+
+    async def clickPost(self, session_id: str, post_id: int) -> ClickSchoolPostApiResponse:
+        async with self.uow_factory() as uow:
+            session = await check_session(session_id, uow.session_repository)
+
+            post = await uow.school_post_repository.get_post(post_id)
+            if post is None:
+                await uow.log_repository.add_log(
+                    path='clickPost',
+                    session_id=session_id,
+                    status=False,
+                    value=f"Пост {post_id} не найден"
+                )
+                return ClickSchoolPostApiResponse(
+                    status=False,
+                    error=ApiError(
+                        type="SchoolPostNotFoundError",
+                        errorMessage="Пост не найден"
+                    )
+                )
+
+            click = await uow.school_post_click_repository.get_click(session.parent_id, post_id)
+            if click is None:
+                await uow.school_post_click_repository.click_post(session.parent_id, post_id)
+                await uow.school_post_repository.click_post(post_id)
+
+            return ClickSchoolPostApiResponse()
+
+    async def viewPost(self, session_id: str, post_id: int) -> ViewSchoolPostApiResponse:
+        async with self.uow_factory() as uow:
+            session = await check_session(session_id, uow.session_repository)
+
+            post = await uow.school_post_repository.get_post(post_id)
+            if post is None:
+                await uow.log_repository.add_log(
+                    path='viewPost',
+                    session_id=session_id,
+                    status=False,
+                    value=f"Пост {post_id} не найден"
+                )
+                return ViewSchoolPostApiResponse(
+                    status=False,
+                    error=ApiError(
+                        type="SchoolPostNotFoundError",
+                        errorMessage="Пост не найден"
+                    )
+                )
+
+            view = await uow.school_post_viewing_repository.get_view(session.parent_id, post_id)
+            if view is None:
+                await uow.school_post_viewing_repository.view_post(session.parent_id, post_id)
+                await uow.school_post_repository.view_post(post_id)
+
+            post = await uow.school_post_repository.get_post(post_id)
+            assert post is not None, "post is None"
+
+            likes = await uow.school_post_like_repository.has_my_likes(session.parent_id, [post_id])
+            my_likes = [like.post_id for like in likes]
+
+            return ViewSchoolPostApiResponse(
+                answer=ViewSchoolPostResult(
+                    post=SchoolPost(
+                        postId=post.post_id,
+                        title=post.title,
+                        description=post.description,
+                        imageUrl=str(URL(settings.URL).joinpath('school', 'posts', str(post.post_id), 'image.jpg')) if post.has_image else None,
+                        author=post.author,
+                        authorVerified=post.author_verified,
+                        scheduleDate=post.schedule_date,
+                        isUpdated=post.is_updated,
+                        countViewings=post.count_viewings,
+                        countLikes=post.count_likes,
+                        hasMyLike=post.post_id in my_likes,
+                        postUrl=str(URL(settings.URL).joinpath('school', 'posts', str(post.post_id)))
+                    )
+                )
+            )
+
+    async def likePost(self, session_id: str, post_id: int) -> LikeSchoolPostApiResponse:
+        async with self.uow_factory() as uow:
+            session = await check_session(session_id, uow.session_repository)
+
+            post = await uow.school_post_repository.get_post(post_id)
+            if post is None:
+                await uow.log_repository.add_log(
+                    path='likePost',
+                    session_id=session_id,
+                    status=False,
+                    value=f"Пост {post_id} не найден"
+                )
+                return LikeSchoolPostApiResponse(
+                    status=False,
+                    error=ApiError(
+                        type="SchoolPostNotFoundError",
+                        errorMessage="Пост не найден"
+                    )
+                )
+
+            like = await uow.school_post_like_repository.get_like(session.parent_id, post_id)
+            if like is None:
+                await uow.school_post_like_repository.like_post(session.parent_id, post_id)
+                await uow.school_post_repository.like_post(post_id)
+
+            post = await uow.school_post_repository.get_post(post_id)
+            assert post is not None, "post is None"
+
+            likes = await uow.school_post_like_repository.has_my_likes(session.parent_id, [post_id])
+            my_likes = [like.post_id for like in likes]
+
+            return LikeSchoolPostApiResponse(
+                answer=LikeSchoolPostResult(
+                    post=SchoolPost(
+                        postId=post.post_id,
+                        title=post.title,
+                        description=post.description,
+                        imageUrl=str(URL(settings.URL).joinpath('school', 'posts', str(post.post_id), 'image.jpg')) if post.has_image else None,
+                        author=post.author,
+                        authorVerified=post.author_verified,
+                        scheduleDate=post.schedule_date,
+                        isUpdated=post.is_updated,
+                        countViewings=post.count_viewings,
+                        countLikes=post.count_likes,
+                        hasMyLike=post.post_id in my_likes,
+                        postUrl=str(URL(settings.URL).joinpath('school', 'posts', str(post.post_id)))
+                    )
+                )
+            )
+
+    async def unlikePost(self, session_id: str, post_id: int) -> UnlikeSchoolPostApiResponse:
+        async with self.uow_factory() as uow:
+            session = await check_session(session_id, uow.session_repository)
+
+            post = await uow.school_post_repository.get_post(post_id)
+            if post is None:
+                await uow.log_repository.add_log(
+                    path='unlikePost',
+                    session_id=session_id,
+                    status=False,
+                    value=f"Пост {post_id} не найден"
+                )
+                return UnlikeSchoolPostApiResponse(
+                    status=False,
+                    error=ApiError(
+                        type="SchoolPostNotFoundError",
+                        errorMessage="Пост не найден"
+                    )
+                )
+
+            like = await uow.school_post_like_repository.get_like(session.parent_id, post_id)
+            if like is not None:
+                await uow.school_post_like_repository.delete_like(session.parent_id, post_id)
+                await uow.school_post_repository.unlike_post(post_id)
+
+            post = await uow.school_post_repository.get_post(post_id)
+            assert post is not None, "post is None"
+
+            likes = await uow.school_post_like_repository.has_my_likes(session.parent_id, [post_id])
+            my_likes = [like.post_id for like in likes]
+
+            return UnlikeSchoolPostApiResponse(
+                answer=UnlikeSchoolPostResult(
+                    post=SchoolPost(
+                        postId=post.post_id,
+                        title=post.title,
+                        description=post.description,
+                        imageUrl=str(URL(settings.URL).joinpath('school', 'posts', str(post.post_id), 'image.jpg')) if post.has_image else None,
+                        author=post.author,
+                        authorVerified=post.author_verified,
+                        scheduleDate=post.schedule_date,
+                        isUpdated=post.is_updated,
+                        countViewings=post.count_viewings,
+                        countLikes=post.count_likes,
+                        hasMyLike=post.post_id in my_likes,
+                        postUrl=str(URL(settings.URL).joinpath('school', 'posts', str(post.post_id)))
+                    )
+                )
+            )

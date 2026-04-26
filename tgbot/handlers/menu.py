@@ -58,6 +58,8 @@ async def _cmd_menu(message: Message):
             await message.answer("Меню Активиум доступно только администраторам ОО\nДля подключения: /school")
             return
 
+        await (await message.answer(".", reply_markup=ReplyKeyboardRemove())).delete()
+
         answer = admin_menu()
         await message.answer(**answer)
 
@@ -145,7 +147,7 @@ async def menu_school_posts(uow: AppUnitOfWork, user_id: int, offset: int) -> di
     if school_admin is None:
         return {'text': "Меню Активиум доступно только администраторам ОО\nДля подключения: /school"}
 
-    posts = await uow.school_post_repository.get_school_posts(
+    posts = await uow.school_post_repository.get_admin_school_posts(
         school_admin.dnevnik_admin.school_id,
         offset=offset,
         limit=SHOWN_POSTS_LIMIT + 1
@@ -214,6 +216,7 @@ async def menu_school_post(uow: AppUnitOfWork, user_id: int, post_id: int, callb
             f"Публикация от {astimezone(post.created_at, school_admin.dnevnik_admin.timezone).strftime('%e %b. в %H:%M').strip()}\n"
             f"В расписании: {post.schedule_date.strftime('%e %b.').strip() if post.schedule_date is not None else 'нет'}\n"
             f"Отредактировано: {'да' if post.is_updated else 'нет'}\n"
+            f"Увидели: {post.count_visions}\n"
             f"Клики: {post.count_clicks}\n"
             f"Просмотры: {post.count_viewings}\n"
             f"Реакции: {post.count_likes}")
@@ -608,6 +611,7 @@ async def create_post(uow: AppUnitOfWork, user_id: int, school_admin: SchoolAdmi
         title=data['title'],
         description=data['description'],
         has_image=data['has_image'],
+        author=school_admin.name,
         schedule_date=(schedule_date := data['schedule_date']) and date.fromisoformat(schedule_date),
         content=list(map(lambda c: c[1], sorted(content.items(), key=lambda c: c[0])))
     )

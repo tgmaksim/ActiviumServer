@@ -19,8 +19,12 @@ from .review_likes_repository import ReviewLikeRepository
 from .information_repository import InformationRepository
 from .school_admin_repository import SchoolAdminRepository
 from .ea_notification_repository import EANotificationRepository
+from .school_post_like_repository import SchoolPostLikeRepository
+from .school_post_click_repository import SchoolPostClickRepository
 from ...repositories.statistic_repository import StatisticRepository
+from .school_post_vision_repository import SchoolPostVisionRepository
 from .marks_notification_repository import MarksNotificationRepository
+from .school_post_viewing_repository import SchoolPostViewingRepository
 from .highlighting_person_repository import HighlightingPersonRepository
 from .extracurricular_activity_repository import ExtracurricularActivityRepository
 from .ea_processing_notification_repository import EAProcessingNotificationRepository
@@ -57,6 +61,10 @@ class AppUnitOfWork(SqlAlchemyUnitOfWork):
         self._school_admin_repository: Optional[SchoolAdminRepository] = None
         self._school_post_repository: Optional[SchoolPostRepository] = None
         self._tgbot_state_repository: Optional[TgbotStateRepository] = None
+        self._school_post_vision_repository: Optional[SchoolPostVisionRepository] = None
+        self._school_post_click_repository: Optional[SchoolPostClickRepository] = None
+        self._school_post_viewing_repository: Optional[SchoolPostViewingRepository] = None
+        self._school_post_like_repository: Optional[SchoolPostLikeRepository] = None
 
     @property
     def log_repository(self) -> LogRepository:
@@ -189,3 +197,27 @@ class AppUnitOfWork(SqlAlchemyUnitOfWork):
         if self._tgbot_state_repository is None:
             self._tgbot_state_repository = TgbotStateRepository(self.queue)
         return self._tgbot_state_repository
+
+    @property
+    def school_post_vision_repository(self) -> SchoolPostVisionRepository:
+        if self._school_post_vision_repository is None:
+            self._school_post_vision_repository = SchoolPostVisionRepository(self.queue)
+        return self._school_post_vision_repository
+
+    @property
+    def school_post_click_repository(self) -> SchoolPostClickRepository:
+        if self._school_post_click_repository is None:
+            self._school_post_click_repository = SchoolPostClickRepository(self.queue)
+        return self._school_post_click_repository
+
+    @property
+    def school_post_viewing_repository(self) -> SchoolPostViewingRepository:
+        if self._school_post_viewing_repository is None:
+            self._school_post_viewing_repository = SchoolPostViewingRepository(self.queue)
+        return self._school_post_viewing_repository
+
+    @property
+    def school_post_like_repository(self) -> SchoolPostLikeRepository:
+        if self._school_post_like_repository is None:
+            self._school_post_like_repository = SchoolPostLikeRepository(self.queue)
+        return self._school_post_like_repository
