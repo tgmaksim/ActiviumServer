@@ -31,6 +31,13 @@ class SchoolPostRepository(SqlAlchemyRepository[SchoolPost]):
             offset=offset, limit=limit
         )
 
+    async def get_schedule_posts(self, school_id: int, start: date, end: date) -> list[SchoolPost]:
+        return await self.get_multi(
+            or_(SchoolPost.school_id == school_id, SchoolPost.school_id == None),
+            SchoolPost.schedule_date != None,
+            SchoolPost.schedule_date.between(start, end),
+        )
+
     async def get_post(self, post_id: int) -> Optional[SchoolPost]:
         return await self.get_single(SchoolPost.post_id == post_id)
 

@@ -1,5 +1,8 @@
 import datetime
 
+from .school_schemas import SchoolPost
+from .dnevnik_tools_schemas import Note
+
 from ...schemas.base_schema import ApiBase
 from ...schemas.response_schema import ApiResponse
 
@@ -8,11 +11,12 @@ from typing import ClassVar, Literal, Optional
 
 
 __all__ = ['ScheduleHomeworkDocument', 'ScheduleExtracurricularActivity', 'ScheduleHours', 'WorkType', 'MarkLog',
-           'MarksOther', 'ScheduleLesson', 'ScheduleDay', 'ScheduleResult', 'ScheduleApiResponse',
+           'MarksOther', 'ScheduleLesson0x10', 'ScheduleDay0x11', 'ScheduleResult0x12', 'ScheduleApiResponse0x13',
            'LessonRatingStatsResult', 'LessonRatingStatsApiResponse', 'MarkLast', 'MarksSubjectPeriod', 'MarksResult',
            'MarksApiResponse', 'MarksRatingStatsResult0x1A', 'MarksRatingStatsApiResponse0x1B', 'MarksSubjectRatingResult',
            'MarksSubjectRatingApiResponse', 'MarksSubjectFinal', 'MarksFinalResult', 'MarksFinalApiResponse',
-           'MarksRatingStatsResult', 'MarksRatingStatsApiResponse']
+           'MarksRatingStatsResult', 'MarksRatingStatsApiResponse', 'ScheduleLesson', 'ScheduleDay', 'ScheduleResult',
+           'ScheduleApiResponse']
 
 
 class ScheduleHomeworkDocument(ApiBase):
@@ -183,7 +187,7 @@ class MarksOther(ApiBase):
     )
 
 
-class ScheduleLesson(ApiBase):
+class ScheduleLesson0x10(ApiBase):  # До версии API 1.5.5
     """Урок"""
 
     classId: ClassVar[int] = 0x10
@@ -248,11 +252,96 @@ class ScheduleLesson(ApiBase):
     )
 
 
-class ScheduleDay(ApiBase):
+class ScheduleLesson(ApiBase):  # Начиная с версии API 1.5.6
+    """Урок"""
+
+    classId: ClassVar[int] = 0x5B
+    class_id: Literal[0x5B] = Field(
+        default=classId,
+        alias='classId',
+        description="Идентификатор класса"
+    )
+
+    lessonKey: str = Field(
+        description="Ключ для создания заметок к уроку и отправки похвалы",
+        pattern=r'[0-9a-z]{1,13}',
+        min_length=1,
+        max_length=13
+    )
+    number: int = Field(
+        description="Порядковый номер урока начиная с 0",
+        examples=[0]
+    )
+    subject: str = Field(
+        description="Название предмета урока",
+        examples=["Математика"]
+    )
+    place: str = Field(
+        description="Кабинет или другое место проведения урока",
+        examples=["332", "спортивный зал"]
+    )
+    hours: ScheduleHours = Field(
+        description="Время проведения урока"
+    )
+    works: list[WorkType] = Field(
+        description="Типы работ на уроке"
+    )
+    logs: list[MarkLog] = Field(
+        description="Оценки и отметки посещаемости за урок"
+    )
+    othersMarks: list[MarksOther] = Field(
+        description="Оценки других учеников за урок"
+    )
+    avgGroupLessonMark: Optional[MarkLog] = Field(
+        description="Средний балл оценок за урок в классе"
+    )
+    homework: Optional[str] = Field(
+        description="Домашнее задание к уроку",
+        examples=["Доделать классную работу"]
+    )
+    note: Optional[Note] = Field(
+        description="Заметка к уроку"
+    )
+    files: list[ScheduleHomeworkDocument] = Field(
+        description="Дополнительные файлы к домашнему заданию"
+    )
+    ratingKey: Optional[str] = Field(
+        description="Ключ для получения дополнительной информации по оценкам",
+        pattern=r'[0-9a-z]{1,13}\.[0-9a-z]{1,13}\.\d{4}-\d{2}-\d{2}',
+        min_length=9,
+        max_length=38
+    )
+    dnevnikruUrl: str = Field(
+        description="Ссылка для открытия урока в Дневнике.ру"
+    )
+
+
+class ScheduleDay0x11(ApiBase):  # До версии API 1.5.5
     """День в расписании с уроками и внеурочными занятиями"""
 
     classId: ClassVar[int] = 0x11
     class_id: Literal[0x11] = Field(
+        default=classId,
+        alias='classId',
+        description="Идентификатор класса"
+    )
+
+    date: datetime.date = Field(
+        description="Дата дня в формате ISO"
+    )
+    lessons: list[ScheduleLesson0x10] = Field(
+        description="Уроки в данный день"
+    )
+    ea: list[ScheduleExtracurricularActivity] = Field(
+        description="Внеурочные занятия в данный день"
+    )
+
+
+class ScheduleDay(ApiBase):  # Начиная с версии API 1.5.6
+    """День в расписании с уроками и внеурочными занятиями"""
+
+    classId: ClassVar[int] = 0x5C
+    class_id: Literal[0x5C] = Field(
         default=classId,
         alias='classId',
         description="Идентификатор класса"
@@ -267,13 +356,37 @@ class ScheduleDay(ApiBase):
     ea: list[ScheduleExtracurricularActivity] = Field(
         description="Внеурочные занятия в данный день"
     )
+    schoolPosts: list[SchoolPost] = Field(
+        description="Список постов с мероприятиями в этот день"
+    )
 
 
-class ScheduleResult(ApiBase):
+class ScheduleResult0x12(ApiBase):  # До версии API 1.5.5
     """Результат запроса расписания на несколько дней"""
 
     classId: ClassVar[int] = 0x12
     class_id: Literal[0x12] = Field(
+        default=classId,
+        alias='classId',
+        description="Идентификатор класса"
+    )
+
+    schedule: list[ScheduleDay0x11] = Field(
+        description="Расписание на несколько дней"
+    )
+    timezone: int = Field(
+        description="Часовой пояс"
+    )
+    hasAbilityPraise: bool = Field(
+        description="Можно ли отправить похвалу ребенку от родителя"
+    )
+
+
+class ScheduleResult(ApiBase):  # Начиная с версии API 1.5.6
+    """Результат запроса расписания на несколько дней"""
+
+    classId: ClassVar[int] = 0x5D
+    class_id: Literal[0x5D] = Field(
         default=classId,
         alias='classId',
         description="Идентификатор класса"
@@ -290,11 +403,27 @@ class ScheduleResult(ApiBase):
     )
 
 
-class ScheduleApiResponse(ApiResponse):
+class ScheduleApiResponse0x13(ApiResponse):  # До версии API 1.5.5
     """Ответ на запрос расписания на несколько дней"""
 
     classId: ClassVar[int] = 0x13
     class_id: Literal[0x13, 0x2] = Field(
+        default=classId,
+        alias='classId',
+        description="Идентификатор класса"
+    )
+
+    answer: Optional[ScheduleResult0x12] = Field(
+        default=None,
+        description="Данные о расписании на несколько дней"
+    )
+
+
+class ScheduleApiResponse(ApiResponse):  # Начиная с версии API 1.5.6
+    """Ответ на запрос расписания на несколько дней"""
+
+    classId: ClassVar[int] = 0x5E
+    class_id: Literal[0x5E, 0x2] = Field(
         default=classId,
         alias='classId',
         description="Идентификатор класса"

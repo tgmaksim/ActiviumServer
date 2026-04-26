@@ -13,12 +13,17 @@ from yarl import URL
 from dnevnikru.exceptions import BaseDnevnikruException
 from dnevnikru.aiodnevnikru.dnevnikru import AioDnevnikruApi
 
+from ..schemas.school_schemas import SchoolPost
+from ..schemas.dnevnik_tools_schemas import Note
+
 from ...dependencies.zip_int import zip_int
+from ...config.project_config import settings
 from ...dependencies.auth import check_session
 from ...dependencies.httpx import get_httpx_client
-from ...dependencies.datetime import datetime_now, astimezone
 from ...repositories.statistic_repository import StatName
+from ...dependencies.datetime import datetime_now, astimezone
 
+from ...models.hour_model import Hour
 from ...services.base_service import BaseService
 from ..repositories.app_uow import AppUnitOfWork
 from ..repositories.cache_repository import CacheRepository
@@ -40,20 +45,26 @@ from ..schemas.dnevnik_schemas import (
     ScheduleHours,
     ScheduleLesson,
     ScheduleResult,
+    ScheduleDay0x11,
     MarksApiResponse,
     MarksFinalResult,
     MarksSubjectFinal,
     MarksSubjectPeriod,
+    ScheduleResult0x12,
+    ScheduleLesson0x10,
     ScheduleApiResponse,
     MarksFinalApiResponse,
-    MarksRatingStatsResult0x1A,
+    MarksRatingStatsResult,
+    ScheduleApiResponse0x13,
     LessonRatingStatsResult,
     ScheduleHomeworkDocument,
     MarksSubjectRatingResult,
-    MarksRatingStatsApiResponse0x1B,
+    MarksRatingStatsResult0x1A,
+    MarksRatingStatsApiResponse,
     LessonRatingStatsApiResponse,
     MarksSubjectRatingApiResponse,
-    ScheduleExtracurricularActivity, MarksRatingStatsApiResponse, MarksRatingStatsResult,
+    MarksRatingStatsApiResponse0x1B,
+    ScheduleExtracurricularActivity,
 )
 
 
@@ -69,12 +80,23 @@ class DnevnikService(BaseService[AppUnitOfWork]):
         super().__init__(uow_factory)
         self.httpx_client = httpx_client
 
-    async def getSchedule(self, session_id: str, before: int, after: int) -> ScheduleApiResponse:
+    async def getSchedule(self, session_id: str, before: int, after: int, api: int = None) -> Union[ScheduleApiResponse0x13, ScheduleApiResponse]:
+        if api == 1:
+            answer_type = ScheduleApiResponse
+            result_type = ScheduleResult
+            day_type = ScheduleDay
+            lesson_type = ScheduleLesson
+        else:
+            answer_type = ScheduleApiResponse0x13
+            result_type = ScheduleResult0x12
+            day_type = ScheduleDay0x11
+            lesson_type = ScheduleLesson0x10
+
         async with self.uow_factory() as uow:
             if after + before > 30:
                 await uow.log_repository.add_log(path='getSchedule', session_id=session_id, status=False,
                                                  value=f"IntervalTooLong: {after} + {before} = {after + before}")
-                return ScheduleApiResponse(
+                return answer_type(
                     status=False,
                     error=ApiError(
                         type="IntervalTooLong",
@@ -98,11 +120,20 @@ class DnevnikService(BaseService[AppUnitOfWork]):
             marks: dict[int, list[MarkLog]]  # оценки по урокам
             others_marks: dict[int, list[MarksOther]]  # оценки класса по урокам и обучающимся
 
+            async def get_posts():
+                _posts = await uow.school_post_repository.get_schedule_posts(child.school_id, start_date, end_date)
+                _likes = await uow.school_post_like_repository.has_my_likes(session.parent_id, [post.post_id for post in _posts])
+                _my_likes = [like.post_id for like in _likes]
+                return _posts, _my_likes
+
             try:
-                (person_schedule, files), (marks, others_marks), active_period = await gather(
+                (person_schedule, files), (marks, others_marks), active_period, ea, school_hours, (posts, my_likes) = await gather(
                     self._get_person_schedule(dnr, child, start_date, end_date),
                     self._get_schedule_marks(uow.cache_repository, dnr, uow.highlighting_person_repository, session, child, start_date, end_date),
-                    self._get_period(uow.cache_repository, dnr, session, child, now.date())
+                    self._get_period(uow.cache_repository, dnr, session, child, now.date()),
+                    self._get_extracurricular_activities(uow.extracurricular_activity_repository, child, (start, end)),
+                    uow.hour_repository.get_school_hours(child.school_id),
+                    get_posts()
                 )
             except BaseDnevnikruException as e:
                 if not await uow.session_repository.check_session_auth(session.session_id, dnr):
@@ -117,8 +148,6 @@ class DnevnikService(BaseService[AppUnitOfWork]):
             # Показывать только открытые заметки для родителя
             only_public_notes = parent.parent_id != child.child_id
             notes = await uow.lesson_note_repository.get_notes(child.child_id, lessons_id, only_public=only_public_notes)
-
-            ea = await self._get_extracurricular_activities(uow.extracurricular_activity_repository, child, (start, end))
 
             result = []
             for day in sorted(person_schedule['days'], key=lambda d: datetime.fromisoformat(day['date'])):
@@ -139,7 +168,11 @@ class DnevnikService(BaseService[AppUnitOfWork]):
 
                 day_date = datetime.fromisoformat(day['date'])
 
-                hours = await uow.hour_repository.get_hours(child.school_id, day_date.month, day_date.weekday())
+                hours: Optional[Hour] = None
+                for hour in school_hours:
+                    if day_date.month in hour.months and day_date.weekday() in hour.weekdays:
+                        hours = hour
+                        break
 
                 lessons = []
                 for lesson in sorted(day['lessons'], key=lambda l: l['number']):
@@ -172,8 +205,23 @@ class DnevnikService(BaseService[AppUnitOfWork]):
 
                     avg = self._calc_avg(lesson_marks, lesson_others_marks)
 
-                    lessons.append(ScheduleLesson(
-                        lessonKey=zip_int(lesson['id']),
+                    lesson_key = zip_int(lesson['id'])
+
+                    if note := notes.get(lesson['id']):
+                        if api == 1:
+                            lesson_note = Note(
+                                lessonKey=lesson_key,
+                                text=note.text,
+                                public=note.public,
+                                remindTime=note.remind_time and astimezone(note.remind_time, child.timezone)
+                            )
+                        else:
+                            lesson_note = note.text
+                    else:
+                        lesson_note = None
+
+                    lessons.append(lesson_type(
+                        lessonKey=lesson_key,
                         number=lesson['number'] - 1,  # Начало с 0
                         subject=subjects.get(lesson['subjectId'], "Неизвестный предмет"),
                         place=lesson['place'],
@@ -183,22 +231,36 @@ class DnevnikService(BaseService[AppUnitOfWork]):
                         othersMarks=lesson_others_marks,
                         avgGroupLessonMark=avg,
                         homework='; '.join(homeworks.get(lesson['id'], [])) or None,
-                        note=note.text if (note := notes.get(lesson['id'])) else None,
+                        note=lesson_note,
                         files=files.get(lesson['id'], []),
                         ratingKey=f"{zip_int(active_period['id'])}.{zip_int(lesson['subjectId'])}.{day_date.date()}",
                         dnevnikruUrl=self._get_lesson_url(child.school_id, lesson['id'])
                     ))
 
-                result.append(ScheduleDay(
+                result.append(day_type(
                     date=day_date.date(),
                     lessons=lessons,
                     ea=ea.get(day_date.date(), []),
+                    schoolPosts=[SchoolPost(
+                        postId=post.post_id,
+                        title=post.title,
+                        description=post.description,
+                        imageUrl=str(URL(settings.URL).joinpath('school', 'posts', str(post.post_id), 'image.jpg')) if post.has_image else None,
+                        author=post.author,
+                        authorVerified=post.author_verified,
+                        scheduleDate=post.schedule_date,
+                        isUpdated=post.is_updated,
+                        countViewings=post.count_viewings,
+                        countLikes=post.count_likes,
+                        hasMyLike=post.post_id in my_likes,
+                        postUrl=str(URL(settings.URL).joinpath('school', 'posts', str(post.post_id)))
+                    ) for post in posts if post.schedule_date == day_date.date()]
                 ))
 
             await uow.statistic_repository.add_statistic(parent.parent_id, StatName.getSchedule)
 
-            return ScheduleApiResponse(
-                answer=ScheduleResult(
+            return answer_type(
+                answer=result_type(
                     schedule=result,
                     timezone=child.timezone,
                     hasAbilityPraise=parent.parent_id != child.child_id

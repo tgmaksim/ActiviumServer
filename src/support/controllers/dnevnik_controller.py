@@ -6,6 +6,7 @@ from ..schemas.dnevnik_schemas import (
     MarksApiResponse,
     ScheduleApiResponse,
     MarksFinalApiResponse,
+    ScheduleApiResponse0x13,
     MarksRatingStatsApiResponse,
     LessonRatingStatsApiResponse,
     MarksSubjectRatingApiResponse,
@@ -26,7 +27,8 @@ router = APIRouter(prefix='/dnevnik', tags=["Dnevnik"])
     summary="Получение расписания с оценками",
     description="Получение расписания на несколько дней с домашними заданиями, внеурочными занятиями и "
                 "оценками с отметками о посещаемости",
-    response_model=ScheduleApiResponse
+    response_model=ScheduleApiResponse0x13,
+    deprecated=True  # Устарела с версии API 1.5.5
 )
 async def _getSchedule0(
         request: Request,
@@ -34,9 +36,27 @@ async def _getSchedule0(
         after: Annotated[int, Query(description="Количество дней после сегодня", ge=0, le=21)],
         sessionId: Annotated[str, Header(description="Идентификатор сессии", min_length=1, max_length=32)],
         service: DnevnikService = Depends(get_dnevnik_service)
+) -> ScheduleApiResponse0x13:
+    request.state.session_id = sessionId
+    return await service.getSchedule(sessionId, before, after, api=0)
+
+
+@router.get(
+    "/getSchedule/1",  # Начиная с версии 1.5.6
+    summary="Получение расписания с оценками",
+    description="Получение расписания на несколько дней с домашними заданиями, внеурочными занятиями и "
+                "оценками с отметками о посещаемости",
+    response_model=ScheduleApiResponse
+)
+async def _getSchedule1(
+        request: Request,
+        before: Annotated[int, Query(description="Количество дней расписания до сегодня", ge=0, le=14)],
+        after: Annotated[int, Query(description="Количество дней после сегодня", ge=0, le=21)],
+        sessionId: Annotated[str, Header(description="Идентификатор сессии", min_length=1, max_length=32)],
+        service: DnevnikService = Depends(get_dnevnik_service)
 ) -> ScheduleApiResponse:
     request.state.session_id = sessionId
-    return await service.getSchedule(sessionId, before, after)
+    return await service.getSchedule(sessionId, before, after, api=1)
 
 
 @router.get(

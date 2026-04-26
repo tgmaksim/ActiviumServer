@@ -11,4 +11,4 @@ class SchoolPostClick(BaseModel):
     __tablename__ = 'school_post_clicks'
 
     parent_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("parents.parent_id", onupdate="CASCADE", ondelete="CASCADE"), primary_key=True)
-    post_id: Mapped[str] = mapped_column(BigInteger, ForeignKey("school_posts.post_id", onupdate="CASCADE", ondelete="CASCADE"), primary_key=True)
+    post_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("school_posts.post_id", onupdate="CASCADE", ondelete="CASCADE"), primary_key=True)
