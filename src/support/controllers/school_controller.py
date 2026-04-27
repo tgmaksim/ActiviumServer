@@ -10,6 +10,7 @@ from ..schemas.school_schemas import SchoolPostsApiResponse, SchoolPostsWithoutV
     SeeSchoolPostApiResponse, ClickSchoolPostApiResponse, ViewSchoolPostApiResponse, LikeSchoolPostApiResponse, \
     UnlikeSchoolPostApiResponse
 
+
 __all__ = ['router', 'public_router']
 
 router = APIRouter(prefix='/school', tags=["School"])

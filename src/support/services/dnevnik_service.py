@@ -249,10 +249,13 @@ class DnevnikService(BaseService[AppUnitOfWork]):
                         author=post.author,
                         authorVerified=post.author_verified,
                         scheduleDate=post.schedule_date,
+                        humanScheduleDate=post.schedule_date and post.schedule_date.strftime('%e %b.').strip(),
                         isUpdated=post.is_updated,
                         countViewings=post.count_viewings,
                         countLikes=post.count_likes,
                         hasMyLike=post.post_id in my_likes,
+                        createdAt=post.created_at,
+                        humanCreatedAt=astimezone(post.created_at, post.timezone).strftime('%e %b. в %H:%M').strip(),
                         postUrl=str(URL(settings.URL).joinpath('school', 'posts', str(post.post_id)))
                     ) for post in posts if post.schedule_date == day_date.date()]
                 ))

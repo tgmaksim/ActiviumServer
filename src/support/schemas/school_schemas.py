@@ -44,6 +44,9 @@ class SchoolPost(ApiBase):
     scheduleDate: Optional[datetime.date] = Field(
         description="Дата мероприятия в расписании"
     )
+    humanScheduleDate: Optional[str] = Field(
+        description="Дата мероприятия в расписании в нужном формате строки для показа пользователю"
+    )
     isUpdated: bool = Field(
         description="Пост был отредактирован после написания"
     )
@@ -55,6 +58,12 @@ class SchoolPost(ApiBase):
     )
     hasMyLike: bool = Field(
         description="Поставлена реакция на пост"
+    )
+    createdAt: datetime.datetime = Field(
+        description="Время написания поста"
+    )
+    humanCreatedAt: str = Field(
+        description="Время написания поста в нужном формате строки для показа пользователю"
     )
     postUrl: str = Field(
         description="Ссылка на открытие поста"
