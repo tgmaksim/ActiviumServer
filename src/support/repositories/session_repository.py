@@ -31,7 +31,13 @@ class SessionRepository(SqlAlchemyRepository[Session]):
     async def get_sessions(self, parent_id: int) -> list[Session]:
         return await self.get_multi(Session.parent_id == parent_id, Session.life == True)
 
-    async def auth_session(self, session_id: str, dnevnik_token: str, parent_id: int, active_child_id: int) -> Optional[Session]:
+    async def auth_session(
+            self,
+            session_id: str,
+            dnevnik_token: str,
+            parent_id: int,
+            active_child_id: int
+    ) -> Optional[Session]:
         return await self.update({
             'parent_id': parent_id,
             'active_child_id': active_child_id,

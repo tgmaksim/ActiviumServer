@@ -7,7 +7,13 @@ __all__ = ['HtmlResponse']
 
 
 class HtmlResponse(BaseModel):
+    """Data-класс для возвращения ответа сервиса в виде html"""
+
     name: str
+    """Имя файла в директории templates"""
     status_code: int = 200
+    """http-код ответа"""
     context: Optional[dict] = {}
-    cookies: list[dict] = None
+    """Параметры html-шаблона"""
+    cookies: list[dict] = []
+    """Список cookies"""

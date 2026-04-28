@@ -10,7 +10,10 @@ __all__ = ['Rating']
 
 
 class Rating(BaseModel):
-    child_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("children.child_id", onupdate="CASCADE", ondelete="CASCADE"), primary_key=True)
+    """Модель прошлого места в рейтинге с прошлым баллом"""
+
+    child_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("children.child_id", onupdate="CASCADE", ondelete="CASCADE"), primary_key=True)
     period_id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
     subject_id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
     number: Mapped[int] = mapped_column(SmallInteger)

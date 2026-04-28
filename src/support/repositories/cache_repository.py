@@ -17,7 +17,12 @@ class CacheRepository(SqlAlchemyRepository[Cache]):
     def __init__(self, queue: AsyncDBQueue):
         super().__init__(queue, Cache)
 
-    async def put_caches(self, session_id: str, child_id: int, caches: list[tuple[str, Union[list, dict]]]) -> list[Cache]:
+    async def put_caches(
+            self,
+            session_id: str,
+            child_id: int,
+            caches: list[tuple[str, Union[list, dict]]]
+    ) -> list[Cache]:
         statement = insert(Cache).values([{
             'session_id': session_id,
             'child_id': child_id,
@@ -34,14 +39,22 @@ class CacheRepository(SqlAlchemyRepository[Cache]):
         res = await self.queue.execute(statement)
         return list(res.scalars().all())
 
-    async def put_cache(self, session_id: str, child_id: int, cache_key: str, cache_value: Union[list, dict]) -> Optional[Cache]:
+    async def put_cache(
+            self,
+            session_id: str,
+            child_id: int,
+            cache_key: str,
+            cache_value: Union[list, dict]
+    ) -> Optional[Cache]:
         return (await self.put_caches(session_id, child_id, [(cache_key, cache_value)]) or [None])[0]
 
     async def get_caches(self, session_id: str, child_id: int, keys: list[str]) -> list[Cache]:
-        return await self.get_multi(Cache.session_id == session_id, Cache.child_id == child_id, Cache.key.in_(keys))
+        return await self.get_multi(
+            Cache.session_id == session_id, Cache.child_id == child_id, Cache.key.in_(keys))
 
     async def get_cache(self, session_id: str, child_id: int, key: str) -> Optional[Cache]:
-        return await self.get_single(Cache.session_id == session_id, Cache.child_id == child_id, Cache.key == key)
+        return await self.get_single(
+            Cache.session_id == session_id, Cache.child_id == child_id, Cache.key == key)
 
     async def delete_unregistered_cache(self):
         return await self.delete(Cache.session_id.in_(select(Session.session_id).where(Session.life == False)))

@@ -2,7 +2,12 @@ from typing import Annotated, Optional
 
 from fastapi import APIRouter, Query, Depends, Request, Header
 
-from ..schemas.status_schemas import VersionsApiResponse, HealthApiResponse, InformationApiResponse, VersionsApiResponse0x4
+from ..schemas.status_schemas import (
+    HealthApiResponse,
+    VersionsApiResponse,
+    InformationApiResponse,
+    VersionsApiResponse0x4
+)
 
 from ..services.status_service import StatusService
 from ...dependencies.services import get_status_service
@@ -11,6 +16,7 @@ from ...dependencies.services import get_status_service
 __all__ = ['router']
 
 router = APIRouter(prefix='/status', tags=["Status"])
+"""Router группы запросов status"""
 
 
 @router.get(

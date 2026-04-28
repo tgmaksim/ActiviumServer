@@ -14,8 +14,14 @@ __all__ = ['EAProcessingNotification']
 
 
 class EAProcessingNotification(BaseModel):
+    """Модель внеурочных занятий, которые еще не обработаны для уведомлений"""
+
     __tablename__ = 'ea_processing_notifications'
 
-    ea_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("extracurricular_activities.ea_id", onupdate="CASCADE", ondelete="CASCADE"), primary_key=True)
+    ea_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("extracurricular_activities.ea_id", onupdate="CASCADE", ondelete="CASCADE"),
+        primary_key=True)
     start_time: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True))
-    extracurricular_activity: Mapped['ExtracurricularActivity'] = relationship('ExtracurricularActivity', foreign_keys=[ea_id], lazy="selectin")
+
+    extracurricular_activity: Mapped['ExtracurricularActivity'] = relationship(
+        'ExtracurricularActivity', foreign_keys=[ea_id], lazy="selectin")

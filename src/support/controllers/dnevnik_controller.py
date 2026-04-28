@@ -20,6 +20,7 @@ from ...dependencies.services import get_dnevnik_service
 __all__ = ['router']
 
 router = APIRouter(prefix='/dnevnik', tags=["Dnevnik"])
+"""Router группы запросов dnevnik"""
 
 
 @router.get(

@@ -10,6 +10,8 @@ __all__ = ['Version']
 
 
 class Version(BaseModel):
+    """Модель версии приложения"""
+
     number: Mapped[int] = mapped_column(Integer, primary_key=True)
     version: Mapped[str] = mapped_column(String(16))
     parent_version: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)

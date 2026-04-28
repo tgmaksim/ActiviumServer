@@ -9,5 +9,7 @@ UnitOfWorkType = TypeVar("UnitOfWorkType", bound=UnitOfWork)
 
 
 class BaseService(Generic[UnitOfWorkType]):
+    """Базовый сервис в UoW"""
+
     def __init__(self, uow_factory: Callable[[], UnitOfWorkType]):
         self.uow_factory = uow_factory

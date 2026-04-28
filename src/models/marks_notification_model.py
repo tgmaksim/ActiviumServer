@@ -15,10 +15,15 @@ __all__ = ['MarksNotification']
 
 
 class MarksNotification(BaseModel):
+    """Модель включенных уведомлений о новых оценках"""
+
     __tablename__ = 'marks_notifications'
 
-    session_id: Mapped[str] = mapped_column(Text(32), ForeignKey("sessions.session_id", onupdate="CASCADE", ondelete="CASCADE"), primary_key=True)
-    child_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("children.child_id", onupdate="CASCADE", ondelete="CASCADE"), primary_key=True)
+    session_id: Mapped[str] = mapped_column(
+        Text(32), ForeignKey("sessions.session_id", onupdate="CASCADE", ondelete="CASCADE"), primary_key=True)
+    child_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("children.child_id", onupdate="CASCADE", ondelete="CASCADE"), primary_key=True)
     last_mark: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), server_default=func.current_timestamp())
+
     session: Mapped['Session'] = relationship('Session', foreign_keys=[session_id], lazy="selectin")
     child: Mapped['Child'] = relationship('Child', foreign_keys=[child_id], lazy="selectin")

@@ -10,6 +10,6 @@ __all__ = ['get_templates']
 
 @lru_cache()
 def get_templates() -> Jinja2Templates:
-    """Папка с html-файлами. Кешируется на время работы"""
+    """Экземпляр Jinja2Templates с настроенной директорией с html. Кешируется на время работы"""
 
     return Jinja2Templates(directory=settings.TEMPLATES_DIRECTORY)

@@ -8,7 +8,11 @@ __all__ = ['ReviewLike']
 
 
 class ReviewLike(BaseModel):
+    """Модель реакции на отзыв"""
+
     __tablename__ = 'review_likes'
 
-    parent_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("parents.parent_id", onupdate="CASCADE", ondelete="CASCADE"), primary_key=True)
-    review_id: Mapped[str] = mapped_column(BigInteger, ForeignKey("reviews.review_id", onupdate="CASCADE", ondelete="CASCADE"), primary_key=True)
+    parent_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("parents.parent_id", onupdate="CASCADE", ondelete="CASCADE"), primary_key=True)
+    review_id: Mapped[str] = mapped_column(
+        BigInteger, ForeignKey("reviews.review_id", onupdate="CASCADE", ondelete="CASCADE"), primary_key=True)

@@ -14,7 +14,8 @@ class HighlightingPersonRepository(SqlAlchemyRepository[HighlightingPerson]):
         super().__init__(queue, HighlightingPerson)
 
     async def get_highlighting_person(self, parent_id: int, person_id: int) -> Optional[HighlightingPerson]:
-        return await self.get_single(HighlightingPerson.parent_id == parent_id, HighlightingPerson.person_id == person_id)
+        return await self.get_single(
+            HighlightingPerson.parent_id == parent_id, HighlightingPerson.person_id == person_id)
 
     async def get_highlighting_persons(self, parent_id: int) -> list[HighlightingPerson]:
         return await self.get_multi(HighlightingPerson.parent_id == parent_id)
@@ -26,4 +27,5 @@ class HighlightingPersonRepository(SqlAlchemyRepository[HighlightingPerson]):
         }, security=['parent_id', 'person_id'], security_nothing=True)
 
     async def unhighlight_person(self, parent_id: int, person_id: int):
-        return await self.delete(HighlightingPerson.parent_id == parent_id, HighlightingPerson.person_id == person_id)
+        return await self.delete(
+            HighlightingPerson.parent_id == parent_id, HighlightingPerson.person_id == person_id)

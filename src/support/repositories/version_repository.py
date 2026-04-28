@@ -25,7 +25,8 @@ class VersionRepository(SqlAlchemyRepository[Version]):
         return await self.get_first(Version.parent_version == None, orders_=Version.number.desc())
 
     async def get_latest_mini_versions(self, latest_generic_version: int) -> list[Version]:
-        return await self.get_multi(Version.parent_version != None, Version.number > latest_generic_version, orders_=Version.number.desc())
+        return await self.get_multi(
+            Version.parent_version != None, Version.number > latest_generic_version, orders_=Version.number.desc())
 
     async def get_most_important_version(self, version_number: int) -> Optional[Version]:
         return await self.get_first(Version.number > version_number, orders_=Version.status_id.desc())

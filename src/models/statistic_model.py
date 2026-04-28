@@ -10,6 +10,8 @@ __all__ = ['Statistic']
 
 
 class Statistic(BaseModel):
+    """Модель собранной статистики"""
+
     statistic_id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
     parent_id: Mapped[Optional[int]] = mapped_column(BigInteger, nullable=True)
     key: Mapped[str] = mapped_column(String(32))

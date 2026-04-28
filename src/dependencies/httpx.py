@@ -10,6 +10,10 @@ __all__ = ['get_httpx_client']
 
 @lru_cache()
 def get_httpx_client() -> AsyncClient:
-    """httpx-клиент для работы с сетевыми запросами. Кешируется на время работы"""
+    """
+    httpx-клиент для работы с сетевыми запросами. Кешируется на время работы
+
+    В качестве User-Agent используется ProjectName/version
+    """
 
     return AsyncClient(headers={'User-Agent': f'{settings.PROJECT_NAME}/{settings.VERSION}'})

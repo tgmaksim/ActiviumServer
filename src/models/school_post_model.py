@@ -13,6 +13,8 @@ __all__ = ['SchoolPost']
 
 
 class SchoolPost(BaseModel):
+    """Модель опубликованного школьного поста"""
+
     __tablename__ = 'school_posts'
 
     post_id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)

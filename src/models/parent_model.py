@@ -8,4 +8,6 @@ __all__ = ['Parent']
 
 
 class Parent(BaseModel):
+    """Модель родителя (пользователя)"""
+
     parent_id: Mapped[int] = mapped_column(BigInteger, primary_key=True)

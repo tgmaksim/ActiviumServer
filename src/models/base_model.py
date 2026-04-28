@@ -8,6 +8,8 @@ __all__ = ['BaseModel']
 
 
 class BaseModel(DeclarativeBase):
+    """Базовая модель для всех моделей (таблиц) в БД"""
+
     __abstract__ = True
 
     created_at: Mapped[datetime] = mapped_column(

@@ -11,32 +11,97 @@ __all__ = ['settings']
 class Settings(BaseSettings):
     """Настройки проекта"""
 
-    API_KEY: str  # Ключ для доступа к API
-    CORS_ALLOWED_ORIGINS: list[str]
+    # Базовые параметры
+    PROJECT_NAME: str
+    """Название проекта латиницей"""
+    VERSION: str
+    """Строковая версия сервера"""
+    DEBUG: bool
+    """Режим запуска сервера"""
+    URL: str
+    """Домен, на котором запускается проект"""
+    WWW_PATH: str
+    """Путь к папке со статическими ресурсами, которые отправляются низкоуровневым сервером"""
 
-    DB_ECHO: bool = False  # Выводить в консоль все sql-запросы
-    URL: str  # Домен (https://example.com), на котором запускается проект
-    WWW_PATH: str  # Путь к папке со статическими ресурсами, которые отправляются низкоуровневым сервером
+    # Github
+    GITHUB: str
+    """Ссылка на github-репозиторий клиентского приложения"""
+    GITHUB_SERVER: str
+    """Ссылка на github-репозиторий сервера"""
+
+    # Параметры хостинг-сервера
     NETANGELS_GATEWAY_TOKEN_URL: str
+    """URL для получения API-токена"""
     NETANGELS_API_KEY: str
+    """API-ключ для запроса получения токена"""
     NETANGELS_API_URL: str
+    """URL для API-запросов"""
     VIRTUALHOST_ID: int
+    """Идентификатор сайта"""
     LOGS_PGADMIN_OPEN: str
+    """Ссылка для открытия таблицы логов в БД с параметрами {min_created_at} и {max_created_at}"""
+
+    # ИИ
+    OPENAI_URL: str
+    """URL OpenAI-сервера"""
     OPENAI_API_KEY: str
+    """API-ключ для доступа к нейромодели через OpenAI"""
     OPENAI_MODEL: str
+    """Идентификатор нейромодели"""
+
+    # Telegram-бот
+    BOT_TOKEN: str
+    """Telegram-токен для работы бота"""
+    ADMIN_CHAT_IDS: list[int]
+    """Идентификаторы администраторов в Telegram"""
+    BOT_URL: str
+    """Ссылка на Telegram-бота"""
+    TELEGRAM_PREVIEW_URL: str
+    """URL proxy-сервера для предпросмотра изображений на сервере"""
+
+    # API
+    API_KEY: str
+    """Ключ для доступа к API"""
+    CORS_ALLOWED_ORIGINS: list[str]
+    """Возможные домены, с которых доступно API в браузере"""
     API_PREFIX: str = "/api/v2"
+    """Префикс пути всех API-методов"""
     APK_PREFIX: str = "/apk"
-    PROJECT_NAME: str = "Activium"
-    VERSION: str = "0.1.0"
-    DEBUG: bool = False
+    """Префикс пути apk-файлов"""
+    HIDE_VALIDATION_ERRORS_IN_DOCS: bool
+    """Скрывать сущности Validation-ошибок в документации"""
+    TEMPLATES_DIRECTORY: str
+    """Папка в основной директории с html-файлами"""
+
+    # Дневник.ру
+    DNEVNIK_CLIENT_ID: str
+    """API-ключ для работы с Дневником.ру"""
+
+    # Автор
     AUTHOR: Optional[str] = None
+    """Имя (псевдоним) автора проекта"""
     AUTHOR_LINK: Optional[str] = None
+    """Ссылка на профиль в соц. сети автора проекта"""
     ADMIN_TIMEZONE: int = 0
-    HIDE_VALIDATION_ERRORS_IN_DOCS: bool = True  # Скрывать сущности Validation-ошибок в документации
-    TEMPLATES_DIRECTORY: str = "templates"  # Папка в основной директории с html-фалами
-    DNEVNIK_CLIENT_ID: str  # API-ключ для работы с Дневником.ру
-    BOT_URL: str  # Ссылка на Telegram-бота
+    """Часовой пояс администраторов для оповещений"""
+
+    # База данных
+    DB_SCHEME: str
+    """Scheme ссылки к БД"""
+    DB_HOST: str
+    """Host ссылки к БД"""
+    DB_NAME: str
+    """Имя БД"""
+    DB_USER: str
+    """Имя пользователя в БД"""
+    DB_PASS: str
+    """Пароль к пользователю в БД"""
+    DB_PORT: int
+    """Порт в ссылке к БД"""
+    DB_ECHO: bool
+    """Выводить в консоль все SQL-запросы"""
 
 
 load_dotenv(dotenv_path=".env")
 settings = Settings()  # Загрузка из env
+"""Настройки проекта"""

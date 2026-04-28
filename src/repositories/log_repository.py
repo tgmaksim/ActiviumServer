@@ -10,6 +10,8 @@ __all__ = ['LogRepository']
 
 
 class LogRepository(SqlAlchemyRepository[Log]):
+    """Репозиторий для логирования данных"""
+
     def __init__(self, queue: AsyncDBQueue):
         super().__init__(queue, Log)
 
@@ -23,6 +25,8 @@ class LogRepository(SqlAlchemyRepository[Log]):
             method: Optional[str] = None,
             value: str,
     ) -> Log:
+        """Добавление лога"""
+
         return await self.create({
             'ip': ip,
             'path': path,

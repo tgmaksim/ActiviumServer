@@ -1,3 +1,5 @@
+import traceback
+
 from fastapi import Request, Response
 from fastapi.responses import JSONResponse
 
@@ -14,8 +16,10 @@ __all__ = ['api_exception_handler']
 
 
 async def api_exception_handler(request: Request, exc: BaseApiException) -> Response:
+    """Обработчик API-ошибок базового класса BaseApiException"""
+
     if isinstance(exc, ApiKeyError):
-        request.state.error = repr(exc)
+        request.state.error = '\n'.join(traceback.format_exception(exc))  # Для логирования ошибки
 
         return JSONResponse(ApiResponse(
             status=False,
@@ -26,10 +30,10 @@ async def api_exception_handler(request: Request, exc: BaseApiException) -> Resp
         ).model_dump(by_alias=True), status_code=403)
 
     elif isinstance(exc, SessionError):
-        request.state.error = repr(exc)
+        request.state.error = '\n'.join(traceback.format_exception(exc))  # Для логирования ошибки
 
         async with get_app_uow_factory()() as uow:
-            await uow.session_repository.kill_session(exc.session_id)
+            await uow.session_repository.kill_session(exc.session_id)  # life=false
 
         return JSONResponse(ApiResponse(
             status=False,
@@ -39,4 +43,4 @@ async def api_exception_handler(request: Request, exc: BaseApiException) -> Resp
             )
         ).model_dump(by_alias=True), status_code=403)
 
-    raise exc from exc
+    raise exc from exc  # Продвижение ошибки до middleware

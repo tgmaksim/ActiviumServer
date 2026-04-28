@@ -11,6 +11,8 @@ __all__ = ['VersionsResult0x3', 'VersionsApiResponse0x4', 'HealthApiResponse', '
 
 
 class VersionsResult0x3(ApiBase):  # До версии API 1.0.12.6
+    """Результат запроса получения новой версии приложения"""
+
     classId: ClassVar[int] = 0x3
     class_id: Literal[0x3] = Field(
         default=classId,
@@ -46,6 +48,8 @@ class VersionsResult0x3(ApiBase):  # До версии API 1.0.12.6
 
 
 class VersionsApiResponse0x4(ApiResponse):  # До версии API 1.0.12.6
+    """Ответ на запрос получения новой версии приложения"""
+
     classId: ClassVar[int] = 0x4
     class_id: Literal[0x4, 0x2] = Field(
         default=classId,
@@ -60,6 +64,8 @@ class VersionsApiResponse0x4(ApiResponse):  # До версии API 1.0.12.6
 
 
 class VersionsResult(ApiBase):  # Начиная с версии API 1.1.0
+    """Результат запроса получения новой версии приложения"""
+
     classId: ClassVar[int] = 0x43
     class_id: Literal[0x43] = Field(
         default=classId,
@@ -107,6 +113,8 @@ class VersionsResult(ApiBase):  # Начиная с версии API 1.1.0
 
 
 class VersionsApiResponse(ApiResponse):  # Начиная с версии API 1.1.0
+    """Ответ на запрос получения новой версии приложения"""
+
     classId: ClassVar[int] = 0x44
     class_id: Literal[0x44, 0x2] = Field(
         default=classId,
@@ -121,6 +129,8 @@ class VersionsApiResponse(ApiResponse):  # Начиная с версии API 1.
 
 
 class HealthApiResponse(ApiResponse):
+    """Ответ на запрос проверки работоспособности сервера"""
+
     classId: ClassVar[int] = 0x5
     class_id: Literal[0x5, 0x2] = Field(
         default=classId,

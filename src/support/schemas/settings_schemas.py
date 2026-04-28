@@ -12,7 +12,7 @@ __all__ = ['Child', 'ChildrenResult', 'ChildrenApiResponse', 'SwitchActiveChildA
 
 
 class Child(ApiBase):
-    """Ребенок"""
+    """Ребенок (профиль)"""
 
     classId: ClassVar[int] = 0x21
     class_id: Literal[0x21] = Field(

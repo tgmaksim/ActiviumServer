@@ -5,6 +5,8 @@ from src.dependencies.uow import get_log_uow_factory
 
 
 async def main():
+    """Обработка собранной статистики и отправка отчета"""
+
     service = LogService(get_log_uow_factory())
     try:
         await service.send_stats_notification()

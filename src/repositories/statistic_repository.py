@@ -14,6 +14,8 @@ __all__ = ['StatisticRepository', 'StatName']
 
 
 class StatName(Enum):
+    """Класс для централизации названий статистики"""
+
     ea_notifications = "Отправлено уведомление с напоминанием о внеурочном занятии"
     marks_notifications = "Отправлено уведомление о новой оценке"
     notes_notifications = "Отправлено уведомление с напоминанием о созданной заметке"
@@ -53,23 +55,33 @@ class StatName(Enum):
 
 
 class StatisticRepository(SqlAlchemyRepository[Statistic]):
+    """репозиторий для работы со статистикой"""
+
     def __init__(self, queue: AsyncDBQueue):
         super().__init__(queue, Statistic)
 
     async def add_statistic(self, parent_id: Optional[int], key: Union[StatName, str]):
+        """Добавление статистики"""
+
         await self.create({
             "parent_id": parent_id,
             "key": key.name if isinstance(key, Enum) else key
         })
 
     async def get_count_unique_users(self, since: datetime) -> int:
+        """Получение количества уникальных пользователей, совершивших хотя бы одно действие"""
+
         statement = select(func.count(func.distinct(Statistic.parent_id))).where(Statistic.created_at > since)
 
         res = await self.queue.execute(statement)
         return res.scalar_one()
 
     async def get_group_statistics(self, since: datetime) -> list[tuple[str, int]]:
-        """[(key, count), ...]"""
+        """
+        Получение все статистики
+
+        :return: список статистики с парами (key, count) - статистика и кол-во совершенных действий
+        """
 
         statement = select(Statistic.key, func.count().label('count')).where(Statistic.created_at > since).group_by(Statistic.key)
 

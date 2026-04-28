@@ -12,6 +12,8 @@ __all__ = ['MonitoringRepository']
 
 
 class MonitoringRepository(SqlAlchemyRepository[Monitoring]):
+    """Репозиторий для добавления информации о времени работы запроса"""
+
     def __init__(self, queue: AsyncDBQueue):
         super().__init__(queue, Monitoring)
 
@@ -23,6 +25,8 @@ class MonitoringRepository(SqlAlchemyRepository[Monitoring]):
             status: bool = True,
             duration: timedelta,
     ):
+        """Добавление мониторинга"""
+
         await self.create({
             'path': path,
             'session_id': session_id,
@@ -31,7 +35,14 @@ class MonitoringRepository(SqlAlchemyRepository[Monitoring]):
         })
 
     async def get_stats(self, since: datetime) -> list[tuple[str, timedelta, timedelta, timedelta]]:
-        """[(path, min_duration, max_duration, media_duration), ...]"""
+        """
+        Получение последней информации о мониторинге запросов
+
+        :param since: время, начиная с которого соберется статистика
+        :return: список для каждого уникального пути (запроса) с параметрами
+        path (путь запроса), min_duration и max_duration (минимальное и максимальное зафиксированное время обработки),
+        median_duration (медианное значение времени обработки)
+        """
 
         statement = (
             select(

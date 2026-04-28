@@ -14,7 +14,8 @@ class HourRepository(SqlAlchemyRepository[Hour]):
         super().__init__(queue, Hour)
 
     async def get_hours(self, school_id: int, month: int, weekday: int) -> Optional[Hour]:
-        return await self.get_single(Hour.school_id == school_id, Hour.months.contains([month]), Hour.weekdays.contains([weekday]))
+        return await self.get_single(
+            Hour.school_id == school_id, Hour.months.contains([month]), Hour.weekdays.contains([weekday]))
 
     async def get_school_hours(self, school_id: int) -> list[Hour]:
         return await self.get_multi(Hour.school_id == school_id)

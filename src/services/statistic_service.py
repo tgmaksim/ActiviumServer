@@ -6,6 +6,8 @@ __all__ = ['StatisticService']
 
 
 class StatisticService(BaseService[AppUnitOfWork]):
+    """Небольшой сервис для статистики"""
+
     async def track(self, user_id: int, key: str) -> None:
         async with self.uow_factory() as uow:
             await uow.statistic_repository.add_statistic(user_id, key)

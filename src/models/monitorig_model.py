@@ -10,6 +10,8 @@ __all__ = ['Monitoring']
 
 
 class Monitoring(BaseModel):
+    """Модель мониторинга запросов"""
+
     monitoring_id: Mapped[int] = mapped_column(BigInteger, Identity(always=False), primary_key=True)
     path: Mapped[str] = mapped_column(String(128))
     session_id: Mapped[str] = mapped_column(String(32), nullable=True)

@@ -3,7 +3,7 @@ from aiogram import Router
 from aiogram.types import Message
 from aiogram.filters import Command
 
-from ..config import settings
+from src.config.project_config import settings
 
 
 __all__ = ['router']
@@ -28,8 +28,9 @@ async def _cmd_help(message: Message):
                          "- Актуальные мероприятия и события\n\n"
                          
                          "<b>Безопасность и открытость</b>\n"
-                         f"Код открыт на GitHub: <a href='{settings.GITHUB}'>Actvium</a>, <a href='{settings.GITHUB_SERVER}'>ActviumServer</a>. "
-                         "Можно посмотреть реализацию авторизации, хранения данных, отправки уведомлений и в целом безопасности\n\n"
+                         f"Код открыт на GitHub: <a href='{settings.GITHUB}'>Actvium</a>, "
+                         f"<a href='{settings.GITHUB_SERVER}'>ActviumServer</a>. Можно посмотреть реализацию "
+                         "авторизации, хранения данных, отправки уведомлений и в целом безопасности\n\n"
                          
                          f"По любым вопросам: <a href='{settings.AUTHOR_LINK}'>поддержка</a>",
                          disable_web_page_preview=True)

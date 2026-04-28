@@ -1,9 +1,12 @@
+__all__ = ['BaseDnevnikruException', 'DnevnikruApiException', 'InvalidResponseException', 'RequestTimeoutException']
+
+
 class BaseDnevnikruException(Exception):
-    """Базовый класс ошибок при взаимодействии с дневником.ру"""
+    """Базовый класс ошибок при взаимодействии с Дневником.ру"""
 
 
 class DnevnikruApiException(BaseDnevnikruException):
-    """Ошибка в API-запросе от дневника.ру"""
+    """Ошибка в API-запросе от Дневника.ру"""
 
     def __init__(self, _type: str, description: str):
         super().__init__(f"{_type}: {description}")
@@ -12,7 +15,7 @@ class DnevnikruApiException(BaseDnevnikruException):
 
 
 class InvalidResponseException(BaseDnevnikruException):
-    """Некорректный ответ от дневника.ру, привлекший к ошибке"""
+    """Некорректный ответ от дневника.ру"""
 
 
 class RequestTimeoutException(BaseDnevnikruException):

@@ -19,6 +19,8 @@ __all__ = ['LogService']
 
 
 class LogService(BaseService[LogUnitOfWork]):
+    """Простой сервис для логирования, статистики и отчетов"""
+
     async def log(
             self,
             *,
@@ -29,14 +31,20 @@ class LogService(BaseService[LogUnitOfWork]):
             method: Optional[str] = None,
             value: str,
     ):
+        """Логирование данных"""
+
         async with self.uow_factory() as uow:
             await uow.log_repository.add_log(ip=ip, path=path, session_id=session_id, status=status, method=method, value=value)
 
     async def stat(self, parent_id: Optional[int], key: str):
+        """Добавление статистики"""
+
         async with self.uow_factory() as uow:
             await uow.statistics_repository.add_statistic(parent_id, key)
 
     async def send_stats_notification(self):
+        """Формирование отчета и отправка администраторам"""
+
         async with self.uow_factory() as uow:
             count_all, max_created_at, min_created_at, count_errors = await uow.notification_repository.get_count()
 
@@ -46,48 +54,48 @@ class LogService(BaseService[LogUnitOfWork]):
             from_date = min_created_at.astimezone(ADMIN_TIMEZONE).strftime('%e %b. %H:%M:%S')
             ru_logs = 'лога' if 2 <= count_all % 10 <= 4 else ('лог' if count_all % 10 == 1 else 'логов')
 
-            text = (f"<b>#Статистика Активиум c {from_date}</b>\n\n"
-                    f"<b>Логи</b>\nСобрано {count_all} {ru_logs}\n")
+            text = (f"#Статистика Активиум c {from_date}\n\n"
+                    f"Логи\nСобрано {count_all} {ru_logs}\n")
 
             if count_errors:
                 text += f"⚠️ Обнаружены ошибки ({count_errors} шт.)\n"
             else:
                 text += "Ошибок не обнаружено\n"
 
-            text += f"<a href=\"{html.quote(logs_open_url)}\">Открыть логи</a>\n"
-
             await uow.notification_repository.delete_notifications(max_created_at)
             await uow.log_repository.add_log(path='stats', value='stats')  # Для точной статистики в следующий раз
 
             since = min_created_at
 
-            text += "\n<b>Мониторинг запросов</b>\n"
+            text += "\nМониторинг запросов\n"
             monitorings = await uow.monitoring_repository.get_stats(since)
             for monitoring in sorted(monitorings, key=lambda m: m[3], reverse=True):
-                text += (f"<i>{monitoring[0]}</i>: "
+                text += (f"{monitoring[0]}: "
                          f"от {round(monitoring[1].total_seconds() * 1000, 1)} мс "
                          f"до {round(monitoring[2].total_seconds() * 1000, 1)} мс, "
                          f"{round(monitoring[3].total_seconds() * 1000, 1)} мс\n")
 
-            text += "\n<b>Статистика пользования</b>\n"
+            text += "\nСтатистика пользования\n"
             count_unique_users = await uow.statistics_repository.get_count_unique_users(since)
             text += f"Уникальных пользователей: {count_unique_users}\n"
             group_statistics = await uow.statistics_repository.get_group_statistics(since)
             for statistic in group_statistics:
-                text += f"<i>{statistic[0]}</i>: {statistic[1]}\n"
+                text += f"{statistic[0]}: {statistic[1]}\n"
 
-            text += "\n<i>Таким был день в Активиум...</i>"
+            text += "\nТаким был день в Активиум..."
 
-            messages = await uow.notification_repository.notify(text)
+            for i in range(0, len(text), 4096):
+                await uow.notification_repository.notify(text[i:i + 4096])
+            await uow.notification_repository.notify(f"<a href=\"{html.quote(logs_open_url)}\">Открыть логи</a>\n")
 
-            count_last_messages = 5
+            count_last_messages = 3
             last_messages = list(map(lambda m: m.message, await uow.statistic_message_repository.get_last_messages(count_last_messages)))
-            await uow.statistic_message_repository.write_message(messages[0].text)
+            await uow.statistic_message_repository.write_message(text)
 
         ai_chat = [
             ai.request.Message(role='system', content='\n'.join((self.ai_system(), self.ai_header()))),
             ai.request.Message(role='user', content=f"Последние {len(last_messages)} собранных статистик:\n\n" +
-                                                    '\n\n'.join(last_messages) + "Текущий день:\n" + messages[0].text)]
+                                                    '\n\n'.join(last_messages) + "Текущий день:\n" + text)]
 
         try:
             ai_message = await ai.request.request(ai_chat)

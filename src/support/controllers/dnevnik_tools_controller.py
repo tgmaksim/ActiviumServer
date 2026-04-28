@@ -5,13 +5,14 @@ from fastapi import APIRouter, Query, Depends, Body, Request, Header
 
 from ..schemas.dnevnik_tools_schemas import (
     NoteApiResponse,
+    PraiseApiResponse,
     NoteApiResponse0x38,
     PraiseApiResponse0x3A,
     DeleteNoteApiResponse,
     CreateNoteApiResponse,
     CreateNoteApiResponse0x36,
     HighlightPersonApiResponse,
-    UnhighlightPersonApiResponse, PraiseApiResponse
+    UnhighlightPersonApiResponse,
 )
 
 from ..services.dnevnik_tools_service import DnevnikToolsService
@@ -21,6 +22,7 @@ from ...dependencies.services import get_dnevnik_tools_service
 __all__ = ['router']
 
 router = APIRouter(prefix='/dtools', tags=["Dnevnik Tools"])
+"""Router группы запросов dtools"""
 
 
 @router.post(

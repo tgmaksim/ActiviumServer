@@ -10,12 +10,13 @@ from ...dependencies.templates import get_templates
 from ...dependencies.services import get_site_service
 
 
-__all__ = ['router']
+__all__ = ['public_router']
 
-router = APIRouter()
+public_router = APIRouter(tags=["Site"], include_in_schema=False)
+"""Публичный router сайта"""
 
 
-@router.get("/", include_in_schema=False)
+@public_router.get("/")
 async def _root(
         request: Request,
         sessionId: Annotated[Optional[str], Query(description="Идентификатор сессия для статистики и пользовательских взаимодействий на сайте")] = None,
@@ -65,6 +66,6 @@ async def _root(
     return response
 
 
-@router.head("/", include_in_schema=False)
+@public_router.head("/")
 async def _head_root():
     return HTMLResponse()

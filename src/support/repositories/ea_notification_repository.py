@@ -17,7 +17,8 @@ class EANotificationRepository(SqlAlchemyRepository[EANotification]):
         super().__init__(queue, EANotification)
 
     async def get_status(self, session_id: str, child_id: int) -> Optional[EANotification]:
-        return await self.get_single(EANotification.session_id == session_id, EANotification.child_id == child_id)
+        return await self.get_single(
+            EANotification.session_id == session_id, EANotification.child_id == child_id)
 
     async def turn_off(self, session_id: str, child_id: int):
         await self.delete(EANotification.session_id == session_id, EANotification.child_id == child_id)

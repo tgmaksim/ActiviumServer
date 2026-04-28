@@ -36,6 +36,8 @@ __all__ = ['SettingsService']
 
 
 class SettingsService(BaseService[AppUnitOfWork]):
+    """Сервис для управления настройками"""
+    
     def __init__(self, uow_factory: Callable[[], AppUnitOfWork], httpx_client: AsyncClient):
         super().__init__(uow_factory)
         self.httpx_client = httpx_client
@@ -225,12 +227,11 @@ class SettingsService(BaseService[AppUnitOfWork]):
 
     async def update_firebase(self, session_id: str, firebase_token: str) -> UpdateFirebaseApiResponse:
         async with self.uow_factory() as uow:
-            session = await check_session(session_id, uow.session_repository)
-            parent: Parent = session.parent
+            session = await check_session(session_id, uow.session_repository, check_auth=False)
 
             await uow.session_repository.update_firebase(session_id, firebase_token)
 
-            await uow.statistic_repository.add_statistic(parent and parent.parent_id, StatName.updateFirebase)
+            await uow.statistic_repository.add_statistic(session.parent_id, StatName.updateFirebase)
 
             return UpdateFirebaseApiResponse()
 

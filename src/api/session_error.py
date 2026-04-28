@@ -5,7 +5,7 @@ __all__ = ['SessionError']
 
 
 class SessionError(BaseApiException):
-    """Сессия неверная"""
+    """Сессия не существует или не авторизована"""
 
     def __init__(self, *, session_id: str):
         super().__init__(session_id)

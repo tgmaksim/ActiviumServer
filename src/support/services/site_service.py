@@ -3,8 +3,9 @@ import secrets
 from typing import Optional
 
 from .reviews_service import ReviewsService
-from ...repositories.statistic_repository import StatName
+from src.config.project_config import settings
 from ...services.html_response import HtmlResponse
+from ...repositories.statistic_repository import StatName
 
 from ...services.base_service import BaseService
 from ..repositories.app_uow import AppUnitOfWork
@@ -14,6 +15,8 @@ __all__ = ['SiteService']
 
 
 class SiteService(BaseService[AppUnitOfWork]):
+    """Сервис для работы сайта"""
+
     async def get_root(self, session_id: Optional[str], likes_offset: Optional[int], likes_sort: Optional[str]) -> HtmlResponse:
         async with self.uow_factory() as uow:
             session = None
@@ -72,7 +75,9 @@ class SiteService(BaseService[AppUnitOfWork]):
                     } for review in reviews],
                     'next_likes_offset': next_offset,
                     'likes_sort': mode,
-                    'csrf_token': csrf_token
+                    'csrf_token': csrf_token,
+                    'github': settings.GITHUB,
+                    'github_server': settings.GITHUB_SERVER,
                 },
                 cookies=cookies
             )

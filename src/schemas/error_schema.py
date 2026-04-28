@@ -9,6 +9,8 @@ __all__ = ['ApiError']
 
 
 class ApiError(ApiBase):
+    """Класс API-ошибок в ответах"""
+
     classId: ClassVar[int] = 0x1
     class_id: Literal[0x1] = Field(
         default=classId,

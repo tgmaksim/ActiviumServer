@@ -9,6 +9,8 @@ __all__ = ['Hour']
 
 
 class Hour(BaseModel):
+    """Модель звонкового расписания, отличного от такого же в Дневнике.ру"""
+
     hour_id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
     school_id: Mapped[int] = mapped_column(BigInteger)
     months: Mapped[list[int]] = mapped_column(JSONB)

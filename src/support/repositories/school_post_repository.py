@@ -41,7 +41,18 @@ class SchoolPostRepository(SqlAlchemyRepository[SchoolPost]):
     async def get_post(self, post_id: int) -> Optional[SchoolPost]:
         return await self.get_single(SchoolPost.post_id == post_id)
 
-    async def create_post(self, school_id: int, timezone: int, *, title: str, description: Optional[str], has_image: bool, author: str, schedule_date: Optional[date], content: list[dict]) -> SchoolPost:
+    async def create_post(
+            self,
+            school_id: int,
+            timezone: int,
+            *,
+            title: str,
+            description: Optional[str],
+            has_image: bool,
+            author: str,
+            schedule_date: Optional[date],
+            content: list[dict]
+    ) -> SchoolPost:
         return await self.create({
             'school_id': school_id,
             'timezone': timezone,

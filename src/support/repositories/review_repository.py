@@ -36,7 +36,15 @@ class ReviewRepository(SqlAlchemyRepository[Review]):
             'is_open': True
         }, Review.parent_id == parent_id)
 
-    async def update_review(self, parent_id: int, name: str, stars: int, text: str, is_updated: bool = True, is_open: bool = False) -> Review:
+    async def update_review(
+            self,
+            parent_id: int,
+            name: str,
+            stars: int,
+            text: str,
+            is_updated: bool = True,
+            is_open: bool = False
+    ) -> Review:
         return await self.update({
             'name': name,
             'stars': stars,

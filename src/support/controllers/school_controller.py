@@ -6,15 +6,24 @@ from fastapi import APIRouter, Query, Depends, Request, Header
 from ..services.school_service import SchoolService
 from ...dependencies.templates import get_templates
 from ...dependencies.services import get_school_service
-from ..schemas.school_schemas import SchoolPostsApiResponse, SchoolPostsWithoutVisionApiResponse, \
-    SeeSchoolPostApiResponse, ClickSchoolPostApiResponse, ViewSchoolPostApiResponse, LikeSchoolPostApiResponse, \
-    UnlikeSchoolPostApiResponse
+
+from ..schemas.school_schemas import (
+    SchoolPostsApiResponse,
+    SeeSchoolPostApiResponse,
+    ViewSchoolPostApiResponse,
+    LikeSchoolPostApiResponse,
+    ClickSchoolPostApiResponse,
+    UnlikeSchoolPostApiResponse,
+    SchoolPostsWithoutVisionApiResponse
+)
 
 
 __all__ = ['router', 'public_router']
 
 router = APIRouter(prefix='/school', tags=["School"])
+"""Router группы запросов school"""
 public_router = APIRouter(prefix='/school', tags=["School"], include_in_schema=False)
+"""Публичный router группы запросов school"""
 
 
 @public_router.get(

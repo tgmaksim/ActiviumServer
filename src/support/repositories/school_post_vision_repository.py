@@ -20,7 +20,9 @@ class SchoolPostVisionRepository(SqlAlchemyRepository[SchoolPostVision]):
         })
 
     async def get_vision(self, parent_id: int, post_id: int) -> Optional[SchoolPostVision]:
-        return await self.get_single(SchoolPostVision.parent_id == parent_id, SchoolPostVision.post_id == post_id)
+        return await self.get_single(
+            SchoolPostVision.parent_id == parent_id, SchoolPostVision.post_id == post_id)
 
     async def has_my_visions(self, parent_id: int, posts_id: list[int]) -> list[SchoolPostVision]:
-        return await self.get_multi(SchoolPostVision.parent_id == parent_id, SchoolPostVision.post_id.in_(posts_id))
+        return await self.get_multi(
+            SchoolPostVision.parent_id == parent_id, SchoolPostVision.post_id.in_(posts_id))

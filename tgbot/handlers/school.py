@@ -5,8 +5,8 @@ from aiogram import Router
 from aiogram.filters import Command
 from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, CopyTextButton
 
-from tgbot.config import settings
 from dnevnikru import AioDnevnikruApi
+from src.config.project_config import settings
 
 
 __all__ = ['router']
@@ -16,7 +16,8 @@ router = Router()
 
 @router.message(Command('school'))
 async def _cmd_school(message: Message):
-    share_url = "tg://msg_url?text=Здравствуйте,+пройдите+авторизацию+в+Активиум,+чтобы+мы+могли+публиковать+новости+и+мероприятия&url=t.me/ActiviumAppBot?start=school_auth"
+    share_url = ("tg://msg_url?text=Здравствуйте,+пройдите+авторизацию+в+Активиум,+чтобы+мы+могли+публиковать+новости+"
+                 "и+мероприятия&url=t.me/ActiviumAppBot?start=school_auth")
     login_url = AioDnevnikruApi.build_login_url(
         settings.DNEVNIK_CLIENT_ID,
         ["EducationalInfo", "CommonInfo", "FriendsAndRelatives"],
@@ -26,7 +27,8 @@ async def _cmd_school(message: Message):
 
     await message.answer(
         "Еще раз приветствуем от Активиум!\n"
-        "<tg-emoji emoji-id=\"5447644880824181073\">⚠️</tg-emoji> Прочитайте внимательно<tg-emoji emoji-id=\"5470177992950946662\">👇</tg-emoji>\n\n"
+        "<tg-emoji emoji-id=\"5447644880824181073\">⚠️</tg-emoji> Прочитайте внимательно"
+        "<tg-emoji emoji-id=\"5470177992950946662\">👇</tg-emoji>\n\n"
         
         "<blockquote expandable>"
         "После прохождения процедуры авторизации от образовательной организации (далее — ОО) Вам и другим контактам, "
@@ -43,7 +45,9 @@ async def _cmd_school(message: Message):
         "для совместной работы с Активиум"
         "</blockquote>",
     reply_markup=InlineKeyboardMarkup(
-        inline_keyboard=[[InlineKeyboardButton(text="Войти в Дневник.ру", icon_custom_emoji_id="5409334318004738910", url=login_url)],
-                         [InlineKeyboardButton(text="Попросить другого", icon_custom_emoji_id="5465562509425514761", url=share_url)],
-                         [InlineKeyboardButton(text="Скопировать ссылку", copy_text=CopyTextButton(text=login_url))],
-                         [InlineKeyboardButton(text="Назад", icon_custom_emoji_id="5467864676320681402", callback_data="start")]]))
+        inline_keyboard=
+        [[InlineKeyboardButton(text="Войти в Дневник.ру", icon_custom_emoji_id="5409334318004738910", url=login_url)],
+         [InlineKeyboardButton(text="Попросить другого", icon_custom_emoji_id="5465562509425514761", url=share_url)],
+         [InlineKeyboardButton(text="Скопировать ссылку", copy_text=CopyTextButton(text=login_url))],
+         [InlineKeyboardButton(text="Назад", icon_custom_emoji_id="5467864676320681402", callback_data="start")]]
+    ))

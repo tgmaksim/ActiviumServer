@@ -13,7 +13,15 @@ class ChildRepository(SqlAlchemyRepository[Child]):
     def __init__(self, queue: AsyncDBQueue):
         super().__init__(queue, Child)
 
-    async def create_child(self, child_id: int, school_id: int, group_id: int, timezone: int, *, security: bool = False) -> Child:
+    async def create_child(
+            self,
+            child_id: int,
+            school_id: int,
+            group_id: int,
+            timezone: int,
+            *,
+            security: bool = False
+    ) -> Child:
         return await self.create({
             'child_id': child_id,
             'school_id': school_id,

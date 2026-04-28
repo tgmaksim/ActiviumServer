@@ -15,4 +15,5 @@ def get_tg_router() -> Router:
     router.include_router(admin.router)
     router.include_router(school.router)
     router.include_router(menu.router)
+
     return router

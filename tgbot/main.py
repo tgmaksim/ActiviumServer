@@ -4,8 +4,8 @@ import traceback
 from src.services.log_service import LogService
 from src.dependencies.uow import get_log_uow_factory
 
-from tgbot.config import settings
 from .bot import create_bot_and_dispatcher
+from src.config.project_config import settings
 
 
 __all__ = ['add_polling_task']

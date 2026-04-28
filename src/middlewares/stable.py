@@ -15,29 +15,29 @@ __all__ = ['StableMiddleware']
 
 
 class StableMiddleware(BaseHTTPMiddleware):
+    """Последний Middleware для обработки ответа при возникновении ошибки"""
+
     async def dispatch(self, request: Request, call_next):
         try:
-            try:
-                response = await call_next(request)
-                return response
-            except RequestTimeoutException:
-                if request.url.path.startswith(settings.API_PREFIX):
-                    return JSONResponse(ApiResponse(
-                        status=False,
-                        error=ApiError(
-                            type="DnevnikruError",
-                            errorMessage="Дневник.ру в данное время недоступен"
-                        )
-                    ).model_dump(by_alias=True), status_code=500)
+            response = await call_next(request)
+            return response
+        except Exception as e:
+            error = ApiError(
+                type="InternalServerError"
+            )
 
-                raise
-        except Exception:
+            if isinstance(e, RequestTimeoutException):
+                error=ApiError(
+                    type="DnevnikruError",
+                    errorMessage="Дневник.ру в данное время недоступен"
+                )
+
+            # Для API — json-ответ, для сайта — страница с ошибкой
+
             if request.url.path.startswith(settings.API_PREFIX):
                 return JSONResponse(ApiResponse(
                     status=False,
-                    error=ApiError(
-                        type="InternalServerError"
-                    )
+                    error=error
                 ).model_dump(by_alias=True), status_code=500)
 
             templates = get_templates()

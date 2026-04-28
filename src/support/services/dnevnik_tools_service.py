@@ -40,6 +40,8 @@ __all__ = ['DnevnikToolsService']
 
 
 class DnevnikToolsService(BaseService[AppUnitOfWork]):
+    """Сервис для дополнительного взаимодействия с расписанием и оценками"""
+
     def __init__(self, uow_factory: Callable[[], AppUnitOfWork], httpx_client: AsyncClient):
         super().__init__(uow_factory)
         self.httpx_client = httpx_client

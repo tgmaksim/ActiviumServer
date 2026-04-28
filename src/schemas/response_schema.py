@@ -10,6 +10,8 @@ __all__ = ['ApiResponse']
 
 
 class ApiResponse(ApiBase):
+    """Базовый класс ответов на запрос"""
+
     classId: ClassVar[int] = 0x2
     class_id: Literal[0x2] = Field(
         default=classId,

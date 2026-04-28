@@ -10,6 +10,8 @@ __all__ = ['get_app_uow_factory', 'get_log_uow_factory']
 
 
 def get_app_uow_factory() -> Callable[[], AppUnitOfWork]:
+    """Зависимость FastApi для получения app_uow_factory"""
+
     def app_uow_factory() -> AppUnitOfWork:
         return AppUnitOfWork(db_helper.session_factory)
 
@@ -17,6 +19,8 @@ def get_app_uow_factory() -> Callable[[], AppUnitOfWork]:
 
 
 def get_log_uow_factory() -> Callable[[], LogUnitOfWork]:
+    """Зависимость FastApi для получения log_uow_factory"""
+
     def log_uow_factory() -> LogUnitOfWork:
         return LogUnitOfWork(db_helper.session_factory)
 

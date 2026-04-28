@@ -35,6 +35,8 @@ __all__ = ['ReviewsService']
 
 
 class ReviewsService(BaseService[AppUnitOfWork]):
+    """Сервис для управления и отзывами и просмотра их"""
+
     def __init__(self, uow_factory: Callable[[], AppUnitOfWork], httpx_client: AsyncClient):
         super().__init__(uow_factory)
         self.httpx_client = httpx_client

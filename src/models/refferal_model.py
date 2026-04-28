@@ -8,6 +8,10 @@ __all__ = ['Referral']
 
 
 class Referral(BaseModel):
-    parent_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("parents.parent_id", onupdate="CASCADE", ondelete="CASCADE"))
-    referral_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("parents.parent_id", onupdate="CASCADE", ondelete="CASCADE"), primary_key=True)
+    """Модель связи пользователя с его приглашенными"""
+
+    parent_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("parents.parent_id", onupdate="CASCADE", ondelete="CASCADE"))
+    referral_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("parents.parent_id", onupdate="CASCADE", ondelete="CASCADE"), primary_key=True)
     name: Mapped[str] = mapped_column(String(32))

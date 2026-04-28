@@ -12,6 +12,8 @@ __all__ = ['HighlightingPerson']
 
 
 class HighlightingPerson(BaseModel):
+    """Модель выделенного одноклассника в рейтингах"""
+
     __tablename__ = 'highlighting_persons'
 
     parent_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("parents.parent_id", ondelete="CASCADE", onupdate="CASCADE"), primary_key=True)

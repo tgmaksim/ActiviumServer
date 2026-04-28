@@ -12,6 +12,8 @@ __all__ = ['MonitoringMiddleware']
 
 
 class MonitoringMiddleware(BaseHTTPMiddleware):
+    """Middleware для контроля скорости работы запросов"""
+
     async def dispatch(self, request: Request, call_next):
         start = time.monotonic()
         error = False

@@ -7,6 +7,8 @@ __all__ = ['UnitOfWork']
 
 
 class UnitOfWork(ABC):
+    """Абстрактный UoW с базовыми методами"""
+
     @abstractmethod
     async def __aenter__(self) -> Self:
         raise NotImplementedError

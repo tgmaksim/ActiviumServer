@@ -28,7 +28,13 @@ class AioDnevnikruApi(BaseAioDnevnikruApi):
 
         return await self.get(f"persons/{person}/edu-groups")
 
-    async def get_person_schedule(self, person: int, group: int, startDate: Union[str, datetime, date], endDate: Union[str, datetime, date]) -> dict:
+    async def get_person_schedule(
+            self,
+            person: int,
+            group: int,
+            startDate: Union[str, datetime, date],
+            endDate: Union[str, datetime, date]
+    ) -> dict:
         """Расписание персоны в учебной группе"""
 
         return await self.get(

@@ -27,6 +27,8 @@ __all__ = ['LoginService']
 
 
 class LoginService(BaseService[AppUnitOfWork]):
+    """Сервис для регистрации и авторизации"""
+
     def __init__(self, uow_factory: Callable[[], AppUnitOfWork], httpx_client: AsyncClient):
         super().__init__(uow_factory)
         self.httpx_client = httpx_client

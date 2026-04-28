@@ -1,5 +1,5 @@
 from .bot import get_bot
-from .config import settings
+from src.config.project_config import settings
 
 
 __all__ = ['send_admin_message']

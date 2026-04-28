@@ -13,7 +13,15 @@ class RatingRepository(SqlAlchemyRepository[Rating]):
     def __init__(self, queue: AsyncDBQueue):
         super().__init__(queue, Rating)
 
-    async def put_rating(self, child_id: int, period_id: int, subject_id: int, number: int, avg: str, mood: str) -> Rating:
+    async def put_rating(
+            self,
+            child_id: int,
+            period_id: int,
+            subject_id: int,
+            number: int,
+            avg: str,
+            mood: str
+    ) -> Rating:
         return await self.create({
             'child_id': child_id,
             'period_id': period_id,
@@ -24,7 +32,9 @@ class RatingRepository(SqlAlchemyRepository[Rating]):
         }, security=['child_id', 'period_id', 'subject_id'])
 
     async def get_rating(self, child_id: int, period_id: int, subject_id: int) -> Optional[Rating]:
-        return await self.get_single(Rating.child_id == child_id, Rating.period_id == period_id, Rating.subject_id == subject_id)
+        return await self.get_single(
+            Rating.child_id == child_id, Rating.period_id == period_id, Rating.subject_id == subject_id)
 
     async def delete_rating(self, child_id: int, period_id: int, subject_id: int):
-        await self.delete(Rating.child_id == child_id, Rating.period_id == period_id, Rating.subject_id == subject_id)
+        await self.delete(
+            Rating.child_id == child_id, Rating.period_id == period_id, Rating.subject_id == subject_id)

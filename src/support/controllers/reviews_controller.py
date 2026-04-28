@@ -20,7 +20,9 @@ from ...schemas.error_schema import ApiError
 __all__ = ['router', 'public_router']
 
 router = APIRouter(prefix='/reviews', tags=["Reviews"])
+"""Router группы запросов reviews"""
 public_router = APIRouter(prefix='/reviews', tags=["Reviews"])
+"""Публичный router группы запросов reviews"""
 
 
 @router.post(

@@ -8,17 +8,26 @@ __all__ = ['settings_db']
 class ConfigDataBase(BaseSettings):
     """Конфигурация базы данных"""
 
+    # База данных
     DB_SCHEME: str
+    """Scheme ссылки к БД"""
     DB_HOST: str
+    """Host ссылки к БД"""
     DB_NAME: str
+    """Имя БД"""
     DB_USER: str
+    """Имя пользователя в БД"""
     DB_PASS: str
-    DB_PORT: int = 5432
-
-    DB_ECHO: bool = False  # Выводить в консоль все sql-запросы
+    """Пароль к пользователю в БД"""
+    DB_PORT: int
+    """Порт в ссылке к БД"""
+    DB_ECHO: bool
+    """Выводить в консоль все SQL-запросы"""
 
     @property
     def database_url(self) -> str:
+        """Формирование ссылки для соединения с БД"""
+
         return PostgresDsn.build(
             scheme=self.DB_SCHEME,
             host=self.DB_HOST,
@@ -30,3 +39,4 @@ class ConfigDataBase(BaseSettings):
 
 
 settings_db = ConfigDataBase()  # Загрузка из env
+"""Настройки соединения с БД"""

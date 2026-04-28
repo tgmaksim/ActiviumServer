@@ -13,7 +13,15 @@ class SchoolAdminRepository(SqlAlchemyRepository[SchoolAdmin]):
     def __init__(self, queue: AsyncDBQueue):
         super().__init__(queue, SchoolAdmin)
 
-    async def create_admin(self, user_id: int, name: str, parent_admin_id: Optional[int], person_id: Optional[int], school_id: Optional[int], dnevnik_token: Optional[str]):
+    async def create_admin(
+            self,
+            user_id: int,
+            name: str,
+            parent_admin_id: Optional[int],
+            person_id: Optional[int],
+            school_id: Optional[int],
+            dnevnik_token: Optional[str]
+    ):
         await self.create({
             'user_id': user_id,
             'name': name,

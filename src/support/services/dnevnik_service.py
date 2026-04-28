@@ -76,6 +76,8 @@ round_or_int = lambda n: int(n) if (r := round(n, 2)) == int(n) else r
 
 
 class DnevnikService(BaseService[AppUnitOfWork]):
+    """Сервис для взаимодействия с расписанием, оценками и другими данными Дневника.ру"""
+
     def __init__(self, uow_factory: Callable[[], AppUnitOfWork], httpx_client: AsyncClient):
         super().__init__(uow_factory)
         self.httpx_client = httpx_client
@@ -129,9 +131,11 @@ class DnevnikService(BaseService[AppUnitOfWork]):
             try:
                 (person_schedule, files), (marks, others_marks), active_period, ea, school_hours, (posts, my_likes) = await gather(
                     self._get_person_schedule(dnr, child, start_date, end_date),
-                    self._get_schedule_marks(uow.cache_repository, dnr, uow.highlighting_person_repository, session, child, start_date, end_date),
+                    self._get_schedule_marks(uow.cache_repository, dnr, uow.highlighting_person_repository,
+                                             session, child, start_date, end_date),
                     self._get_period(uow.cache_repository, dnr, session, child, now.date()),
-                    self._get_extracurricular_activities(uow.extracurricular_activity_repository, child, (start, end)),
+                    self._get_extracurricular_activities(uow.extracurricular_activity_repository,
+                                                         child, (start, end)),
                     uow.hour_repository.get_school_hours(child.school_id),
                     get_posts()
                 )

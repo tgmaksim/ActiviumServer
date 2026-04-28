@@ -20,7 +20,9 @@ class SchoolPostViewingRepository(SqlAlchemyRepository[SchoolPostViewing]):
         })
 
     async def get_view(self, parent_id: int, post_id: int) -> Optional[SchoolPostViewing]:
-        return await self.get_single(SchoolPostViewing.parent_id == parent_id, SchoolPostViewing.post_id == post_id)
+        return await self.get_single(
+            SchoolPostViewing.parent_id == parent_id, SchoolPostViewing.post_id == post_id)
 
     async def has_my_viewings(self, parent_id: int, posts_id: list[int]) -> list[SchoolPostViewing]:
-        return await self.get_multi(SchoolPostViewing.parent_id == parent_id, SchoolPostViewing.post_id.in_(posts_id))
+        return await self.get_multi(
+            SchoolPostViewing.parent_id == parent_id, SchoolPostViewing.post_id.in_(posts_id))

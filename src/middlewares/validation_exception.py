@@ -13,7 +13,9 @@ __all__ = ['validation_exception_handler']
 
 
 async def validation_exception_handler(request: Request, exc: RequestValidationError) -> Response:
-    request.state.error = '\n'.join(traceback.format_exception(exc))
+    """Обработчик ошибки RequestValidationError для возвращения корректного API-ответа"""
+
+    request.state.error = '\n'.join(traceback.format_exception(exc))  # Для логирования ошибки
 
     return JSONResponse(ApiResponse(
         status=False,

@@ -17,7 +17,8 @@ class MarksNotificationRepository(SqlAlchemyRepository[MarksNotification]):
         super().__init__(queue, MarksNotification)
 
     async def get_status(self, session_id: str, child_id: int) -> Optional[MarksNotification]:
-        return await self.get_single(MarksNotification.session_id == session_id, MarksNotification.child_id == child_id)
+        return await self.get_single(
+            MarksNotification.session_id == session_id, MarksNotification.child_id == child_id)
 
     async def turn_off(self, session_id: str, child_id: int):
         await self.delete(MarksNotification.session_id == session_id, MarksNotification.child_id == child_id)
@@ -41,7 +42,9 @@ class MarksNotificationRepository(SqlAlchemyRepository[MarksNotification]):
             .limit(1)
             .cte('next_child')
         )
-        statement = select(MarksNotification).join(subquery, MarksNotification.child_id == subquery.c.child_id).with_for_update(skip_locked=True)
+        statement = (select(MarksNotification)
+                     .join(subquery, MarksNotification.child_id == subquery.c.child_id)
+                     .with_for_update(skip_locked=True))
 
         res = await self.queue.execute(statement)
         return res.scalars().all()

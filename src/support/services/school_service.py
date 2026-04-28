@@ -12,10 +12,21 @@ from ...dependencies.auth import check_session
 from ...dependencies.datetime import astimezone
 from ...services.html_response import HtmlResponse
 
-from ..schemas.school_schemas import SchoolPostsApiResponse, SchoolPostsResult, SchoolPost, \
-    SchoolPostsWithoutVisionApiResponse, SchoolPostsWithoutVisionResult, SeeSchoolPostApiResponse, \
-    ClickSchoolPostApiResponse, ViewSchoolPostApiResponse, ViewSchoolPostResult, LikeSchoolPostApiResponse, \
-    LikeSchoolPostResult, UnlikeSchoolPostApiResponse, UnlikeSchoolPostResult
+from ..schemas.school_schemas import (
+    SchoolPost,
+    SchoolPostsResult,
+    LikeSchoolPostResult,
+    ViewSchoolPostResult,
+    UnlikeSchoolPostResult,
+    SchoolPostsApiResponse,
+    SeeSchoolPostApiResponse,
+    ViewSchoolPostApiResponse,
+    LikeSchoolPostApiResponse,
+    ClickSchoolPostApiResponse,
+    UnlikeSchoolPostApiResponse,
+    SchoolPostsWithoutVisionResult,
+    SchoolPostsWithoutVisionApiResponse,
+)
 
 from ...services.base_service import BaseService
 from ..repositories.app_uow import AppUnitOfWork
@@ -25,6 +36,8 @@ __all__ = ['SchoolService']
 
 
 class SchoolService(BaseService[AppUnitOfWork]):
+    """Сервис для взаимодействия с ОО пользователя"""
+
     def __init__(self, uow_factory: Callable[[], AppUnitOfWork], httpx_client: AsyncClient):
         super().__init__(uow_factory)
         self.httpx_client = httpx_client

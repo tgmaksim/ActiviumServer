@@ -8,18 +8,21 @@ __all__ = ['setup_openapi']
 
 TITLE = "API школьного приложения «Активиум»"
 
-SUMMARY = "Полная документация API серверной части школьного приложения «Активиум»"
+SUMMARY = "Полная документация серверной части учебного приложения «Активиум»"
 
 DESCRIPTION = (
-    "Документация описывает публичный API серверной части приложения «Активиум».\n\n"
+    "Документация описывает API приложения «Активиум».\n\n"
     "Ключевой концепцией API является использование стабильных идентификаторов сущностей (classId). "
     "Каждый запрос и ответ опирается на classId, что позволяет клиентским приложениям разных версий "
-    "корректно работать с API даже в случае изменения структуры данных или устаревания отдельных методов.\n\n"
+    "корректно работать с API даже в случае изменения структуры данных или устаревания отдельных методов."
+    "При изменении какого-ибо метода создается его новая версия, а старая продолжает работать\n\n"
     "Полный список идентификаторов сущностей доступен в соответствующих разделах документации."
 )
 
 
 def setup_openapi(app: FastAPI, hide_validation_errors: bool):
+    """Настройка страницы openapi"""
+
     def custom_openapi():
         if app.openapi_schema:
             return app.openapi_schema
@@ -36,12 +39,14 @@ def setup_openapi(app: FastAPI, hide_validation_errors: bool):
             routes=app.routes,
         )
 
-        if hide_validation_errors:
+        if hide_validation_errors:  # Скрытие лишних разделов документации
             for _, method_item in schema.get('paths').items():
                 for _, param in method_item.items():
                     responses: dict = param.get('responses')
                     if '422' in responses:
-                        responses.pop('422')  # Удаление информации об ошибке RequestValidationError в документации
+                        # Удаление информации об ошибке RequestValidationError в документации, потому что
+                        # данная ошибка перехватывается и генерируется своя
+                        responses.pop('422')
 
             schemas: dict = schema.get('components', {}).get('schemas', {})
 

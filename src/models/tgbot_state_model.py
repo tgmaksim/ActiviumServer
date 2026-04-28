@@ -11,6 +11,8 @@ __all__ = ['TgbotState']
 
 
 class TgbotState(BaseModel):
+    """Модель состояния пользователя в Telegram-боте"""
+
     __tablename__ = 'tgbot_states'
 
     key: Mapped[str] = mapped_column(String(128), primary_key=True)

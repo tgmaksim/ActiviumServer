@@ -33,8 +33,10 @@ class BaseAioDnevnikruApi:
 
     def __init__(self, client: AsyncClient, token: str):
         """
+        Создание экземпляра клиента для взаимодействия с API Дневника.ру
+
         :param client: асинхронный httpx-клиент (рекомендуется сохранять для нескольких запросов)
-        :param token: токен для взаимодействия с дневником.ру (получается после авторизации)
+        :param token: токен для взаимодействия с Дневником.ру (получается после авторизации)
         """
 
         self._client: AsyncClient = client
@@ -71,7 +73,7 @@ class BaseAioDnevnikruApi:
             scope = [scope]
 
         return str(login_dnevnikru_path.update_query(
-            response_type='token',
+            response_type='token',  # Тип возвращаемого ответа - токен будет в redirect_uri#hash
             client_id=dnevnikru_client_id,
             scope=','.join(scope),
             redirect_uri=redirect_uri,

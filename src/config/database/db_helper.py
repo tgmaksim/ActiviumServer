@@ -14,7 +14,11 @@ __all__ = ['db_helper']
 
 
 class DatabaseHelper:
+    """Класс для взаимодействия с БД"""
+
     def __init__(self, url: str, echo: bool = False):
+        """Создание пула запросов к БД"""
+
         self.engine = create_async_engine(url=url, echo=echo, pool_pre_ping=True)
 
         self.session_factory = async_sessionmaker(
@@ -34,7 +38,10 @@ class DatabaseHelper:
                 raise
 
     async def dispose(self):
+        """Закрытие пула соединений с БД"""
+
         await self.engine.dispose()
 
 
 db_helper = DatabaseHelper(settings_db.database_url, settings_db.DB_ECHO)
+"""Экземпляр DatabaseHelper для взаимодействия с БД"""

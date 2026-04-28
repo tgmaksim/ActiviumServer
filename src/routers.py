@@ -18,6 +18,8 @@ __all__ = ['get_api_router', 'get_site_router', 'get_public_api_router']
 
 
 def get_api_router() -> APIRouter:
+    """API-router'ы с документацией"""
+
     router = APIRouter(dependencies=[Depends(check_api_key)], responses={
         500: {"description": "Внутренняя ошибка сервера при обработке запроса", "response_description": "Internal Server Error"},
         422: {"description": "Неверный формат входных данных", "response_description": "Unprocessable Entity"},
@@ -36,6 +38,8 @@ def get_api_router() -> APIRouter:
 
 
 def get_public_api_router() -> APIRouter:
+    """Публичные router'ы с документацией"""
+
     public_router = APIRouter(responses={
         500: {"description": "Внутренняя ошибка сервера", "response_description": "Internal Server Error"},
         404: {"description": "Запрашиваемый метод не найден", "response_description": "Not found"}
@@ -48,6 +52,8 @@ def get_public_api_router() -> APIRouter:
 
 
 def get_site_router() -> APIRouter:
+    """Router сайта"""
+
     router = APIRouter()
-    router.include_router(site_controller.router)
+    router.include_router(site_controller.public_router)
     return router

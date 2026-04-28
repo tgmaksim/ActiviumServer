@@ -28,7 +28,13 @@ class DnevnikruApi(BaseDnevnikruApi):
 
         return self.get(f"persons/{person}/edu-groups")
 
-    def get_person_schedule(self, person: int, group: int, startDate: Union[str, datetime, date], endDate: Union[str, datetime, date]) -> dict:
+    def get_person_schedule(
+            self,
+            person: int,
+            group: int,
+            startDate: Union[str, datetime, date],
+            endDate: Union[str, datetime, date]
+    ) -> dict:
         """Расписание персоны в учебной группе"""
 
         return self.get(

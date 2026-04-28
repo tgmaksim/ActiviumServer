@@ -15,7 +15,9 @@ from ...dependencies.services import get_login_service
 __all__ = ['router', 'public_router']
 
 router = APIRouter(prefix='/login', tags=["Login"])
+"""Router группы запросов login"""
 public_router = APIRouter(prefix='/login', tags=["Login"], include_in_schema=False)
+"""Публичный router группы запросов login"""
 
 
 @router.post(

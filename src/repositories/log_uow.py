@@ -14,6 +14,8 @@ __all__ = ['LogUnitOfWork']
 
 
 class LogUnitOfWork(SqlAlchemyUnitOfWork):
+    """UoW для работы с логами, статистикой и другой служебной информацией"""
+
     def __init__(self, session_factory: Callable[[], AsyncSession]):
         super().__init__(session_factory)
 

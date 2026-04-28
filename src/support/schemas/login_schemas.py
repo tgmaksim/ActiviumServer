@@ -10,6 +10,8 @@ __all__ = ['LoginResult', 'LoginApiResponse']
 
 
 class LoginResult(ApiBase):
+    """Результат запроса создания сессии"""
+
     classId: ClassVar[int] = 0x8
     class_id: Literal[0x8] = Field(
         default=classId,
@@ -31,6 +33,8 @@ class LoginResult(ApiBase):
 
 
 class LoginApiResponse(ApiResponse):
+    """Ответ на запрос создания сессии"""
+
     classId: ClassVar[int] = 0x9
     class_id: Literal[0x9, 0x2] = Field(
         default=classId,

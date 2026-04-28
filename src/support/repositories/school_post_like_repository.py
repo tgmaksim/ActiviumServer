@@ -20,10 +20,12 @@ class SchoolPostLikeRepository(SqlAlchemyRepository[SchoolPostLike]):
         })
 
     async def get_like(self, parent_id: int, post_id: int) -> Optional[SchoolPostLike]:
-        return await self.get_single(SchoolPostLike.parent_id == parent_id, SchoolPostLike.post_id == post_id)
+        return await self.get_single(
+            SchoolPostLike.parent_id == parent_id, SchoolPostLike.post_id == post_id)
 
     async def has_my_likes(self, parent_id: int, posts_id: list[int]) -> list[SchoolPostLike]:
-        return await self.get_multi(SchoolPostLike.parent_id == parent_id, SchoolPostLike.post_id.in_(posts_id))
+        return await self.get_multi(
+            SchoolPostLike.parent_id == parent_id, SchoolPostLike.post_id.in_(posts_id))
 
     async def delete_like(self, parent_id: int, post_id: int):
         return await self.delete(SchoolPostLike.parent_id == parent_id, SchoolPostLike.post_id == post_id)

@@ -8,6 +8,8 @@ __all__ = ['Child']
 
 
 class Child(BaseModel):
+    """Модель ребенка (поставщик данных)"""
+
     __tablename__ = 'children'
 
     child_id: Mapped[int] = mapped_column(BigInteger, primary_key=True)

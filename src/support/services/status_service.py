@@ -6,13 +6,24 @@ from ...repositories.statistic_repository import StatName
 from ...services.base_service import BaseService
 from ..repositories.app_uow import AppUnitOfWork
 
-from ..schemas.status_schemas import VersionsApiResponse0x4, VersionsResult0x3, HealthApiResponse, InformationApiResponse, \
-    InformationResult, Message, VersionsResult, VersionsApiResponse
+from ..schemas.status_schemas import (
+    Message,
+    VersionsResult,
+    InformationResult,
+    VersionsResult0x3,
+    HealthApiResponse,
+    VersionsApiResponse,
+    VersionsApiResponse0x4,
+    InformationApiResponse,
+)
+
 
 __all__ = ['StatusService']
 
 
 class StatusService(BaseService[AppUnitOfWork]):
+    """Сервис для статусных взаимодействий"""
+
     async def check_latest_version(self, version_number: int, api: int = None) -> Union[VersionsApiResponse0x4, VersionsApiResponse]:
         async with self.uow_factory() as uow:
             latest = await uow.version_repository.get_latest_version()

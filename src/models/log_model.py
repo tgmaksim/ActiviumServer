@@ -10,6 +10,8 @@ __all__ = ['Log']
 
 
 class Log(BaseModel):
+    """Модель лога"""
+
     log_id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
     ip: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
     path: Mapped[str] = mapped_column(String)

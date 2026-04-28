@@ -5,7 +5,7 @@ from aiogram.filters import Command
 
 from hosting import reload_server
 
-from ..config import settings
+from src.config.project_config import settings
 
 
 __all__ = ['router']

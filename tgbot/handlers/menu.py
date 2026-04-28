@@ -8,22 +8,31 @@ from yarl import URL
 from pathlib import Path
 
 from aiogram import Router, F
-from aiogram.enums import ContentType, MessageEntityType
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
 from aiogram.exceptions import TelegramBadRequest
+from aiogram.enums import ContentType, MessageEntityType
 
 from src.dependencies.datetime import astimezone
 from src.dependencies.uow import get_app_uow_factory
 from src.models.school_admin_model import SchoolAdmin
 from src.repositories.statistic_repository import StatName
 
-from tgbot.config import settings
+from src.config.project_config import settings
 from src.support.repositories.app_uow import AppUnitOfWork
 
 from aiogram.filters import Command
-from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery, ReplyKeyboardMarkup, \
-    KeyboardButton, KeyboardButtonRequestUsers, ReplyKeyboardRemove, LinkPreviewOptions
+from aiogram.types import (
+    Message,
+    CallbackQuery,
+    KeyboardButton,
+    LinkPreviewOptions,
+    ReplyKeyboardMarkup,
+    ReplyKeyboardRemove,
+    InlineKeyboardMarkup,
+    InlineKeyboardButton,
+    KeyboardButtonRequestUsers,
+)
 
 
 __all__ = ['router']

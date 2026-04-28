@@ -3,7 +3,7 @@ from aiogram import Router
 from aiogram.filters import Command
 from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
 
-from ..config import settings
+from src.config.project_config import settings
 
 
 __all__ = ['router']

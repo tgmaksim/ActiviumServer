@@ -15,7 +15,13 @@ class InformationRepository(SqlAlchemyRepository[Information]):
     def __init__(self, queue: AsyncDBQueue):
         super().__init__(queue, Information)
 
-    async def create_information(self, parent_id: int, type_: str, time: datetime, title: str, text: str) -> Information:
+    async def create_information(
+            self,
+            parent_id: int,
+            type_: str,
+            time: datetime,
+            title: str, text: str
+    ) -> Information:
         return await self.create({
             'parent_id': parent_id,
             'time': time,
@@ -28,7 +34,8 @@ class InformationRepository(SqlAlchemyRepository[Information]):
         return await self.get_multi(Information.parent_id == parent_id, Information.time <= func.now())
 
     async def delete_information(self, parent_id: int, time: datetime, type_: str):
-        return await self.delete(Information.parent == parent_id, Information.type == type_, Information.time == time)
+        return await self.delete(
+            Information.parent == parent_id, Information.type == type_, Information.time == time)
 
     async def delete_informations(self, parent_id: int):
         return await self.delete(Information.parent_id == parent_id, Information.time <= func.now())

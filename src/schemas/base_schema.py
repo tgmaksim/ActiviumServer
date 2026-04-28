@@ -7,6 +7,8 @@ __all__ = ['ApiBase']
 
 
 class ApiBase(BaseModel):
+    """Базовый класс всех API-сущностей"""
+
     classId: ClassVar[int] = 0x0  # Абстрактный класс
     class_id: Literal[0] = Field(
         alias='classId',  # Для проверки входящего classId

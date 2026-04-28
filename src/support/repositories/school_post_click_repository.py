@@ -20,7 +20,9 @@ class SchoolPostClickRepository(SqlAlchemyRepository[SchoolPostClick]):
         })
 
     async def get_click(self, parent_id: int, post_id: int) -> Optional[SchoolPostClick]:
-        return await self.get_single(SchoolPostClick.parent_id == parent_id, SchoolPostClick.post_id == post_id)
+        return await self.get_single(
+            SchoolPostClick.parent_id == parent_id, SchoolPostClick.post_id == post_id)
 
     async def has_my_clicks(self, parent_id: int, posts_id: list[int]) -> list[SchoolPostClick]:
-        return await self.get_multi(SchoolPostClick.parent_id == parent_id, SchoolPostClick.post_id.in_(posts_id))
+        return await self.get_multi(
+            SchoolPostClick.parent_id == parent_id, SchoolPostClick.post_id.in_(posts_id))

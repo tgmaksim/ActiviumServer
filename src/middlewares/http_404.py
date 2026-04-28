@@ -13,7 +13,11 @@ __all__ = ['http_404_handler']
 
 
 async def http_404_handler(request: Request, exc: HTTPException) -> Response:
-    request.state.error = str(exc)
+    """Обработчик http-ошибок с кодом 404"""
+
+    request.state.error = str(exc)  # Для логирования ошибки
+
+    # Для API — json-ответ, для сайта — страница с ошибкой
 
     if request.url.path.startswith(settings.API_PREFIX):
         return JSONResponse(ApiResponse(

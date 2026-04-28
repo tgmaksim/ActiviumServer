@@ -10,9 +10,11 @@ dnevnikru_path: URL = URL.build(
     host="api.dnevnik.ru",
     path="/" + DNEVNIKRU_API_VERSION
 )
+"""URL для отправки API-запросов"""
 
 login_dnevnikru_path: URL = URL.build(
     scheme="https",
     host="login.dnevnik.ru",
     path="/oauth2"
 )
+"""URL для авторизации сессии в Дневнике.ру"""

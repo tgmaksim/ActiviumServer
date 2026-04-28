@@ -14,6 +14,8 @@ __all__ = ['Review', 'CreateReviewApiResponse', 'MyReviewResult', 'MyReviewApiRe
 
 
 class Review(ApiBase):
+    """Отзыв"""
+
     classId: ClassVar[int] = 0x29
     class_id: Literal[0x29] = Field(
         default=classId,
@@ -56,6 +58,8 @@ class Review(ApiBase):
 
 
 class MyReviewResult(ApiBase):
+    """Результат запроса получения своего отзыва"""
+
     classId: ClassVar[int] = 0x2A
     class_id: Literal[0x2A] = Field(
         default=classId,
@@ -72,6 +76,8 @@ class MyReviewResult(ApiBase):
 
 
 class CreateReviewApiResponse(ApiResponse):
+    """Ответ на запрос создания отзыва"""
+
     classId: ClassVar[int] = 0x2B
     class_id: Literal[0x2B, 0x2] = Field(
         default=classId,
@@ -86,6 +92,8 @@ class CreateReviewApiResponse(ApiResponse):
 
 
 class MyReviewApiResponse(ApiResponse):
+    """Ответ на запрос получения своего отзыва"""
+
     classId: ClassVar[int] = 0x2C
     class_id: Literal[0x2C, 0x2] = Field(
         default=classId,
@@ -99,6 +107,8 @@ class MyReviewApiResponse(ApiResponse):
 
 
 class DeleteReviewApiResponse(ApiResponse):
+    """Ответ на запрос удаления отзыва"""
+
     classId: ClassVar[int] = 0x2D
     class_id: Literal[0x2D, 0x2] = Field(
         default=classId,
@@ -113,6 +123,8 @@ class DeleteReviewApiResponse(ApiResponse):
 
 
 class ReviewsResult(ApiBase):
+    """Ответ на запрос получения отзывов"""
+
     classId: ClassVar[int] = 0x2E
     class_id: Literal[0x2E] = Field(
         default=classId,
@@ -130,6 +142,8 @@ class ReviewsResult(ApiBase):
 
 
 class ReviewsApiResponse(ApiResponse):
+    """Ответ на запрос получения отзывов"""
+
     classId: ClassVar[int] = 0x2F
     class_id: Literal[0x2F, 0x2] = Field(
         default=classId,
@@ -144,6 +158,8 @@ class ReviewsApiResponse(ApiResponse):
 
 
 class LikeReviewResult(ApiBase):
+    """Результата запроса постановки реакции на отзыве"""
+
     classId: ClassVar[int] = 0x30
     class_id: Literal[0x30] = Field(
         default=classId,
@@ -157,6 +173,8 @@ class LikeReviewResult(ApiBase):
 
 
 class LikeReviewApiResponse(ApiResponse):
+    """Ответ на запрос постановки реакции на отзыве"""
+
     classId: ClassVar[int] = 0x31
     class_id: Literal[0x31, 0x2] = Field(
         default=classId,
@@ -171,6 +189,8 @@ class LikeReviewApiResponse(ApiResponse):
 
 
 class DeleteReviewLikeResult(ApiBase):
+    """Результат запроса удаления реакции с отзыва"""
+
     classId: ClassVar[int] = 0x32
     class_id: Literal[0x32] = Field(
         default=classId,
@@ -184,6 +204,8 @@ class DeleteReviewLikeResult(ApiBase):
 
 
 class DeleteReviewLikeApiResponse(ApiResponse):
+    """Ответ на запрос удаления реакции с отзыва"""
+
     classId: ClassVar[int] = 0x33
     class_id: Literal[0x33, 0x2] = Field(
         default=classId,

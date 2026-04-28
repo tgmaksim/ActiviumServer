@@ -11,11 +11,22 @@ __all__ = ['SqlAlchemyRepository']
 
 
 class SqlAlchemyRepository(AbstractRepository[ModelType]):
+    """Репозиторий для взаимодействия с БД через SQL"""
+
     def __init__(self, queue: AsyncDBQueue, model: Type[ModelType]):
         self.queue = queue
         self.model = model
 
     async def create(self, data: dict, security: list[str] = None, security_nothing = False) -> ModelType:
+        """
+        Добавление строки в таблицу
+
+        :param data: данные модели
+        :param security: список полей с индексом unique для обновления других данных в той же строке в случае конфликта
+        :param security_nothing: в случае конфликта полей security ничего не делать
+        :return: созданная модель с данными
+        """
+
         statement = insert(self.model).values(**data)
         if security:
             if security_nothing:
@@ -30,6 +41,15 @@ class SqlAlchemyRepository(AbstractRepository[ModelType]):
         return res.scalar()
 
     async def create_many(self, data: Iterable[dict], security: list[str] = None, security_nothing = False) -> list[ModelType]:
+        """
+        Добавление нескольких строк в таблицу
+
+        :param data: данные модели
+        :param security: список полей с индексом unique для обновления других данных в той же строке в случае конфликта
+        :param security_nothing: в случае конфликта полей security ничего не делать
+        :return: созданные модели с данными
+        """
+
         statement = insert(self.model).values(data)
         if security:
             if security_nothing:
@@ -41,6 +61,15 @@ class SqlAlchemyRepository(AbstractRepository[ModelType]):
         return list(res.scalars().all())
 
     async def update(self, data: dict, *where, **filters) -> Optional[ModelType]:
+        """
+        Обновление данных в таблице
+
+        :param data: обновленные данные
+        :param where: фильтры через модели
+        :param filters: примитивные фильтры
+        :return: обновленная модель (первая), если есть
+        """
+
         statement = update(self.model).values(**data)
 
         if where:
@@ -53,6 +82,14 @@ class SqlAlchemyRepository(AbstractRepository[ModelType]):
         return res.scalar_one_or_none()
 
     async def delete(self, *where, **filters) -> Optional[int]:
+        """
+        Удаление данных из таблицы
+
+        :param where: фильтры через модели
+        :param filters: примитивные фильтры
+        :return: количество удаленных строк (если вернула БД)
+        """
+
         statement = delete(self.model)
 
         if where:
@@ -64,6 +101,14 @@ class SqlAlchemyRepository(AbstractRepository[ModelType]):
         return res.rowcount
 
     async def get_single(self, *where, **filters) -> Optional[ModelType]:
+        """
+        Получение единственного экземпляра данных в таблице
+
+        :param where: фильтры через модели
+        :param filters: примитивные фильтры
+        :return: модель с данными, если есть
+        """
+
         statement = select(self.model)
 
         if where:
@@ -80,6 +125,15 @@ class SqlAlchemyRepository(AbstractRepository[ModelType]):
             orders_: Union[Iterable[ColumnElement], ColumnElement] = None,
             **filters
     ) -> Optional[ModelType]:
+        """
+        Получение первой модели с данными по фильтрам
+
+        :param where: фильтры через модели
+        :param filters: примитивные фильтры
+        :param orders_: правила сортировки
+        :return: модель с данными, если есть
+        """
+
         statement = select(self.model).limit(1)
 
         if where:
@@ -102,6 +156,17 @@ class SqlAlchemyRepository(AbstractRepository[ModelType]):
             offset: int = None,
             **filters
     ) -> list[ModelType]:
+        """
+        Получение нескольких моделей с данными по фильтрам
+
+        :param where: фильтры через модели
+        :param filters: примитивные фильтры
+        :param orders_: правила сортировки
+        :param limit: лимит количества
+        :param offset: смещение списка
+        :return: модели с данными
+        """
+
         statement = select(self.model)
 
         if where:

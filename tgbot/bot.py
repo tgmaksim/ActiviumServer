@@ -4,6 +4,8 @@ from aiogram import Bot, Dispatcher
 from aiogram.enums import ParseMode
 from aiogram.client.default import DefaultBotProperties
 
+from src.config.project_config import settings
+
 
 __all__ = ['create_bot_and_dispatcher', 'get_bot']
 
@@ -21,7 +23,6 @@ def get_bot() -> Bot:
 
 def create_bot_and_dispatcher() -> tuple[Bot, Dispatcher]:
     # fix circular import
-    from .config import settings
     from .routers import get_tg_router
     from .fcm_storage import PostgresStorage
     from .middlewares.logging import LoggingMiddleware

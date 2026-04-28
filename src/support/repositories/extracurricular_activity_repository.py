@@ -13,11 +13,15 @@ class ExtracurricularActivityRepository(SqlAlchemyRepository[ExtracurricularActi
     def __init__(self, queue: AsyncDBQueue):
         super().__init__(queue, ExtracurricularActivity)
 
-    async def get_extracurricular_activities(self, school_id: int, group_id: int, period: tuple[datetime, datetime]) -> list[ExtracurricularActivity]:
+    async def get_extracurricular_activities(
+            self,
+            school_id: int,
+            group_id: int,
+            period: tuple[datetime, datetime]
+    ) -> list[ExtracurricularActivity]:
         return await self.get_multi(
             ExtracurricularActivity.school_id == school_id,
             ExtracurricularActivity.group_id == group_id,
             ExtracurricularActivity.start_time.between(*period),
             orders_=ExtracurricularActivity.start_time.asc()
         )
-

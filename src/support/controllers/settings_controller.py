@@ -20,6 +20,7 @@ from ...dependencies.services import get_settings_service
 __all__ = ['router']
 
 router = APIRouter(prefix='/settings', tags=["Settings"])
+"""Router группы запросов settings"""
 
 
 @router.get(

@@ -10,6 +10,8 @@ __all__ = ['SqlAlchemyUnitOfWork']
 
 
 class SqlAlchemyUnitOfWork(UnitOfWork):
+    """UoW для работы с БД"""
+
     def __init__(self, session_factory: Callable[[], AsyncSession]):
         self.session_factory = session_factory
 
@@ -30,7 +32,11 @@ class SqlAlchemyUnitOfWork(UnitOfWork):
             await self.session.close()
 
     async def commit(self):
+        """Сохранение изменений"""
+
         await self.session.commit()
 
     async def rollback(self):
+        """Откат всех изменений"""
+
         await self.session.rollback()

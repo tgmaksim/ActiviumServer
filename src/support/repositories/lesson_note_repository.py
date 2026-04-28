@@ -16,7 +16,14 @@ class LessonNoteRepository(SqlAlchemyRepository[LessonNote]):
     def __init__(self, queue: AsyncDBQueue):
         super().__init__(queue, LessonNote)
 
-    async def create_note(self, child_id: int, lesson_id: int, text: str, public: bool, remind_time: Optional[datetime]) -> LessonNote:
+    async def create_note(
+            self,
+            child_id: int,
+            lesson_id: int,
+            text: str,
+            public: bool,
+            remind_time: Optional[datetime]
+    ) -> LessonNote:
         return await self.create({
             'child_id': child_id,
             'lesson_id': lesson_id,
@@ -29,11 +36,13 @@ class LessonNoteRepository(SqlAlchemyRepository[LessonNote]):
         return await self.get_single(LessonNote.child_id == child_id, LessonNote.lesson_id == lesson_id)
 
     async def delete_note(self, child_id: int, lesson_id: int):
-        return await self.delete(LessonNote.child_id == child_id, LessonNote.lesson_id == lesson_id)
+        return await self.delete(
+            LessonNote.child_id == child_id, LessonNote.lesson_id == lesson_id)
 
     async def get_notes(self, child_id: int, lessons_id: list[int], only_public: bool = False) -> dict[int, LessonNote]:
         if only_public:
-            notes = await self.get_multi(LessonNote.child_id == child_id, LessonNote.lesson_id.in_(lessons_id), LessonNote.public == True)
+            notes = await self.get_multi(
+                LessonNote.child_id == child_id, LessonNote.lesson_id.in_(lessons_id), LessonNote.public == True)
         else:
             notes = await self.get_multi(LessonNote.child_id == child_id, LessonNote.lesson_id.in_(lessons_id))
         return {note.lesson_id: note for note in notes}

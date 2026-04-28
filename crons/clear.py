@@ -3,11 +3,15 @@ from datetime import timedelta
 from src.dependencies.uow import get_app_uow_factory
 
 
+__all__ = ['main']
+
 SESSION_LIFETIME = timedelta(days=64)
 LESSON_NOTE_LIFETIME = timedelta(days=32)
 
 
 async def main():
+    """Очистка БД от старых ненужных данных"""
+
     uow_factory = get_app_uow_factory()
 
     async with uow_factory() as uow:

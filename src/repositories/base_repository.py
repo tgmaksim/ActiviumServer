@@ -11,6 +11,8 @@ ModelType = TypeVar("ModelType", bound=BaseModel)
 
 
 class AbstractRepository(ABC, Generic[ModelType]):
+    """Абстрактный репозиторий с базовыми методами"""
+
     @abstractmethod
     async def create(self, data: dict) -> ModelType:
         raise NotImplementedError

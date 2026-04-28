@@ -11,6 +11,8 @@ __all__ = ['ExtracurricularActivity']
 
 
 class ExtracurricularActivity(BaseModel):
+    """Модель внеурочного занятия в расписании"""
+
     __tablename__ = 'extracurricular_activities'
 
     ea_id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
@@ -22,5 +24,6 @@ class ExtracurricularActivity(BaseModel):
     hours: Mapped[dict] = mapped_column(JSONB)
 
     __table_args__ = (
-        UniqueConstraint('school_id', 'group_id', 'start_time', 'subject', 'place', name='extracurricular_activities_school_id_group_id_start_time_subjec'),
+        UniqueConstraint('school_id', 'group_id', 'start_time', 'subject', 'place',
+                         name='extracurricular_activities_school_id_group_id_start_time_subjec'),
     )

@@ -8,6 +8,8 @@ __all__ = ['Review']
 
 
 class Review(BaseModel):
+    """Модель отзыва"""
+
     parent_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("parents.parent_id", onupdate="CASCADE", ondelete="CASCADE"), primary_key=True)
     name: Mapped[str] = mapped_column(Text(32))
     stars: Mapped[int] = mapped_column(SmallInteger)

@@ -15,7 +15,10 @@ class EAProcessingNotificationRepository(SqlAlchemyRepository[EAProcessingNotifi
     def __init__(self, queue: AsyncDBQueue):
         super().__init__(queue, EAProcessingNotification)
 
-    async def get_next_extracurricular_activities(self, start_time_period: tuple[datetime, datetime]) -> list[EAProcessingNotification]:
+    async def get_next_extracurricular_activities(
+            self,
+            start_time_period: tuple[datetime, datetime]
+    ) -> list[EAProcessingNotification]:
         subquery = (
             select(EAProcessingNotification.start_time)
             .where(EAProcessingNotification.start_time.between(*start_time_period))
