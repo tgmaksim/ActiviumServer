@@ -1,6 +1,7 @@
+from http import HTTPStatus
 from typing import Annotated
 
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi import APIRouter, Query, Depends, Request, Header
 
 from ..services.school_service import SchoolService
@@ -27,6 +28,19 @@ public_router = APIRouter(prefix='/school', tags=["School"], include_in_schema=F
 
 
 @public_router.get(
+    "/posts/{post_id}",
+    summary="Получение поста",
+    description="Возвращает отрисованный пост со всеми параметрами и контентом",
+    response_class=RedirectResponse
+)
+async def _pre_post(request: Request) -> RedirectResponse:
+    return RedirectResponse(
+        url=request.url.replace(scheme='https', path=request.url.path + '/'),
+        status_code=HTTPStatus.PERMANENT_REDIRECT
+    )
+
+
+@public_router.get(
     "/posts/{post_id}/",
     summary="Получение поста",
     description="Возвращает отрисованный пост со всеми параметрами и контентом",
@@ -35,9 +49,10 @@ public_router = APIRouter(prefix='/school', tags=["School"], include_in_schema=F
 async def _post(
         request: Request,
         post_id: int,
+        isDarkTheme: Annotated[bool, Query(description="Интерфейс в темной теме")] = False,
         service: SchoolService = Depends(get_school_service)
 ) -> HTMLResponse:
-    template_params = await service.get_post(post_id)
+    template_params = await service.get_post(post_id, isDarkTheme)
 
     templates = get_templates()
     response = templates.TemplateResponse(

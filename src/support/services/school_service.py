@@ -41,7 +41,7 @@ class SchoolService(BaseService[AppUnitOfWork]):
         super().__init__(uow_factory)
         self.httpx_client = httpx_client
 
-    async def get_post(self, post_id: int) -> HtmlResponse:
+    async def get_post(self, post_id: int, is_dark_theme: bool) -> HtmlResponse:
         async with self.uow_factory() as uow:
             post = await uow.school_post_repository.get_post(post_id)
 
@@ -54,6 +54,7 @@ class SchoolService(BaseService[AppUnitOfWork]):
             } for block in post.content]
 
             return HtmlResponse(name='post.html', context={
+                'theme': 'dark' if is_dark_theme else 'light',
                 'title': post.title,
                 'description': post.description,
                 'has_image': post.has_image,

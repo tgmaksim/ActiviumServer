@@ -36,6 +36,7 @@ class SchoolPostRepository(SqlAlchemyRepository[SchoolPost]):
             or_(SchoolPost.school_id == school_id, SchoolPost.school_id == None),
             SchoolPost.schedule_date != None,
             SchoolPost.schedule_date.between(start, end),
+            orders_=SchoolPost.created_at.desc()
         )
 
     async def get_post(self, post_id: int) -> Optional[SchoolPost]:
