@@ -190,19 +190,19 @@ class SettingsService(BaseService[AppUnitOfWork]):
 
             if not status:
                 await uow.marks_notification_repository.turn_off(session_id, child_id)
-                await uow.statistic_repository.add_statistic(parent.parent_id, StatName.turnOnMarksNotifications)
+                await uow.statistic_repository.add_statistic(parent.parent_id, StatName.turnOffMarksNotifications)
                 return SwitchMarksNotificationsApiResponse()
 
-            dnr = AioDnevnikruApi(self.httpx_client, session.dnevnik_token)
-
-            try:
-                children = await dnr.get_children(parent.parent_id)
-            except BaseDnevnikruException as e:
-                if not await uow.session_repository.check_session_auth(session.session_id, dnr):
-                    raise SessionError(session_id=session.session_id) from e
-                raise
-
             if child_id != session.active_child_id:
+                dnr = AioDnevnikruApi(self.httpx_client, session.dnevnik_token)
+
+                try:
+                    children = await dnr.get_children(parent.parent_id)
+                except BaseDnevnikruException as e:
+                    if not await uow.session_repository.check_session_auth(session.session_id, dnr):
+                        raise SessionError(session_id=session.session_id) from e
+                    raise
+
                 try:
                     next(filter(lambda c: c['id'] == child_id, children))
                 except StopIteration:
@@ -221,7 +221,7 @@ class SettingsService(BaseService[AppUnitOfWork]):
                     )
 
             await uow.marks_notification_repository.turn_on(session_id, child_id)
-            await uow.statistic_repository.add_statistic(parent.parent_id, StatName.turnOffMarksNotifications)
+            await uow.statistic_repository.add_statistic(parent.parent_id, StatName.turnOnMarksNotifications)
 
             return SwitchMarksNotificationsApiResponse()
 
@@ -258,13 +258,40 @@ class SettingsService(BaseService[AppUnitOfWork]):
             if child_id is None:
                 child_id = session.active_child_id
 
-            if status:
-                await uow.ea_notification_repository.turn_on(session_id, child_id)
-            else:
+            if not status:
                 await uow.ea_notification_repository.turn_off(session_id, child_id)
+                await uow.statistic_repository.add_statistic(parent.parent_id, StatName.turnOffEANotifications)
+                return SwitchEANotificationsApiResponse()
 
-            statistics_key = StatName.turnOnEANotifications if status else StatName.turnOffEANotifications
-            await uow.statistic_repository.add_statistic(parent.parent_id, statistics_key)
+            if child_id != session.active_child_id:
+                dnr = AioDnevnikruApi(self.httpx_client, session.dnevnik_token)
+
+                try:
+                    children = await dnr.get_children(parent.parent_id)
+                except BaseDnevnikruException as e:
+                    if not await uow.session_repository.check_session_auth(session.session_id, dnr):
+                        raise SessionError(session_id=session.session_id) from e
+                    raise
+
+                try:
+                    next(filter(lambda c: c['id'] == child_id, children))
+                except StopIteration:
+                    await uow.log_repository.add_log(
+                        path='switchMarksNotifications',
+                        status=False,
+                        session_id=session_id,
+                        value=f"Ребенок {child_id} не найден"
+                    )
+                    return SwitchEANotificationsApiResponse(
+                        status=False,
+                        error=ApiError(
+                            type="ValueError",
+                            errorMessage="Ребенок не найден"
+                        )
+                    )
+
+            await uow.ea_notification_repository.turn_off(session_id, child_id)
+            await uow.statistic_repository.add_statistic(parent.parent_id, StatName.turnOffEANotifications)
 
             return SwitchEANotificationsApiResponse()
 

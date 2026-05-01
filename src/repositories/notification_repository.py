@@ -48,4 +48,4 @@ class NotificationRepository(SqlAlchemyRepository[Notification]):
     async def notify(message: str):
         """Отправка отчета администраторам"""
 
-        return await send_admin_message(message)
+        return await send_admin_message(message, parse_mode=None)

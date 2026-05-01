@@ -8,9 +8,9 @@ from typing import ClassVar, Literal, Optional
 
 
 __all__ = ['SchoolPost', 'SchoolPostsResult', 'SchoolPostsApiResponse', 'SchoolPostsWithoutVisionResult',
-           'SchoolPostsWithoutVisionApiResponse', 'SeeSchoolPostApiResponse', 'ClickSchoolPostApiResponse',
-           'ViewSchoolPostResult', 'ViewSchoolPostApiResponse', 'LikeSchoolPostResult', 'LikeSchoolPostApiResponse',
-           'UnlikeSchoolPostResult', 'UnlikeSchoolPostApiResponse']
+           'SchoolPostsWithoutVisionApiResponse', 'MarkSchoolPostResult', 'SeeSchoolPostApiResponse',
+           'ClickSchoolPostApiResponse', 'ViewSchoolPostApiResponse', 'LikeSchoolPostApiResponse',
+           'UnlikeSchoolPostApiResponse']
 
 
 class SchoolPost(ApiBase):
@@ -58,6 +58,9 @@ class SchoolPost(ApiBase):
     )
     hasMyLike: bool = Field(
         description="Поставлена реакция на пост"
+    )
+    isSaw: bool = Field(
+        description="Пост уже был увиден"
     )
     createdAt: datetime.datetime = Field(
         description="Время написания поста"
@@ -135,24 +138,26 @@ class SchoolPostsWithoutVisionApiResponse(ApiResponse):
     )
 
 
-class SeeSchoolPostApiResponse(ApiResponse):
-    """Ответ на запрос пометки поста как увиденного"""
+class MarkSchoolPostResult(ApiBase):
+    """Результат запроса пометки поста"""
 
     classId: ClassVar[int] = 0x53
-    class_id: Literal[0x53, 0x2] = Field(
+    class_id: Literal[0x53] = Field(
         default=classId,
         alias='classId',
         description="Идентификатор класса"
     )
 
-    answer: None = Field(
-        default=None,
-        description="Всегда null"
+    post: SchoolPost = Field(
+        description="Обновленный пост"
+    )
+    countPostsWithoutVision: int = Field(
+        description="Количество неувиденных постов"
     )
 
 
-class ClickSchoolPostApiResponse(ApiResponse):
-    """Ответ на запрос пометки поста как нажатого"""
+class SeeSchoolPostApiResponse(ApiResponse):
+    """Ответ на запрос пометки поста как увиденного"""
 
     classId: ClassVar[int] = 0x54
     class_id: Literal[0x54, 0x2] = Field(
@@ -161,24 +166,25 @@ class ClickSchoolPostApiResponse(ApiResponse):
         description="Идентификатор класса"
     )
 
-    answer: None = Field(
+    answer: Optional[MarkSchoolPostResult] = Field(
         default=None,
-        description="Всегда null"
+        description="Обновленный пост и количество неувиденных постов"
     )
 
 
-class ViewSchoolPostResult(ApiBase):
-    """Результат запроса пометки поста как просмотренного"""
+class ClickSchoolPostApiResponse(ApiResponse):
+    """Ответ на запрос пометки поста как нажатого"""
 
     classId: ClassVar[int] = 0x55
-    class_id: Literal[0x55] = Field(
+    class_id: Literal[0x55, 0x2] = Field(
         default=classId,
         alias='classId',
         description="Идентификатор класса"
     )
 
-    post: SchoolPost = Field(
-        description="Обновленный пост"
+    answer: Optional[MarkSchoolPostResult] = Field(
+        default=None,
+        description="Обновленный пост и количество неувиденных постов"
     )
 
 
@@ -192,69 +198,39 @@ class ViewSchoolPostApiResponse(ApiResponse):
         description="Идентификатор класса"
     )
 
-    answer: Optional[ViewSchoolPostResult] = Field(
+    answer: Optional[MarkSchoolPostResult] = Field(
         default=None,
-        description="Обновленный пост"
-    )
-
-
-class LikeSchoolPostResult(ApiBase):
-    """Результат запроса постановки реакции на посте"""
-
-    classId: ClassVar[int] = 0x57
-    class_id: Literal[0x57] = Field(
-        default=classId,
-        alias='classId',
-        description="Идентификатор класса"
-    )
-
-    post: SchoolPost = Field(
-        description="Обновленный пост"
+        description="Обновленный пост и количество неувиденных постов"
     )
 
 
 class LikeSchoolPostApiResponse(ApiResponse):
     """Ответ на запрос постановки реакции на посте"""
 
-    classId: ClassVar[int] = 0x58
+    classId: ClassVar[int] = 0x57
     class_id: Literal[0x58, 0x2] = Field(
         default=classId,
         alias='classId',
         description="Идентификатор класса"
     )
 
-    answer: Optional[LikeSchoolPostResult] = Field(
+    answer: Optional[MarkSchoolPostResult] = Field(
         default=None,
-        description="Обновленный пост"
-    )
-
-
-class UnlikeSchoolPostResult(ApiBase):
-    """Результат запроса удаления реакции на посте"""
-
-    classId: ClassVar[int] = 0x59
-    class_id: Literal[0x59] = Field(
-        default=classId,
-        alias='classId',
-        description="Идентификатор класса"
-    )
-
-    post: SchoolPost = Field(
-        description="Обновленный пост"
+        description="Обновленный пост и количество неувиденных постов"
     )
 
 
 class UnlikeSchoolPostApiResponse(ApiResponse):
     """Ответ на запрос удаления реакции на посте"""
 
-    classId: ClassVar[int] = 0x5A
+    classId: ClassVar[int] = 0x58
     class_id: Literal[0x5A, 0x2] = Field(
         default=classId,
         alias='classId',
         description="Идентификатор класса"
     )
 
-    answer: Optional[UnlikeSchoolPostResult] = Field(
+    answer: Optional[MarkSchoolPostResult] = Field(
         default=None,
-        description="Обновленный пост"
+        description="Обновленный пост и количество неувиденных постов"
     )

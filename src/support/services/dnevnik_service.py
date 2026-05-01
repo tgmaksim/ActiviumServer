@@ -124,12 +124,15 @@ class DnevnikService(BaseService[AppUnitOfWork]):
 
             async def get_posts():
                 _posts = await uow.school_post_repository.get_schedule_posts(child.school_id, start_date, end_date)
-                _likes = await uow.school_post_like_repository.has_my_likes(session.parent_id, [post.post_id for post in _posts])
+                post_ids = [post.post_id for post in _posts]
+                _likes = await uow.school_post_like_repository.has_my_likes(session.parent_id, post_ids)
                 _my_likes = [like.post_id for like in _likes]
-                return _posts, _my_likes
+                _visions = await uow.school_post_vision_repository.has_my_visions(session.parent_id, post_ids)
+                _my_visions = [vision.post_id for vision in _visions]
+                return _posts, _my_likes, _my_visions
 
             try:
-                (person_schedule, files), (marks, others_marks), active_period, ea, school_hours, (posts, my_likes) = await gather(
+                (person_schedule, files), (marks, others_marks), active_period, ea, school_hours, (posts, my_likes, my_visions) = await gather(
                     self._get_person_schedule(dnr, child, start_date, end_date),
                     self._get_schedule_marks(uow.cache_repository, dnr, uow.highlighting_person_repository,
                                              session, child, start_date, end_date),
@@ -258,6 +261,7 @@ class DnevnikService(BaseService[AppUnitOfWork]):
                         countViewings=post.count_viewings,
                         countLikes=post.count_likes,
                         hasMyLike=post.post_id in my_likes,
+                        isSaw=post.post_id in my_visions,
                         createdAt=post.created_at,
                         humanCreatedAt=astimezone(post.created_at, post.timezone).strftime('%e %b. в %H:%M').strip(),
                         postUrl=str(URL(settings.URL).joinpath('school', 'posts', str(post.post_id)))

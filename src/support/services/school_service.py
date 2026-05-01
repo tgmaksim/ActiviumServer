@@ -6,6 +6,7 @@ from yarl import URL
 from httpx import AsyncClient
 from fastapi import HTTPException
 
+from ...models.session_model import Session
 from ...schemas.error_schema import ApiError
 from ...config.project_config import settings
 from ...dependencies.auth import check_session
@@ -15,9 +16,7 @@ from ...services.html_response import HtmlResponse
 from ..schemas.school_schemas import (
     SchoolPost,
     SchoolPostsResult,
-    LikeSchoolPostResult,
-    ViewSchoolPostResult,
-    UnlikeSchoolPostResult,
+    MarkSchoolPostResult,
     SchoolPostsApiResponse,
     SeeSchoolPostApiResponse,
     ViewSchoolPostApiResponse,
@@ -136,8 +135,13 @@ class SchoolService(BaseService[AppUnitOfWork]):
             limit = 10
             posts = await uow.school_post_repository.get_school_posts(session.active_child.school_id, offset=offset, limit=limit + 1)
 
-            likes = await uow.school_post_like_repository.has_my_likes(session.parent_id, [post.post_id for post in posts])
+            post_ids = [post.post_id for post in posts]
+
+            likes = await uow.school_post_like_repository.has_my_likes(session.parent_id, post_ids)
             my_likes = [like.post_id for like in likes]
+
+            visions = await uow.school_post_vision_repository.has_my_visions(session.parent_id, post_ids)
+            my_visions = [vision.post_id for vision in visions]
 
             next_offset = None
             if len(posts) > limit:
@@ -158,6 +162,7 @@ class SchoolService(BaseService[AppUnitOfWork]):
                         countViewings=post.count_viewings,
                         countLikes=post.count_likes,
                         hasMyLike=post.post_id in my_likes,
+                        isSaw=post.post_id in my_visions,
                         createdAt=post.created_at,
                         humanCreatedAt=astimezone(post.created_at, post.timezone).strftime('%e %b. в %H:%M').strip(),
                         postUrl=str(URL(settings.URL).joinpath('school', 'posts', str(post.post_id)))
@@ -170,14 +175,54 @@ class SchoolService(BaseService[AppUnitOfWork]):
         async with self.uow_factory() as uow:
             session = await check_session(session_id, uow.session_repository)
 
-            posts = await uow.school_post_repository.get_school_posts(session.active_child.school_id, last=timedelta(days=14))
-            saw_posts = await uow.school_post_vision_repository.has_my_visions(session.parent_id, [post.post_id for post in posts])
-
             return SchoolPostsWithoutVisionApiResponse(
                 answer=SchoolPostsWithoutVisionResult(
-                    countPosts=len(posts) - len(saw_posts)
+                    countPosts=await self._check_new_posts(uow, session)
                 )
             )
+
+    @classmethod
+    async def _check_new_posts(cls, uow: AppUnitOfWork, session: Session) -> int:
+        posts = await uow.school_post_repository.get_school_posts(session.active_child.school_id, last=timedelta(days=14))
+        saw_posts = await uow.school_post_vision_repository.has_my_visions(session.parent_id, [post.post_id for post in posts])
+
+        return len(posts) - len(saw_posts)
+
+    @classmethod
+    async def _get_post(cls, post_id: int, uow: AppUnitOfWork, session: Session):
+        post = await uow.school_post_repository.get_post(post_id)
+        assert post is not None, "post is None"
+
+        post_ids = [post_id]
+
+        likes = await uow.school_post_like_repository.has_my_likes(session.parent_id, post_ids)
+        my_likes = [like.post_id for like in likes]
+
+        visions = await uow.school_post_vision_repository.has_my_visions(session.parent_id, post_ids)
+        my_visions = [vision.post_id for vision in visions]
+
+        image_url = None
+        if post.has_image:
+            image_url = str(URL(settings.URL).joinpath('school', 'posts', str(post.post_id), 'image.jpg'))
+
+        return SchoolPost(
+            postId=post.post_id,
+            title=post.title,
+            description=post.description,
+            imageUrl=image_url,
+            author=post.author,
+            authorVerified=post.author_verified,
+            scheduleDate=post.schedule_date,
+            humanScheduleDate=post.schedule_date and post.schedule_date.strftime('%e %b.').strip(),
+            isUpdated=post.is_updated,
+            countViewings=post.count_viewings,
+            countLikes=post.count_likes,
+            hasMyLike=post.post_id in my_likes,
+            isSaw=post.post_id in my_visions,
+            createdAt=post.created_at,
+            humanCreatedAt=astimezone(post.created_at, post.timezone).strftime('%e %b. в %H:%M').strip(),
+            postUrl=str(URL(settings.URL).joinpath('school', 'posts', str(post.post_id)))
+        )
 
     async def seePost(self, session_id: str, post_id: int) -> SeeSchoolPostApiResponse:
         async with self.uow_factory() as uow:
@@ -199,12 +244,21 @@ class SchoolService(BaseService[AppUnitOfWork]):
                     )
                 )
 
-            vision = await uow.school_post_vision_repository.get_vision(session.parent_id, post_id)
-            if vision is None:
-                await uow.school_post_vision_repository.see_post(session.parent_id, post_id)
-                await uow.school_post_repository.see_post(post_id)
+            await self._see_post(post_id, uow, session)
 
-            return SeeSchoolPostApiResponse()
+            return SeeSchoolPostApiResponse(
+                answer=MarkSchoolPostResult(
+                    post=await self._get_post(post_id, uow, session),
+                    countPostsWithoutVision=await self._check_new_posts(uow, session)
+                )
+            )
+
+    @classmethod
+    async def _see_post(cls, post_id: int, uow: AppUnitOfWork, session: Session):
+        vision = await uow.school_post_vision_repository.get_vision(session.parent_id, post_id)
+        if vision is None:
+            await uow.school_post_vision_repository.see_post(session.parent_id, post_id)
+            await uow.school_post_repository.see_post(post_id)
 
     async def clickPost(self, session_id: str, post_id: int) -> ClickSchoolPostApiResponse:
         async with self.uow_factory() as uow:
@@ -226,12 +280,22 @@ class SchoolService(BaseService[AppUnitOfWork]):
                     )
                 )
 
-            click = await uow.school_post_click_repository.get_click(session.parent_id, post_id)
-            if click is None:
-                await uow.school_post_click_repository.click_post(session.parent_id, post_id)
-                await uow.school_post_repository.click_post(post_id)
+            await self._see_post(post_id, uow, session)
+            await self._click_post(post_id, uow, session)
 
-            return ClickSchoolPostApiResponse()
+            return ClickSchoolPostApiResponse(
+                answer=MarkSchoolPostResult(
+                    post=await self._get_post(post_id, uow, session),
+                    countPostsWithoutVision=await self._check_new_posts(uow, session)
+                )
+            )
+
+    @classmethod
+    async def _click_post(cls, post_id: int, uow: AppUnitOfWork, session: Session):
+        click = await uow.school_post_click_repository.get_click(session.parent_id, post_id)
+        if click is None:
+            await uow.school_post_click_repository.click_post(session.parent_id, post_id)
+            await uow.school_post_repository.click_post(post_id)
 
     async def viewPost(self, session_id: str, post_id: int) -> ViewSchoolPostApiResponse:
         async with self.uow_factory() as uow:
@@ -253,38 +317,23 @@ class SchoolService(BaseService[AppUnitOfWork]):
                     )
                 )
 
-            view = await uow.school_post_viewing_repository.get_view(session.parent_id, post_id)
-            if view is None:
-                await uow.school_post_viewing_repository.view_post(session.parent_id, post_id)
-                await uow.school_post_repository.view_post(post_id)
-
-            post = await uow.school_post_repository.get_post(post_id)
-            assert post is not None, "post is None"
-
-            likes = await uow.school_post_like_repository.has_my_likes(session.parent_id, [post_id])
-            my_likes = [like.post_id for like in likes]
+            await self._see_post(post_id, uow, session)
+            await self._click_post(post_id, uow, session)
+            await self._view_post(post_id, uow, session)
 
             return ViewSchoolPostApiResponse(
-                answer=ViewSchoolPostResult(
-                    post=SchoolPost(
-                        postId=post.post_id,
-                        title=post.title,
-                        description=post.description,
-                        imageUrl=str(URL(settings.URL).joinpath('school', 'posts', str(post.post_id), 'image.jpg')) if post.has_image else None,
-                        author=post.author,
-                        authorVerified=post.author_verified,
-                        scheduleDate=post.schedule_date,
-                        humanScheduleDate=post.schedule_date and post.schedule_date.strftime('%e %b.').strip(),
-                        isUpdated=post.is_updated,
-                        countViewings=post.count_viewings,
-                        countLikes=post.count_likes,
-                        hasMyLike=post.post_id in my_likes,
-                        createdAt=post.created_at,
-                        humanCreatedAt=astimezone(post.created_at, post.timezone).strftime('%e %b. в %H:%M').strip(),
-                        postUrl=str(URL(settings.URL).joinpath('school', 'posts', str(post.post_id)))
-                    )
+                answer=MarkSchoolPostResult(
+                    post=await self._get_post(post_id, uow, session),
+                    countPostsWithoutVision=await self._check_new_posts(uow, session)
                 )
             )
+
+    @classmethod
+    async def _view_post(cls, post_id: int, uow: AppUnitOfWork, session: Session):
+        view = await uow.school_post_viewing_repository.get_view(session.parent_id, post_id)
+        if view is None:
+            await uow.school_post_viewing_repository.view_post(session.parent_id, post_id)
+            await uow.school_post_repository.view_post(post_id)
 
     async def likePost(self, session_id: str, post_id: int) -> LikeSchoolPostApiResponse:
         async with self.uow_factory() as uow:
@@ -306,38 +355,24 @@ class SchoolService(BaseService[AppUnitOfWork]):
                     )
                 )
 
-            like = await uow.school_post_like_repository.get_like(session.parent_id, post_id)
-            if like is None:
-                await uow.school_post_like_repository.like_post(session.parent_id, post_id)
-                await uow.school_post_repository.like_post(post_id)
-
-            post = await uow.school_post_repository.get_post(post_id)
-            assert post is not None, "post is None"
-
-            likes = await uow.school_post_like_repository.has_my_likes(session.parent_id, [post_id])
-            my_likes = [like.post_id for like in likes]
+            await self._see_post(post_id, uow, session)
+            await self._click_post(post_id, uow, session)
+            await self._view_post(post_id, uow, session)
+            await self._like_post(post_id, uow, session)
 
             return LikeSchoolPostApiResponse(
-                answer=LikeSchoolPostResult(
-                    post=SchoolPost(
-                        postId=post.post_id,
-                        title=post.title,
-                        description=post.description,
-                        imageUrl=str(URL(settings.URL).joinpath('school', 'posts', str(post.post_id), 'image.jpg')) if post.has_image else None,
-                        author=post.author,
-                        authorVerified=post.author_verified,
-                        scheduleDate=post.schedule_date,
-                        humanScheduleDate=post.schedule_date and post.schedule_date.strftime('%e %b.').strip(),
-                        isUpdated=post.is_updated,
-                        countViewings=post.count_viewings,
-                        countLikes=post.count_likes,
-                        hasMyLike=post.post_id in my_likes,
-                        createdAt=post.created_at,
-                        humanCreatedAt=astimezone(post.created_at, post.timezone).strftime('%e %b. в %H:%M').strip(),
-                        postUrl=str(URL(settings.URL).joinpath('school', 'posts', str(post.post_id)))
-                    )
+                answer=MarkSchoolPostResult(
+                    post=await self._get_post(post_id, uow, session),
+                    countPostsWithoutVision=await self._check_new_posts(uow, session)
                 )
             )
+
+    @classmethod
+    async def _like_post(cls, post_id: int, uow: AppUnitOfWork, session: Session):
+        like = await uow.school_post_like_repository.get_like(session.parent_id, post_id)
+        if like is None:
+            await uow.school_post_like_repository.like_post(session.parent_id, post_id)
+            await uow.school_post_repository.like_post(post_id)
 
     async def unlikePost(self, session_id: str, post_id: int) -> UnlikeSchoolPostApiResponse:
         async with self.uow_factory() as uow:
@@ -359,35 +394,21 @@ class SchoolService(BaseService[AppUnitOfWork]):
                     )
                 )
 
-            like = await uow.school_post_like_repository.get_like(session.parent_id, post_id)
-            if like is not None:
-                await uow.school_post_like_repository.delete_like(session.parent_id, post_id)
-                await uow.school_post_repository.unlike_post(post_id)
-
-            post = await uow.school_post_repository.get_post(post_id)
-            assert post is not None, "post is None"
-
-            likes = await uow.school_post_like_repository.has_my_likes(session.parent_id, [post_id])
-            my_likes = [like.post_id for like in likes]
+            await self._see_post(post_id, uow, session)
+            await self._click_post(post_id, uow, session)
+            await self._view_post(post_id, uow, session)
+            await self._unlike_post(post_id, uow, session)
 
             return UnlikeSchoolPostApiResponse(
-                answer=UnlikeSchoolPostResult(
-                    post=SchoolPost(
-                        postId=post.post_id,
-                        title=post.title,
-                        description=post.description,
-                        imageUrl=str(URL(settings.URL).joinpath('school', 'posts', str(post.post_id), 'image.jpg')) if post.has_image else None,
-                        author=post.author,
-                        authorVerified=post.author_verified,
-                        scheduleDate=post.schedule_date,
-                        humanScheduleDate=post.schedule_date and post.schedule_date.strftime('%e %b.').strip(),
-                        isUpdated=post.is_updated,
-                        countViewings=post.count_viewings,
-                        countLikes=post.count_likes,
-                        hasMyLike=post.post_id in my_likes,
-                        createdAt=post.created_at,
-                        humanCreatedAt=astimezone(post.created_at, post.timezone).strftime('%e %b. в %H:%M').strip(),
-                        postUrl=str(URL(settings.URL).joinpath('school', 'posts', str(post.post_id)))
-                    )
+                answer=MarkSchoolPostResult(
+                    post=await self._get_post(post_id, uow, session),
+                    countPostsWithoutVision=await self._check_new_posts(uow, session)
                 )
             )
+
+    @classmethod
+    async def _unlike_post(cls, post_id: int, uow: AppUnitOfWork, session: Session):
+        like = await uow.school_post_like_repository.get_like(session.parent_id, post_id)
+        if like is not None:
+            await uow.school_post_like_repository.delete_like(session.parent_id, post_id)
+            await uow.school_post_repository.unlike_post(post_id)
