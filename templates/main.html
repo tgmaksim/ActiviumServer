@@ -263,7 +263,7 @@
                             <span class="pill small">{{ v.status }}</span>
                         </summary>
 
-                        <div class="small muted">
+                        <div class="small muted" id="{{ v.version_number }}">
                             {% for item in v.update_log %}
                                 {{ item }}<br>
                             {% endfor %}

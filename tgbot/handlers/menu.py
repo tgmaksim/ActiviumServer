@@ -44,6 +44,7 @@ SHOWN_POSTS_LIMIT = 5
 
 POST_TITLE_LIMIT = 128
 POST_DESCRIPTION_LIMIT = 256
+POST_SUBTITLE_LIMIT = 64
 
 
 class AddMyAdminsStatesGroup(StatesGroup):
@@ -483,7 +484,9 @@ async def _post_schedule_date(message: Message, state: FSMContext):
 
         await message.answer(
             "Наконец-то можно писать. Теперь отправляйте содержание публикации: текст (каждый абзац отдельным сообщением), "
-            "фото и видео (до 20МБ). В тексте можете использовать форматирование (жирный, курсив и др.)",
+            "фото и видео (до 20МБ). В тексте можете использовать форматирование (жирный, курсив и др.). Чтобы написать "
+            "подзаголовок в тексте, отправьте его полностью с жирным форматированием (выделите текст и выберите жирный "
+            "в меню Telegram)",
             reply_markup=ReplyKeyboardMarkup(
                 keyboard=[[KeyboardButton(text="Прошлый шаг", icon_custom_emoji_id="5467864676320681402")],
                           [KeyboardButton(text="Отмена", icon_custom_emoji_id="5210952531676504517")]],
@@ -553,7 +556,22 @@ async def _post_content(message: Message, state: FSMContext):
             elif entity.type == MessageEntityType.TEXT_LINK:
                 entities.append({'type': entity.type, 'offset': entity.offset, 'length': entity.length, 'url': entity.url})
 
-        if message.content_type == ContentType.TEXT:
+        if (message.content_type == ContentType.TEXT and len(message.entities) == 1 and
+                (entity := message.entities[0]).type == MessageEntityType.BOLD and entity.offset == 0 and
+                entity.length == len(message.text)):  # Заголовок
+            if len(message.text) > POST_SUBTITLE_LIMIT:
+                await message.answer(f"Заголовок превысил лимит ({POST_SUBTITLE_LIMIT} символов) длины")
+                return
+
+            await state.update_data({
+                next_content_key: {
+                    'type': 'title',
+                    'text': message.text,
+                    'entities': []
+                }
+            }, offset=new_offset)
+
+        elif message.content_type == ContentType.TEXT:
             await state.update_data({
                 next_content_key: {
                     'type': 'text',

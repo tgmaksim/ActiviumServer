@@ -6,7 +6,7 @@
 
     <title>{{ title }}</title>
 
-    <link href="/css/post.css?v=11" rel="stylesheet">
+    <link href="/css/post.css?v=12" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
@@ -72,6 +72,12 @@
                     </div>
                 {% endif %}
 
+                {% if block.type == 'title' and block.text and block.text.strip() %}
+                    <h3 class="title">
+                        {{ block.text | safe }}
+                    </h3>
+                {% endif %}
+
                 {% if block.type == 'photo' %}
                     <div class="media-block">
                         <img src="{{ loop.index0 }}.jpg" class="media">
@@ -89,7 +95,7 @@
                         </video>
 
                         {% if block.text %}
-                            <div class="caption">{{ block.text }}</div>
+                            <div class="caption">{{ block.text | safe }}</div>
                         {% endif %}
                     </div>
                 {% endif %}

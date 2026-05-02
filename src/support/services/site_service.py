@@ -59,6 +59,7 @@ class SiteService(BaseService[AppUnitOfWork]):
                     'update_log': [] if latest is None else latest.logs.split('\n'),
                     'previous_versions': [{
                         'version': v.version,
+                        'version_number': v.number,
                         'date': v.date,
                         'status': v.status,
                         'update_log': v.logs.split('\n'),

@@ -1,10 +1,12 @@
+from time import time
 from enum import Enum
 from typing import Optional, Any
 
 from pydantic import BaseModel, HttpUrl
 
+from async_firebase.messages import Message as FCMMessage
 from async_firebase import AsyncFirebaseClient, FCMBatchResponse
-from async_firebase.messages import Message as FCMMessage, Notification as FCMNotification, AndroidConfig
+
 
 __all__ = ['send_notifications', 'FirebaseApiError', 'Notification', 'AppNotificationChannel']
 
@@ -55,17 +57,14 @@ async def send_notifications(notifications: list[Notification]) -> FCMBatchRespo
     # Уведомление передается как данные
     # Клиент сам создает и показывает уведомление
     messages = [FCMMessage(
-        notification=FCMNotification(
+        token=notification.firebase_token,
+        data=(data := notification.data.copy()).update(
+            channelId=notification.channel.value,
             title=notification.title,
             body=notification.message,
-            image=str(notification.image) if notification.image else None
-        ),
-        token=notification.firebase_token,
-        android=AndroidConfig.build(
-            priority='high',
-            channel_id=notification.channel.value,
-            data=notification.data
-        )
+            time=str(int(time() * 1000)),  # Время, которое будет указано в уведомлении
+            imageUrl=str(notification.image) if notification.image else None,  # Ссылка на картинку, загрузится клиентом
+        ) or data
     ) for notification in notifications]
 
     try:

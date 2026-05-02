@@ -86,7 +86,7 @@ class LogService(BaseService[LogUnitOfWork]):
 
             for i in range(0, len(text), 4096):
                 await uow.notification_repository.notify(text[i:i + 4096])
-            await uow.notification_repository.notify(f"<a href=\"{html.quote(logs_open_url)}\">Открыть логи</a>\n")
+            await uow.notification_repository.notify(f"<a href=\"{html.quote(logs_open_url)}\">Открыть логи</a>\n", parse_mode='html')
 
             count_last_messages = 3
             last_messages = list(map(lambda m: m.message, await uow.statistic_message_repository.get_last_messages(count_last_messages)))

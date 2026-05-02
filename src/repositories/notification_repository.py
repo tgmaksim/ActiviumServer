@@ -45,7 +45,7 @@ class NotificationRepository(SqlAlchemyRepository[Notification]):
         return await self.delete(Notification.created_at <= max_created_at)
 
     @staticmethod
-    async def notify(message: str):
+    async def notify(message: str, parse_mode: str = None):
         """Отправка отчета администраторам"""
 
-        return await send_admin_message(message, parse_mode=None)
+        return await send_admin_message(message, parse_mode=parse_mode)
