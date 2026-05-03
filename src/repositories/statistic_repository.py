@@ -25,6 +25,12 @@ class StatName(Enum):
     getMarksRatingStats = "Запрос статистики по оценке с рейтингом в классе"
     getMarksSubjectRating = "Запрос рейтинга по предмету"
     getSchedule = "Запрос расписания"
+    getPosts = "Запрос списка школьных постов"
+    seePost = "Пользователь увидел пост"
+    clickPost = "Пользователь нажал на пост, чтобы посмотреть"
+    viewPost = "Пользователь прочитал пост"
+    likePost = "Реакция (лайк) на пост"
+    unlikePost = "Удаление реакции (лайка) с поста"
     createNote = "Создание заметки к уроку"
     deleteNote = "Удаление заметки к уроку"
     highlightPerson = "Выделение одноклассника в рейтингах для отображения вверху"
@@ -48,10 +54,12 @@ class StatName(Enum):
     turnOffMarksNotifications = "Выключение уведомлений о новых оценках"
     updateFirebase = "Обновление токена firebase (каждый раз при входе)"
     site = "Посещение сайта"
+    post = "Открытие школьного поста в приложении"
     addSchoolAdminFrom = "Добавление администратора школы через другого админа"
     deleteSchoolAdminFrom = "Удаление администратора школы через другого админа"
     checkInfoNotifications = "Проверка наличия информационных уведомлений (каждый раз при входе)"
     checkVersion = "Проверка версии приложения (каждый рах при входе)"
+    checkNewPosts = "Проверка наличия новых постов, которые пользователь еще не видел"
 
 
 class StatisticRepository(SqlAlchemyRepository[Statistic]):

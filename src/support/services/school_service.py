@@ -12,6 +12,7 @@ from ...config.project_config import settings
 from ...dependencies.auth import check_session
 from ...dependencies.datetime import astimezone
 from ...services.html_response import HtmlResponse
+from ...repositories.statistic_repository import StatName
 
 from ..schemas.school_schemas import (
     SchoolPost,
@@ -52,6 +53,8 @@ class SchoolService(BaseService[AppUnitOfWork]):
                 'type': block['type'],
                 'text': self._format_to_html(block['text'], block['entities'])
             } for block in post.content]
+
+            await uow.statistic_repository.add_statistic(None, StatName.post)
 
             return HtmlResponse(name='post.html', context={
                 'theme': 'dark' if is_dark_theme else 'light',
@@ -148,6 +151,8 @@ class SchoolService(BaseService[AppUnitOfWork]):
             if len(posts) > limit:
                 next_offset = offset + limit
 
+            await uow.statistic_repository.add_statistic(session.parent_id, StatName.getPosts)
+
             return SchoolPostsApiResponse(
                 answer=SchoolPostsResult(
                     posts=[SchoolPost(
@@ -175,6 +180,8 @@ class SchoolService(BaseService[AppUnitOfWork]):
     async def checkNewPosts(self, session_id: str) -> SchoolPostsWithoutVisionApiResponse:
         async with self.uow_factory() as uow:
             session = await check_session(session_id, uow.session_repository)
+
+            await uow.statistic_repository.add_statistic(session.parent_id, StatName.checkNewPosts)
 
             return SchoolPostsWithoutVisionApiResponse(
                 answer=SchoolPostsWithoutVisionResult(
@@ -247,6 +254,8 @@ class SchoolService(BaseService[AppUnitOfWork]):
 
             await self._see_post(post_id, uow, session)
 
+            await uow.statistic_repository.add_statistic(session.parent_id, StatName.seePost)
+
             return SeeSchoolPostApiResponse(
                 answer=MarkSchoolPostResult(
                     post=await self._get_post(post_id, uow, session),
@@ -283,6 +292,8 @@ class SchoolService(BaseService[AppUnitOfWork]):
 
             await self._see_post(post_id, uow, session)
             await self._click_post(post_id, uow, session)
+
+            await uow.statistic_repository.add_statistic(session.parent_id, StatName.clickPost)
 
             return ClickSchoolPostApiResponse(
                 answer=MarkSchoolPostResult(
@@ -321,6 +332,8 @@ class SchoolService(BaseService[AppUnitOfWork]):
             await self._see_post(post_id, uow, session)
             await self._click_post(post_id, uow, session)
             await self._view_post(post_id, uow, session)
+
+            await uow.statistic_repository.add_statistic(session.parent_id, StatName.viewPost)
 
             return ViewSchoolPostApiResponse(
                 answer=MarkSchoolPostResult(
@@ -361,6 +374,8 @@ class SchoolService(BaseService[AppUnitOfWork]):
             await self._view_post(post_id, uow, session)
             await self._like_post(post_id, uow, session)
 
+            await uow.statistic_repository.add_statistic(session.parent_id, StatName.likePost)
+
             return LikeSchoolPostApiResponse(
                 answer=MarkSchoolPostResult(
                     post=await self._get_post(post_id, uow, session),
@@ -399,6 +414,8 @@ class SchoolService(BaseService[AppUnitOfWork]):
             await self._click_post(post_id, uow, session)
             await self._view_post(post_id, uow, session)
             await self._unlike_post(post_id, uow, session)
+
+            await uow.statistic_repository.add_statistic(session.parent_id, StatName.unlikePost)
 
             return UnlikeSchoolPostApiResponse(
                 answer=MarkSchoolPostResult(
