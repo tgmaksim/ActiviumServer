@@ -747,7 +747,7 @@ class DnevnikService(BaseService[AppUnitOfWork]):
                 cls._get_work_types(cache_repository, dnr, session, child, work_types_id),
                 cls._get_periods(cache_repository, dnr, session, child)
             )
-            periods = {_period['id']: _period for _period in _periods}
+            periods = {_period['number']: _period for _period in _periods}
         else:
             work_types = await cls._get_work_types(cache_repository, dnr, session, child, work_types_id)
 
