@@ -3,13 +3,13 @@ import asyncio
 import traceback
 
 from math import ceil
-from typing import Callable
+from typing import Callable, Optional
 from datetime import datetime, timedelta, UTC
 
 from httpx import AsyncClient
 from asyncio import AbstractEventLoop
 
-from firebase.messaging import send_notifications, Notification, AppNotificationChannel
+from firebase.messaging import send_notifications, Notification, AppNotificationChannel, FCMResult
 
 from src.services.log_service import LogService
 from src.dependencies.uow import get_log_uow_factory
@@ -34,6 +34,7 @@ class ExtracurricularActivityWorker:
     async def run(self):
         service = LogService(get_log_uow_factory())
         await service.log(
+            ip='ea_notifications',
             path='ea_notifications',
             value="Worker запущен"
         )
@@ -59,14 +60,14 @@ class ExtracurricularActivityWorker:
                             pushes, processed_ids = await self._process_batch(uow, rows)
                             response = await self._dispatch_pushes(pushes)
 
-                            for message in (response.responses if response else []):
-                                status = message.exception is None
+                            for firebase_token, result in (response.results if response else []):
+                                status = result.exception is None
                                 await uow.log_repository.add_log(
                                     ip='ea_notifications',
-                                    path='ea_notifications',
+                                    path=firebase_token,
                                     status=status,
-                                    value=f"{message.exception}: {message.exception.http_response} {message.exception.cause} "
-                                          f"{message.exception.http_response.__dict__}" if not status else str(message)
+                                    value=f"{result.exception}: {result.exception.http_response} {result.exception.cause} "
+                                          f"{result.exception.http_response.__dict__}" if not status else str(result)
                                 )
 
                             for ea_id in processed_ids:
@@ -74,6 +75,7 @@ class ExtracurricularActivityWorker:
                 except Exception as e:
                     service = LogService(get_log_uow_factory())
                     await service.log(
+                        ip='ea_notifications',
                         path='ea_notifications',
                         status=False,
                         value='\n'.join(traceback.format_exception(e))
@@ -85,6 +87,7 @@ class ExtracurricularActivityWorker:
         except Exception as e:
             service = LogService(get_log_uow_factory())
             await service.log(
+                ip='ea_notifications',
                 path='ea_notifications',
                 status=False,
                 value='\n'.join(traceback.format_exception(e))
@@ -93,6 +96,7 @@ class ExtracurricularActivityWorker:
             print("ea_notifications остановлен")
             service = LogService(get_log_uow_factory())
             await service.log(
+                ip='ea_notifications',
                 path='ea_notifications',
                 value="Worker остановлен"
             )
@@ -151,7 +155,7 @@ class ExtracurricularActivityWorker:
         return pushes, processed_ids
 
     @classmethod
-    async def _dispatch_pushes(cls, pushes: list[tuple[str, dict]]):
+    async def _dispatch_pushes(cls, pushes: list[tuple[str, dict]]) -> Optional[FCMResult]:
         """Отправка уведомлений"""
 
         if not pushes:

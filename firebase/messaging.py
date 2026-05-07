@@ -1,14 +1,16 @@
 from time import time
 from enum import Enum
 from typing import Optional, Any
+from dataclasses import dataclass
+from itertools import zip_longest
 
 from pydantic import BaseModel, HttpUrl
 
 from async_firebase.messages import Message as FCMMessage
-from async_firebase import AsyncFirebaseClient, FCMBatchResponse
+from async_firebase import AsyncFirebaseClient, FCMBatchResponse, FCMResponse
 
 
-__all__ = ['send_notifications', 'FirebaseApiError', 'Notification', 'AppNotificationChannel']
+__all__ = ['send_notifications', 'FirebaseApiError', 'Notification', 'AppNotificationChannel', 'FCMResult']
 
 client = AsyncFirebaseClient()
 client.creds_from_service_account_file('firebase-adminsdk.json')
@@ -45,7 +47,20 @@ class Notification(BaseModel):
     """Дополнительные данные для передачи на устройство (значения будут представлены в виде строки)"""
 
 
-async def send_notifications(notifications: list[Notification]) -> FCMBatchResponse:
+@dataclass
+class FCMResult(FCMBatchResponse):
+    """Расширенный класс FCMBatchResponse с firebase-токенами"""
+
+    tokens: list[str]
+
+    @property
+    def results(self) -> list[tuple[Optional[str], FCMResponse]]:
+        """Список с результатами запросов и firebase-токенами"""
+
+        return list(zip_longest(self.tokens, self.responses, fillvalue=None))
+
+
+async def send_notifications(notifications: list[Notification]) -> FCMResult:
     """
     Отправка списка уведомлений одним запросом
 
@@ -69,6 +84,9 @@ async def send_notifications(notifications: list[Notification]) -> FCMBatchRespo
 
     try:
         response = await client.send_each(messages)
-        return response
+        return FCMResult(
+            responses=response.responses,
+            tokens=[message.token for message in messages]
+        )
     except Exception as e:
         raise FirebaseApiError(e)

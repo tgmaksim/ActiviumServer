@@ -377,14 +377,14 @@ class DnevnikToolsService(BaseService[AppUnitOfWork]):
                 data={"from_notification": "praise"}
             ) for firebase_token in firebase_tokens])
 
-            for message in response.responses:
-                status = message.exception is None
+            for firebase_token, result in (response.results if response else []):
+                status = result.exception is None
                 await uow.log_repository.add_log(
                     ip='praise_notifications',
-                    path='praise_notifications',
+                    path=firebase_token,
                     status=status,
-                    value=f"{message.exception}: {message.exception.http_response} {message.exception.cause} "
-                          f"{message.exception.http_response.__dict__}" if not status else str(message)
+                    value=f"{result.exception}: {result.exception.http_response} {result.exception.cause} "
+                          f"{result.exception.http_response.__dict__}" if not status else str(result)
                 )
 
             if response.success_count == 0:

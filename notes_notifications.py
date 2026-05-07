@@ -2,13 +2,13 @@ import time
 import asyncio
 import traceback
 
-from typing import Callable
+from typing import Callable, Optional
 from datetime import datetime, timedelta, UTC
 
 from httpx import AsyncClient
 from asyncio import AbstractEventLoop
 
-from firebase.messaging import send_notifications, Notification, AppNotificationChannel
+from firebase.messaging import send_notifications, Notification, AppNotificationChannel, FCMResult
 
 from src.services.log_service import LogService
 from src.models.lesson_note_model import LessonNote
@@ -33,6 +33,7 @@ class RemindLessonNotesWorker:
     async def run(self):
         service = LogService(get_log_uow_factory())
         await service.log(
+            ip='notes_notifications',
             path='notes_notifications',
             value="Worker запущен"
         )
@@ -57,18 +58,19 @@ class RemindLessonNotesWorker:
                         for row in rows:
                             await uow.lesson_note_repository.delete_note_remind(row.child_id, row.lesson_id)
 
-                        for message in (response.responses if response else []):
-                            status = message.exception is None
+                        for firebase_token, result in (response.results if response else []):
+                            status = result.exception is None
                             await uow.log_repository.add_log(
                                 ip='notes_notifications',
-                                path='notes_notifications',
+                                path=firebase_token,
                                 status=status,
-                                value=f"{message.exception}: {message.exception.http_response} {message.exception.cause} "
-                                      f"{message.exception.http_response.__dict__}" if not status else str(message)
+                                value=f"{result.exception}: {result.exception.http_response} {result.exception.cause} "
+                                      f"{result.exception.http_response.__dict__}" if not status else str(result)
                             )
                 except Exception as e:
                     service = LogService(get_log_uow_factory())
                     await service.log(
+                        ip='notes_notifications',
                         path='notes_notifications',
                         status=False,
                         value='\n'.join(traceback.format_exception(e))
@@ -80,6 +82,7 @@ class RemindLessonNotesWorker:
         except Exception as e:
             service = LogService(get_log_uow_factory())
             await service.log(
+                ip='notes_notifications',
                 path='notes_notifications',
                 status=False,
                 value='\n'.join(traceback.format_exception(e))
@@ -88,6 +91,7 @@ class RemindLessonNotesWorker:
             print("notes_notifications остановлен")
             service = LogService(get_log_uow_factory())
             await service.log(
+                ip='notes_notifications',
                 path='notes_notifications',
                 value="Worker остановлен"
             )
@@ -123,7 +127,7 @@ class RemindLessonNotesWorker:
         return pushes
 
     @classmethod
-    async def _dispatch_pushes(cls, pushes: list[tuple[str, dict]]):
+    async def _dispatch_pushes(cls, pushes: list[tuple[str, dict]]) -> Optional[FCMResult]:
         """Отправка уведомлений"""
 
         if not pushes:

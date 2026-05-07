@@ -14,7 +14,7 @@ from asyncio import AbstractEventLoop, gather
 from PIL.ImageDraw import Draw
 from PIL import Image, ImageFont
 
-from firebase.messaging import send_notifications, Notification, AppNotificationChannel
+from firebase.messaging import send_notifications, Notification, AppNotificationChannel, FCMResult
 
 from dnevnikru import AioDnevnikruApi, BaseDnevnikruException
 
@@ -42,6 +42,7 @@ class MarksNotificationWorker:
     async def run(self):
         service = LogService(get_log_uow_factory())
         await service.log(
+            ip='marks_notifications',
             path='marks_notifications',
             value="Worker запущен"
         )
@@ -62,18 +63,19 @@ class MarksNotificationWorker:
 
                         response = await self._dispatch_pushes(pushes)
 
-                        for message in (response.responses if response else []):
-                            status = message.exception is None
+                        for firebase_token, result in (response.results if response else []):
+                            status = result.exception is None
                             await uow.log_repository.add_log(
                                 ip='marks_notifications',
-                                path='marks_notifications',
+                                path=firebase_token,
                                 status=status,
-                                value=f"{message.exception}: {message.exception.http_response} {message.exception.cause} "
-                                      f"{message.exception.http_response.__dict__}" if not status else str(message)
+                                value=f"{result.exception}: {result.exception.http_response} {result.exception.cause} "
+                                      f"{result.exception.http_response.__dict__}" if not status else str(result)
                             )
                 except Exception as e:
                     service = LogService(get_log_uow_factory())
                     await service.log(
+                        ip='marks_notifications',
                         path='marks_notifications',
                         status=False,
                         value='\n'.join(traceback.format_exception(e))
@@ -86,6 +88,7 @@ class MarksNotificationWorker:
         except Exception as e:
             service = LogService(get_log_uow_factory())
             await service.log(
+                ip='marks_notifications',
                 path='marks_notifications',
                 status=False,
                 value='\n'.join(traceback.format_exception(e))
@@ -94,6 +97,7 @@ class MarksNotificationWorker:
             print("marks_notifications остановлен")
             service = LogService(get_log_uow_factory())
             await service.log(
+                ip='marks_notifications',
                 path='marks_notifications',
                 value="Worker остановлен"
             )
@@ -191,7 +195,7 @@ class MarksNotificationWorker:
 
         return answer, profile['shortName']
 
-    async def _dispatch_pushes(self, pushes: list[tuple[str, dict, Optional[str]]]):
+    async def _dispatch_pushes(self, pushes: list[tuple[str, dict, Optional[str]]]) -> Optional[FCMResult]:
         """Отправка уведомлений"""
 
         if not pushes:
