@@ -556,7 +556,7 @@ async def _post_content(message: Message, state: FSMContext):
             elif entity.type == MessageEntityType.TEXT_LINK:
                 entities.append({'type': entity.type, 'offset': entity.offset, 'length': entity.length, 'url': entity.url})
 
-        if (message.content_type == ContentType.TEXT and len(message.entities) == 1 and
+        if (message.content_type == ContentType.TEXT and len(message.entities or []) == 1 and
                 (entity := message.entities[0]).type == MessageEntityType.BOLD and entity.offset == 0 and
                 entity.length == len(message.text)):  # Заголовок
             if len(message.text) > POST_SUBTITLE_LIMIT:
