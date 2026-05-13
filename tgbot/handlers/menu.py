@@ -2,7 +2,7 @@ import re
 import shutil
 
 from typing import Optional
-from datetime import datetime, date, UTC
+from datetime import datetime, date, timezone, timedelta
 
 from yarl import URL
 from pathlib import Path
@@ -469,7 +469,8 @@ async def _post_schedule_date(message: Message, state: FSMContext):
         if message.text != "Пропустить":
             for entity in (message.entities or []):
                 if entity.type == MessageEntityType.DATE_TIME:
-                    schedule_date = datetime.fromtimestamp(entity.unix_time, UTC).date()
+                    tz = timezone(offset=timedelta(seconds=school_admin.dnevnik_admin.timezone))
+                    schedule_date = datetime.fromtimestamp(entity.unix_time, tz).date()
                     break
 
             if date is None and (match := re.match(r'(?P<day>\d{1,2}).(?P<month>\d{1,2}).(?P<year>(\d{2}){1,2})', message.text)):

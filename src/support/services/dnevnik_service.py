@@ -533,12 +533,19 @@ class DnevnikService(BaseService[AppUnitOfWork]):
                     moods[int(value)] = mark.mood
                     all_marks.append(int(value))
 
-        avg = MarkLog(
-            value=str(avg_value := round((mean if avg else median)(all_marks), 2)).replace('.', ','),
-            mood=moods.get(int(avg_value), mark5_moods.get(int(avg_value), MarkLog.default_mood())),
-            work=None,
-            created=None
-        ) if len(all_marks) != 0 else None
+        if len(all_marks) != 0:
+            avg_value = round((mean if avg else median)(all_marks), 2)
+            if int(avg_value) == avg_value:
+                avg_value = int(avg_value)
+
+            avg = MarkLog(
+                value=str(avg_value).replace('.', ','),
+                mood=moods.get(int(avg_value), mark5_moods.get(int(avg_value), MarkLog.default_mood())),
+                work=None,
+                created=None
+            )
+        else:
+            avg = None
 
         return avg
 
@@ -762,7 +769,10 @@ class DnevnikService(BaseService[AppUnitOfWork]):
 
             if mark['lesson'] is None:
                 if work['type'] == "PeriodMark":
-                    period = periods[work['periodNumber']]['name']
+                    if work['periodType'] == 'Year':
+                        period = "Годовая"
+                    else:
+                        period = periods[work['periodNumber']]['name']
                 elif work['type'] == "Exam":
                     period = "Экзамен"
                 elif work['type'] == "PeriodFinalMark":
