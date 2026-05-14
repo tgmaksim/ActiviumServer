@@ -290,8 +290,8 @@ class SettingsService(BaseService[AppUnitOfWork]):
                         )
                     )
 
-            await uow.ea_notification_repository.turn_off(session_id, child_id)
-            await uow.statistic_repository.add_statistic(parent.parent_id, StatName.turnOffEANotifications)
+            await uow.ea_notification_repository.turn_on(session_id, child_id)
+            await uow.statistic_repository.add_statistic(parent.parent_id, StatName.turnOnEANotifications)
 
             return SwitchEANotificationsApiResponse()
 
