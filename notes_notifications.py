@@ -6,7 +6,7 @@ from typing import Callable, Optional
 from datetime import datetime, timedelta, UTC
 
 from httpx import AsyncClient
-from asyncio import AbstractEventLoop
+from asyncio import AbstractEventLoop, Task
 
 from firebase.messaging import send_notifications, Notification, AppNotificationChannel, FCMResult
 
@@ -25,12 +25,24 @@ __all__ = ['RemindLessonNotesWorker', 'add_work']
 
 
 class RemindLessonNotesWorker:
+    """
+    Класс для работы уведомлений с напоминаниями о заметках к урокам
+
+    За каждый проход в несколько этапов берутся все напоминания, которые запланированы на ближайшие 5 минут.
+    Для каждой заметки отправляется уведомление всем сессиям ребенка (без родителей)
+
+    Так происходит пока ближайших напоминаний о заметках к урокам не останется.
+    После процесс приостанавливается на 4 минуты
+    """
+
     def __init__(self, uow_factory: Callable[[], AppUnitOfWork], httpx_client: AsyncClient):
-        self._running = True
+        self._running = False
         self.uow_factory = uow_factory
         self.httpx_client = httpx_client
 
     async def run(self):
+        self._running = True
+
         service = LogService(get_log_uow_factory())
         await service.log(
             ip='notes_notifications',
@@ -49,14 +61,15 @@ class RemindLessonNotesWorker:
                     end_period = now + timedelta(minutes=WINDOW_END_MINUTES)
 
                     async with self.uow_factory() as uow:
+                        # Все заметки, у которых есть напоминания в ближайшие 5 минут
                         rows = await uow.lesson_note_repository.get_next_notes_to_remind(
                             (start_period, end_period))
 
+                        # Уведомления, которые нужно отправить
                         pushes = await self._process_batch(uow, rows)
-                        response = await self._dispatch_pushes(pushes)
 
-                        for row in rows:
-                            await uow.lesson_note_repository.delete_note_remind(row.child_id, row.lesson_id)
+                        # Результат отправки каждого уведомления
+                        response = await self._dispatch_pushes(pushes)
 
                         for firebase_token, result in (response.results if response else []):
                             status = result.exception is None
@@ -75,10 +88,10 @@ class RemindLessonNotesWorker:
                         status=False,
                         value='\n'.join(traceback.format_exception(e))
                     )
-                finally:
-                    elapsed = time.monotonic() - start
 
-                    await asyncio.sleep(CYCLE_SECONDS - elapsed)
+                elapsed = time.monotonic() - start
+
+                await asyncio.sleep(CYCLE_SECONDS - elapsed)
         except Exception as e:
             service = LogService(get_log_uow_factory())
             await service.log(
@@ -98,16 +111,24 @@ class RemindLessonNotesWorker:
 
     @classmethod
     async def _process_batch(cls, uow: AppUnitOfWork, rows: list[LessonNote]) -> list[tuple[str, dict]]:
-        """Создание уведомлений"""
+        """
+        Создание уведомлений с напоминанием о заметке к урокам
+
+        :return: список параметров уведомлений (firebase-токен, параметры заметки)
+        """
 
         if not rows:
             return []
 
+        # Дети, задействованные в текущем проходе
         children = {row.child_id: row.child for row in rows}
+
+        # Сессии детей (родители не получают уведомления) с firebase-токенами
         sessions: dict[int, set[str]] = {}
         for child_id, child in children.items():
             if child_id not in sessions:
                 sessions[child_id] = set()
+            # Сессии ребенка как пользователя (без родителей)
             child_sessions = await uow.session_repository.get_sessions(child_id)
             sessions[child_id].update(child_session.firebase_token for child_session in child_sessions)
 
@@ -115,7 +136,8 @@ class RemindLessonNotesWorker:
 
         for row in rows:
             payload = {
-                "text": row.text
+                "text": row.text,
+                "profile": row.child_id
             }
 
             pushes.extend([(firebase_token, payload) for firebase_token in sessions[row.child_id]])
@@ -123,6 +145,10 @@ class RemindLessonNotesWorker:
         for child_id, firebase_tokens in sessions.items():
             if len(firebase_tokens) != 0:
                 await uow.statistic_repository.add_statistic(child_id, StatName.notes_notifications)
+
+        for row in rows:
+            # Удаление напоминания для заметки
+            await uow.lesson_note_repository.delete_note_remind(row.child_id, row.lesson_id)
 
         return pushes
 
@@ -138,13 +164,13 @@ class RemindLessonNotesWorker:
             title="Напоминание о заметке",
             message=activity['text'],
             channel=AppNotificationChannel.notes,
-            data={"from_notification": "remind_note"}
+            data={"from_notification": "remind_note", "profile": activity['profile']}
         ) for firebase_token, activity in pushes])
 
     def stop(self):
         self._running = False
 
 
-def add_work(loop: AbstractEventLoop, uow_factory: Callable[[], AppUnitOfWork], httpx_client: AsyncClient):
+def add_work(loop: AbstractEventLoop, uow_factory: Callable[[], AppUnitOfWork], httpx_client: AsyncClient) -> Task:
     worker = RemindLessonNotesWorker(uow_factory, httpx_client)
     return loop.create_task(worker.run())

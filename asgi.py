@@ -26,7 +26,13 @@ async def lifespan(_: FastAPI) -> AsyncIterator:
     get_httpx_client()
 
     try:
-        tasks = add_backgrounds(asyncio.get_running_loop())
+        tasks = add_backgrounds(
+            asyncio.get_running_loop(),
+            tgbot=settings.START_TGBOT_WORKER,
+            marks_notifications=settings.START_MARKS_NOTIFICATIONS_WORKER,
+            ea_notifications=settings.START_EA_NOTIFICATIONS_WORKER,
+            notes_notifications=settings.START_NOTES_NOTIFICATIONS_WORKER
+        )
 
         service = LogService(get_log_uow_factory())
         await service.log(path='lifespan', value="Сервер запущен")

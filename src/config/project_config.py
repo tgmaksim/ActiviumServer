@@ -23,6 +23,24 @@ class Settings(BaseSettings):
     WWW_PATH: str
     """Путь к папке со статическими ресурсами, которые отправляются низкоуровневым сервером"""
 
+    # Параметры сервера
+    COUNT_SERVER_WORKERS: int
+    """Количество основных worker'ов сервера"""
+    START_TGBOT_WORKER: bool
+    """Запустить ли вместе с сервером worker Telegram-бота"""
+    COUNT_MARKS_NOTIFICATIONS_WORKERS: int
+    """Количество worker'ов уведомлений о новых оценках"""
+    START_MARKS_NOTIFICATIONS_WORKER: bool
+    """Запустить ли вместе с сервером worker уведомлений о новых оценках"""
+    COUNT_EA_NOTIFICATIONS_WORKERS: int
+    """Количество worker'ов уведомлений с напоминаниями о внеурочных занятиях"""
+    START_EA_NOTIFICATIONS_WORKER: bool
+    """Запустить ли worker уведомлений с напоминаниями о внеурочных занятий"""
+    COUNT_NOTES_NOTIFICATIONS_WORKERS: int
+    """Количество worker'ов уведомлений с напоминаниями о заметках к урокам"""
+    START_NOTES_NOTIFICATIONS_WORKER: bool
+    """Запустить ли worker уведомлений с напоминаниями о заметкам к урокам"""
+
     # Github
     GITHUB: str
     """Ссылка на github-репозиторий клиентского приложения"""

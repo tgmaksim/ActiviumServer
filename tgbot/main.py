@@ -1,6 +1,8 @@
 import asyncio
 import traceback
 
+from contextlib import suppress
+
 from src.services.log_service import LogService
 from src.dependencies.uow import get_log_uow_factory
 
@@ -37,7 +39,8 @@ async def run_polling():
         await service.log(path='tgbot', value="Бот остановлен")
 
         print("Бот остановлен")
-        await dp.stop_polling()
+        with suppress(RuntimeError):
+            await dp.stop_polling()
         await bot.close()
 
 

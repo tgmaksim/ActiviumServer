@@ -7,7 +7,7 @@ from typing import Callable, Optional
 from datetime import datetime, timedelta, UTC
 
 from httpx import AsyncClient
-from asyncio import AbstractEventLoop
+from asyncio import AbstractEventLoop, Task
 
 from firebase.messaging import send_notifications, Notification, AppNotificationChannel, FCMResult
 
@@ -26,12 +26,24 @@ __all__ = ['EAProcessingNotification', 'add_work']
 
 
 class ExtracurricularActivityWorker:
+    """
+    Класс для работы уведомлений с напоминаниями о внеурочных занятиях
+
+    За каждый проход в несколько этапов берутся все ближайшие внеурочные занятия, которые начнутся не более,
+    чем через 15 минут, но до их начала более 5 минут. Для каждого занятия отправляется уведомление всем ученикам класса,
+    у кого включены соответствующие уведомления
+
+    Так происходит пока ближайших внеурочных занятий не останется. После процесс приостанавливается на 8 минут
+    """
+
     def __init__(self, uow_factory: Callable[[], AppUnitOfWork], httpx_client: AsyncClient):
-        self._running = True
+        self._running = False
         self.uow_factory = uow_factory
         self.httpx_client = httpx_client
 
     async def run(self):
+        self._running = True
+
         service = LogService(get_log_uow_factory())
         await service.log(
             ip='ea_notifications',
@@ -51,13 +63,17 @@ class ExtracurricularActivityWorker:
                         end_period = now + timedelta(minutes=WINDOW_END_MINUTES)
 
                         async with self.uow_factory() as uow:
+                            # Ближайшие внеурочные занятия с одинаковым временем начала
                             rows = await uow.ea_processing_notification_repository.get_next_extracurricular_activities(
                                 (start_period, end_period))
 
                             if not rows:
                                 break
 
-                            pushes, processed_ids = await self._process_batch(uow, rows)
+                            # Уведомления, которые нужно отправить
+                            pushes = await self._process_batch(uow, rows)
+
+                            # Результат отправки каждого уведомления
                             response = await self._dispatch_pushes(pushes)
 
                             for firebase_token, result in (response.results if response else []):
@@ -67,11 +83,7 @@ class ExtracurricularActivityWorker:
                                     path=firebase_token,
                                     status=status,
                                     value=f"{result.exception}: {result.exception.http_response} {result.exception.cause} "
-                                          f"{result.exception.http_response.__dict__}" if not status else str(result)
-                                )
-
-                            for ea_id in processed_ids:
-                                await uow.ea_processing_notification_repository.finish_process(ea_id)
+                                          f"{result.exception.http_response.__dict__}" if not status else str(result))
                 except Exception as e:
                     service = LogService(get_log_uow_factory())
                     await service.log(
@@ -80,10 +92,10 @@ class ExtracurricularActivityWorker:
                         status=False,
                         value='\n'.join(traceback.format_exception(e))
                     )
-                finally:
-                    elapsed = time.monotonic() - start
 
-                    await asyncio.sleep(CYCLE_SECONDS - elapsed)
+                elapsed = time.monotonic() - start
+
+                await asyncio.sleep(CYCLE_SECONDS - elapsed)
         except Exception as e:
             service = LogService(get_log_uow_factory())
             await service.log(
@@ -102,57 +114,68 @@ class ExtracurricularActivityWorker:
             )
 
     @classmethod
-    async def _process_batch(cls, uow: AppUnitOfWork, rows: list[EAProcessingNotification]) -> tuple[list[tuple[str, dict]], list[int]]:
-        """Создание уведомлений"""
+    async def _process_batch(cls, uow: AppUnitOfWork, rows: list[EAProcessingNotification]) -> list[tuple[str, dict]]:
+        """
+        Создание уведомлений о скорых внеурочных занятиях
+
+        :return: список параметров уведомлений (firebase-токен, параметры внеурочного занятия)
+        """
 
         if not rows:
-            return [], []
+            return []
 
         # Все внеурочные занятия с одинаковым start_time
         start_time = rows[0].start_time
         minutes_left = ceil((start_time - datetime.now(UTC)).total_seconds() / 60)
 
+        # Классы, в которых проходят внеурочные занятия
         groups = {(row.extracurricular_activity.school_id, row.extracurricular_activity.group_id) for row in rows}
 
+        # Сессии детей (и их родителей) в данных классах, у которых включены уведомления
         notifications = await uow.ea_notification_repository.get_notifications(list(groups))
 
         parents = set()
-        children_by_group: dict[tuple[int, int], set[str]] = {}
+        # Сессии, сгруппированные по классам
+        sessions_by_class: dict[tuple[int, int], set[tuple[int, str]]] = {}
         for notification in notifications:
             if not notification.session.life:
                 await uow.session_repository.kill_session(notification.session_id)
             else:
                 key = (notification.child.school_id, notification.child.group_id)
-                if children_by_group.get(key) is None:
-                    children_by_group[key] = set()
-                children_by_group[key].add(notification.session.firebase_token)
+                if sessions_by_class.get(key) is None:
+                    sessions_by_class[key] = set()
+                sessions_by_class[key].add((notification.child_id, notification.session.firebase_token))
 
                 parents.add(notification.session.parent_id)
 
         pushes: list[tuple[str, dict]] = []
         processed_ids: list[int] = []
 
+        # Перебор всех скорых внеурочных занятий
         for row in rows:
             activity = row.extracurricular_activity
             key = (activity.school_id, activity.group_id)
 
-            children = children_by_group.get(key)
+            # Все сессии в классе, в котором проводится внеурочное занятие
+            sessions = sessions_by_class.get(key, set())
 
-            payload = {
-                "subject": activity.subject,
-                "place": activity.place,
-                "minutes_left": minutes_left
-            }
-
-            for firebase_token in children:
-                pushes.append((firebase_token, payload))
+            for child_id, firebase_token in sessions:
+                pushes.append((firebase_token, {
+                    "subject": activity.subject,
+                    "place": activity.place,
+                    "minutes_left": minutes_left,
+                    "profile": child_id
+                }))
 
             processed_ids.append(row.ea_id)
+
+        for ea_id in processed_ids:
+            await uow.ea_processing_notification_repository.finish_process(ea_id)
 
         for parent in parents:
             await uow.statistic_repository.add_statistic(parent, StatName.ea_notifications)
 
-        return pushes, processed_ids
+        return pushes
 
     @classmethod
     async def _dispatch_pushes(cls, pushes: list[tuple[str, dict]]) -> Optional[FCMResult]:
@@ -166,13 +189,13 @@ class ExtracurricularActivityWorker:
             title="Скоро внеурочное занятие",
             message=f"Через {activity['minutes_left']} мин начнётся {activity['subject']} в {activity['place']}",
             channel=AppNotificationChannel.extracurricular_activities,
-            data={"from_notification": "ea"}
+            data={"from_notification": "ea", "profile": activity['profile']}
         ) for firebase_token, activity in pushes])
 
     def stop(self):
         self._running = False
 
 
-def add_work(loop: AbstractEventLoop, uow_factory: Callable[[], AppUnitOfWork], httpx_client: AsyncClient):
+def add_work(loop: AbstractEventLoop, uow_factory: Callable[[], AppUnitOfWork], httpx_client: AsyncClient) -> Task:
     worker = ExtracurricularActivityWorker(uow_factory, httpx_client)
     return loop.create_task(worker.run())

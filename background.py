@@ -1,32 +1,45 @@
 import asyncio
-
-from ea_notifications import add_work as add_ea_work
-from marks_notifications import add_work as add_marks_work
-from notes_notifications import add_work as add_notes_work
-
-from src.dependencies.httpx import get_httpx_client
-from src.dependencies.uow import get_app_uow_factory
-
-from tgbot.main import add_polling_task
+import argparse
 
 
 __all__ = ['add_backgrounds']
 
 
-def add_backgrounds(loop: asyncio.AbstractEventLoop) -> list[asyncio.Task]:
-    tasks = [
-        add_polling_task(loop),
-        add_marks_work(loop, get_app_uow_factory(), get_httpx_client()),
-        add_ea_work(loop, get_app_uow_factory(), get_httpx_client()),
+def add_backgrounds(
+        loop: asyncio.AbstractEventLoop,
+        *,
+        tgbot: bool = False,
+        marks_notifications: bool = False,
+        ea_notifications: bool = False,
+        notes_notifications: bool = False
+) -> list[asyncio.Task]:
+    tasks = []
+
+    from src.dependencies.httpx import get_httpx_client
+    from src.dependencies.uow import get_app_uow_factory
+
+    if tgbot:
+        from tgbot.main import add_polling_task
+        add_polling_task(loop)
+
+    if marks_notifications:
+        from marks_notifications import add_work as add_marks_work
+        add_marks_work(loop, get_app_uow_factory(), get_httpx_client())
+
+    if ea_notifications:
+        from ea_notifications import add_work as add_ea_work
+        add_ea_work(loop, get_app_uow_factory(), get_httpx_client())
+
+    if notes_notifications:
+        from notes_notifications import add_work as add_notes_work
         add_notes_work(loop, get_app_uow_factory(), get_httpx_client())
-    ]
 
     return tasks
 
 
-def start_backgrounds():
-    loop = asyncio.get_event_loop()
-    tasks = add_backgrounds(loop)
+def start_backgrounds(**params):
+    loop = asyncio.new_event_loop()
+    tasks = add_backgrounds(loop, **params)
 
     try:
         loop.run_forever()
@@ -38,4 +51,19 @@ def start_backgrounds():
 
 
 if __name__ == "__main__":
-    start_backgrounds()
+    parser = argparse.ArgumentParser(description="Запуск фоновых процессов. Допускается одновременный запуск нескольких")
+    parser.add_argument('--tgbot', action='store_true', help="Запустить Telegram-бота")
+    parser.add_argument('--marks-notifications', action='store_true',
+                        help="Запустить worker уведомлений о новых оценках")
+    parser.add_argument('--ea-notifications', action='store_true',
+                        help="Запустить worker уведомлений с напоминанием о внеурочном занятии")
+    parser.add_argument('--notes-notifications', action='store_true',
+                        help="Запустить worker уведомлений с напоминаниями о заметках к урокам")
+    args = parser.parse_args()
+
+    start_backgrounds(
+        tgbot=args.tgbot,
+        marks_notifications=args.marks_notifications,
+        ea_notifications=args.ea_notifications,
+        notes_notifications=args.notes_notifications
+    )
