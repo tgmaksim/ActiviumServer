@@ -189,7 +189,7 @@ class ExtracurricularActivityWorker:
             title="Скоро внеурочное занятие",
             message=f"Через {activity['minutes_left']} мин начнётся {activity['subject']} в {activity['place']}",
             channel=AppNotificationChannel.extracurricular_activities,
-            data={"from_notification": "ea", "profile": activity['profile']}
+            data={"from_notification": "ea", "profile": str(activity['profile'])}
         ) for firebase_token, activity in pushes])
 
     def stop(self):

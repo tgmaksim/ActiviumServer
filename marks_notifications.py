@@ -240,14 +240,19 @@ class MarksNotificationWorker:
 
         works = {work['id']: work for work in result['works']}
         subjects = {subject['id']: subject['name'] for subject in result['subjects']}
+        work_types = {work_type['id']: work_type['name'] for work_type in result['workTypes']}
 
         # Игнорируются последняя обработанная в прошлый раз оценка и все оценки, выставленные ровно в это же время
+        marks_with_date = [(mark, date) for mark in result['marks']
+                           if (date := datetime.fromisoformat(mark['date']).replace(tzinfo=UTC)) > last_mark]
+
         answer = [{
             'value': mark['textValue'],
             'mood': mark['mood'].lower() if mark['mood'].lower() in MarkLog.moods else MarkLog.default_mood(),
             'subject': subjects.get(works.get(mark['work'], {}).get('subjectId')),
-            'date': date
-        } for mark in result['marks'] if (date := datetime.fromisoformat(mark['date']).replace(tzinfo=UTC)) > last_mark]
+            'date': date,
+            'work': work_types.get(mark['workType'])
+        } for mark, date in marks_with_date]
 
         return answer, profile['shortName']
 
@@ -262,12 +267,14 @@ class MarksNotificationWorker:
             image=self._get_mark_url(mark['value'], mark['mood']),
             title=f"{'🥳 Ура! ' * (mark['mood'] == 'good')}Новая оценка",
             message=(f"{profile}: " if profile else '') +
-                    f"Получена оценка «{mark['value']}» по предмету {mark['subject']}",
+                    f"Получена оценка «{mark['value']}»" +
+                    (f" по предмету {mark['subject']}" if mark['subject'] is not None else '') +
+                    (f" ({mark['work']})" if mark['work'] else ''),
             channel=AppNotificationChannel.marks,
             data={
                 "from_notification": "new_mark",
                 "good_mark": str(mark['mood'] == 'good').lower(),
-                "profile": child_id
+                "profile": str(child_id)
             }
         ) for firebase_token, mark, profile in pushes])
 

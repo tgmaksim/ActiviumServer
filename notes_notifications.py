@@ -164,7 +164,7 @@ class RemindLessonNotesWorker:
             title="Напоминание о заметке",
             message=activity['text'],
             channel=AppNotificationChannel.notes,
-            data={"from_notification": "remind_note", "profile": activity['profile']}
+            data={"from_notification": "remind_note", "profile": str(activity['profile'])}
         ) for firebase_token, activity in pushes])
 
     def stop(self):
