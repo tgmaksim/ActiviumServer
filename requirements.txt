@@ -13,4 +13,8 @@ aiogram==3.28.2
 yarl==1.23.0
 async-firebase==6.1.2
 pillow==12.2.0
-openai==2.36.0
+openai==2.37.0
+alembic==1.18.4
+uliweb-alembic==0.6.9
+alembic-utils==0.8.8
+psycopg2==2.9.12

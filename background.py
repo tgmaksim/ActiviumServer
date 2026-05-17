@@ -23,15 +23,15 @@ def add_backgrounds(
         add_polling_task(loop)
 
     if marks_notifications:
-        from marks_notifications import add_work as add_marks_work
+        from backgrounds.marks_notifications import add_work as add_marks_work
         add_marks_work(loop, get_app_uow_factory(), get_httpx_client())
 
     if ea_notifications:
-        from ea_notifications import add_work as add_ea_work
+        from backgrounds.ea_notifications import add_work as add_ea_work
         add_ea_work(loop, get_app_uow_factory(), get_httpx_client())
 
     if notes_notifications:
-        from notes_notifications import add_work as add_notes_work
+        from backgrounds.notes_notifications import add_work as add_notes_work
         add_notes_work(loop, get_app_uow_factory(), get_httpx_client())
 
     return tasks

@@ -1,7 +1,8 @@
 from datetime import datetime
 
-from sqlalchemy import String, TIMESTAMP
 from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.sql.sqltypes import Text, TIMESTAMP
+from sqlalchemy.sql.schema import PrimaryKeyConstraint
 
 from .base_model import BaseModel
 
@@ -14,5 +15,15 @@ class StatisticMessage(BaseModel):
 
     __tablename__ = 'statistic_messages'
 
-    time: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), primary_key=True)
-    message: Mapped[str] = mapped_column(String)
+    time: Mapped[datetime] = mapped_column(
+        TIMESTAMP(timezone=True),
+        comment="Время сбора и анализа логов, мониторинга и статистики"
+    )
+    message: Mapped[str] = mapped_column(
+        Text,
+        comment="Итоговое сообщение с данными и анализом"
+    )
+
+    __custom_table_args__ = (
+        PrimaryKeyConstraint('time', name="statistic_messages_time"),
+    )

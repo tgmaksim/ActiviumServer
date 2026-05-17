@@ -1,6 +1,6 @@
 from html import escape
 from datetime import timedelta
-from typing import Callable, Any, Optional
+from typing import Callable, Optional
 
 from yarl import URL
 from httpx import AsyncClient
@@ -13,6 +13,7 @@ from ...dependencies.auth import check_session
 from ...dependencies.datetime import astimezone
 from ...services.html_response import HtmlResponse
 from ...repositories.statistic_repository import StatName
+from ...models.school_post_model import SchoolPostContentEntityType
 
 from ..schemas.school_schemas import (
     SchoolPost,
@@ -80,7 +81,7 @@ class SchoolService(BaseService[AppUnitOfWork]):
         return text.decode("utf-16-le")
 
     @classmethod
-    def _format_to_html(cls, text: Optional[str], entities: list[dict[str, Any]]) -> Optional[str]:
+    def _format_to_html(cls, text: Optional[str], entities: list[SchoolPostContentEntityType]) -> Optional[str]:
         if text is None:
             return None
 
