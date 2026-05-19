@@ -1,3 +1,4 @@
+from os import environ
 from typing import Optional
 
 from dotenv import load_dotenv
@@ -48,11 +49,11 @@ class Settings(BaseSettings):
     """Ссылка на github-репозиторий сервера"""
 
     # Параметры хостинг-сервера
-    NETANGELS_GATEWAY_TOKEN_URL: str
+    HOSTING_GATEWAY_TOKEN_URL: str
     """URL для получения API-токена"""
-    NETANGELS_API_KEY: str
+    HOSTING_API_KEY: str
     """API-ключ для запроса получения токена"""
-    NETANGELS_API_URL: str
+    HOSTING_API_URL: str
     """URL для API-запросов"""
     VIRTUALHOST_ID: int
     """Идентификатор сайта"""
@@ -120,6 +121,9 @@ class Settings(BaseSettings):
     """Выводить в консоль все SQL-запросы"""
 
 
-load_dotenv(dotenv_path=".env")
+if environ.get('DEBUG'):
+    load_dotenv(dotenv_path=".debug.env")
+else:
+    load_dotenv(dotenv_path=".env")
 settings = Settings()  # Загрузка из env
 """Настройки проекта"""

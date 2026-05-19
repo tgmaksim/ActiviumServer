@@ -4,6 +4,7 @@ from typing import Annotated
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi import APIRouter, Query, Depends, Request, Header
 
+from ...config.project_config import settings
 from ..services.school_service import SchoolService
 from ...dependencies.templates import get_templates
 from ...dependencies.services import get_school_service
@@ -34,8 +35,9 @@ public_router = APIRouter(prefix='/school', tags=["School"], include_in_schema=F
     response_class=RedirectResponse
 )
 async def _pre_post(request: Request) -> RedirectResponse:
+    scheme = 'https' if not settings.DEBUG else 'http'
     return RedirectResponse(
-        url=request.url.replace(scheme='https', path=request.url.path + '/'),
+        url=request.url.replace(scheme=scheme, path=request.url.path + '/'),
         status_code=HTTPStatus.PERMANENT_REDIRECT
     )
 

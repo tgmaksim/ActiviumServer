@@ -1,3 +1,5 @@
+import os
+
 from logging.config import fileConfig
 
 from alembic import context
@@ -22,6 +24,18 @@ if config.config_file_name is not None:
 # from myapp import mymodel
 # target_metadata = mymodel.Base.metadata
 target_metadata = BaseModel.metadata
+
+database_url = os.getenv('DATABASE_URL')
+if database_url is None:
+    db_host = os.environ["DB_HOST"]
+    db_name = os.environ["DB_NAME"]
+    db_user = os.environ["DB_USER"]
+    db_pass = os.environ["DB_PASS"]
+    db_port = os.environ["DB_PORT"]
+
+    database_url = f"postgresql://{db_user}:{db_pass}@{db_host}:{db_port}/{db_name}"
+
+config.set_main_option("sqlalchemy.url", database_url)
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:

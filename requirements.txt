@@ -17,4 +17,5 @@ openai==2.37.0
 alembic==1.18.4
 uliweb-alembic==0.6.9
 alembic-utils==0.8.8
-psycopg2==2.9.12
+psycopg2-binary==2.9.12
+uvicorn==0.47.0

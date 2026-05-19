@@ -11,8 +11,8 @@ db.sqlite3
 
 venv
 
-.env.dev
 .env
+.debug.env
 
 __pycache__/
 */__pycache__/
@@ -38,6 +38,5 @@ doc-dev
 .vscode/*
 
 firebase-adminsdk.json
-tests
 
 alembic.ini
