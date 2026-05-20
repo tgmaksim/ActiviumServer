@@ -123,7 +123,7 @@ def upgrade() -> None:
     sa.Column('has_image', sa.Boolean(), nullable=False, comment='Наличие главного изображения публикации'),
     sa.Column('author', sa.String(length=64), nullable=False, comment='Автор публикации (администратор образовательной организации или другое)'),
     sa.Column('author_verified', sa.Boolean(), server_default=sa.text('false'), nullable=False, comment='Автор является официальным лицом приложения'),
-    sa.Column('schedule_date', sa.TIMESTAMP(timezone=True), nullable=True, comment='Дата проведенного мероприятия'),
+    sa.Column('schedule_date', sa.Date(), nullable=True, comment='Дата проведенного мероприятия'),
     sa.Column('is_updated', sa.Boolean(), server_default=sa.text('false'), nullable=False, comment='Публикация была отредактирована'),
     sa.Column('count_visions', sa.BigInteger(), server_default=sa.text('0'), nullable=False, comment='Количество пользователей, которые увидели наличие публикации'),
     sa.Column('count_clicks', sa.BigInteger(), server_default=sa.text('0'), nullable=False, comment='Количество пользователей, которые открыли публикации'),

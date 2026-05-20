@@ -10,7 +10,7 @@ aiosqlite==0.22.1
 asyncpg==0.31.0
 pytest-asyncio==1.3.0
 aiogram==3.28.2
-yarl==1.23.0
+yarl==1.24.2
 async-firebase==6.1.2
 pillow==12.2.0
 openai==2.37.0

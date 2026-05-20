@@ -138,9 +138,7 @@ class ExtracurricularActivityWorker:
         # Сессии, сгруппированные по классам
         sessions_by_class: dict[tuple[int, int], set[tuple[int, str]]] = {}
         for notification in notifications:
-            if not notification.session.life:
-                await uow.session_repository.kill_session(notification.session_id)
-            else:
+            if notification.session.life:
                 key = (notification.child.school_id, notification.child.group_id)
                 if sessions_by_class.get(key) is None:
                     sessions_by_class[key] = set()

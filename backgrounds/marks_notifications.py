@@ -187,9 +187,10 @@ class MarksNotificationWorker:
                             value='\n'.join(traceback.format_exception(e))
                         )
 
-            if turn_off:
-                # Выключение уведомлений для нерабочей сессии
-                await uow.marks_notification_repository.turn_off(session.session_id, child.child_id)
+            # Уведомления остаются включенными. После повторной авторизации сессии продолжают работать
+            # if turn_off:
+            #     # Выключение уведомлений для нерабочей сессии
+            #     await uow.marks_notification_repository.turn_off(session.session_id, child.child_id)
 
         pushes = []
         parents = set()

@@ -35,7 +35,7 @@ class LoginService(BaseService[AppUnitOfWork]):
 
     async def login(self, session_id: Optional[str], firebase_token: str) -> LoginApiResponse:
         async with self.uow_factory() as uow:
-            if session_id is None or await uow.session_repository.get_session(session_id) is None:
+            if session_id is None or await uow.session_repository.get_session(session_id, only_life=False) is None:
                 session_id = await self._create_session(uow.session_repository)
 
             await uow.session_repository.update_firebase(session_id, firebase_token)
@@ -85,7 +85,7 @@ class LoginService(BaseService[AppUnitOfWork]):
         )
 
         async with self.uow_factory() as uow:
-            if await uow.session_repository.get_session(session_id) is None:
+            if await uow.session_repository.get_session(session_id, only_life=False) is None:
                 await log_exception("Сессия не найдена")
                 return HtmlResponse(
                     name='error.html',

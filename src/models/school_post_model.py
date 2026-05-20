@@ -6,7 +6,7 @@ from typing import TypedDict, Literal
 from sqlalchemy import desc, text as sql_text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
-from sqlalchemy.sql.sqltypes import BigInteger, String, TIMESTAMP, Integer, Boolean
+from sqlalchemy.sql.sqltypes import BigInteger, String, Date, Integer, Boolean
 from sqlalchemy.sql.schema import PrimaryKeyConstraint, Index, Identity, CheckConstraint
 
 from .base_model import BaseModel
@@ -74,7 +74,7 @@ class SchoolPost(BaseModel):
         comment="Автор является официальным лицом приложения"
     )
     schedule_date: Mapped[Optional[datetime.date]] = mapped_column(
-        TIMESTAMP(timezone=True),
+        Date,
         nullable=True,
         comment="Дата проведенного мероприятия"
     )

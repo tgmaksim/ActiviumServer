@@ -19,7 +19,7 @@ async def api_exception_handler(request: Request, exc: BaseApiException) -> Resp
     """Обработчик API-ошибок базового класса BaseApiException"""
 
     if isinstance(exc, ApiKeyError):
-        request.state.error = '\n'.join(traceback.format_exception(exc))  # Для логирования ошибки
+        request.state.error = 'ApiKeyError\n' + '\n'.join(traceback.format_exception(exc))  # Для логирования ошибки
 
         return JSONResponse(ApiResponse(
             status=False,
@@ -30,7 +30,7 @@ async def api_exception_handler(request: Request, exc: BaseApiException) -> Resp
         ).model_dump(by_alias=True), status_code=403)
 
     elif isinstance(exc, SessionError):
-        request.state.error = '\n'.join(traceback.format_exception(exc))  # Для логирования ошибки
+        request.state.error = 'SessionError\n' + '\n'.join(traceback.format_exception(exc))  # Для логирования ошибки
 
         async with get_app_uow_factory()() as uow:
             await uow.session_repository.kill_session(exc.session_id)  # life=false

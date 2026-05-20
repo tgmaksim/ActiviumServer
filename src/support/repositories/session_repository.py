@@ -25,8 +25,10 @@ class SessionRepository(SqlAlchemyRepository[Session]):
             'session_id': session_id
         })
 
-    async def get_session(self, session_id: str) -> Optional[Session]:
-        return await self.get_single(Session.session_id == session_id, Session.life == True)
+    async def get_session(self, session_id: str, only_life: bool = True) -> Optional[Session]:
+        if only_life:
+            return await self.get_single(Session.session_id == session_id, Session.life == True)
+        return await self.get_single(Session.session_id == session_id)
 
     async def get_sessions(self, parent_id: int) -> list[Session]:
         return await self.get_multi(Session.parent_id == parent_id, Session.life == True)
@@ -41,13 +43,14 @@ class SessionRepository(SqlAlchemyRepository[Session]):
         return await self.update({
             'parent_id': parent_id,
             'active_child_id': active_child_id,
-            'dnevnik_token': dnevnik_token
-        }, Session.session_id == session_id, Session.life == True)
+            'dnevnik_token': dnevnik_token,
+            'life': True
+        }, Session.session_id == session_id)
 
     async def update_firebase(self, session_id: str, firebase_token: str):
         return await self.update({
             'firebase_token': firebase_token
-        }, Session.session_id == session_id, Session.life == True)
+        }, Session.session_id == session_id)
 
     async def set_active_child(self, session_id: str, active_child_id: int) -> Session:
         return await self.update({
