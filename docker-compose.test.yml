@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  test_db:
+    image: postgres:15-alpine
+    container_name: test_postgres_db
+    environment:
+      POSTGRES_USER: db_user
+      POSTGRES_PASSWORD: db_password
+      POSTGRES_DB: db
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U db_user -d db"]
+      interval: 1s
+      timeout: 2s
+      retries: 10
+
+  tests:
+    build: .
+    container_name: tests
+    environment:
+      - TEST=1
+      - DATABASE_URL=postgresql://db_user:db_password@test_db:5432/db
+    command: /app/tests.sh
+    depends_on:
+      test_db:
+        condition: service_healthy

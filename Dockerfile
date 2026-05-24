@@ -26,8 +26,9 @@ RUN rm -rf www
 # Статические файлы в www находятся в корне
 COPY ./www /www
 
-# Права на выполнение entrypoint.sh
+# Права на выполнение entrypoint.sh и tests.sh
 RUN chmod +x /app/entrypoint.sh
+RUN chmod +x /app/tests.sh
 
 # Открытие порта
 EXPOSE 8000

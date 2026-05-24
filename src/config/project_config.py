@@ -121,7 +121,9 @@ class Settings(BaseSettings):
     """Выводить в консоль все SQL-запросы"""
 
 
-if environ.get('DEBUG'):
+if environ.get('TEST'):
+    load_dotenv(dotenv_path=".tests.env")
+elif environ.get('DEBUG'):
     load_dotenv(dotenv_path=".debug.env")
 else:
     load_dotenv(dotenv_path=".env")

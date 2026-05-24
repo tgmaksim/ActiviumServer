@@ -36,7 +36,7 @@ class SqlAlchemyRepository(AbstractRepository[ModelType]):
                     index_elements=security,
                     set_={field: data[field] for field in data if field not in security}
                 )
-        statement = statement.returning(self.model)
+        statement = statement.returning(self.model).execution_options(populate_existing=True)
         res = await self.queue.execute(statement)
         return res.scalar()
 
@@ -50,13 +50,16 @@ class SqlAlchemyRepository(AbstractRepository[ModelType]):
         :return: созданные модели с данными
         """
 
+        if not data:
+            return []
+
         statement = insert(self.model).values(data)
         if security:
             if security_nothing:
                 statement = statement.on_conflict_do_nothing(index_elements=security)
             else:
                 raise ValueError("Пока что данный параметр недоступен")
-        statement = statement.returning(self.model)
+        statement = statement.returning(self.model).execution_options(populate_existing=True)
         res = await self.queue.execute(statement)
         return list(res.scalars().all())
 
@@ -77,7 +80,7 @@ class SqlAlchemyRepository(AbstractRepository[ModelType]):
         if filters:
             statement = statement.filter_by(**filters)
 
-        statement = statement.returning(self.model)
+        statement = statement.returning(self.model).execution_options(populate_existing=True)
         res = await self.queue.execute(statement)
         return res.scalar_one_or_none()
 

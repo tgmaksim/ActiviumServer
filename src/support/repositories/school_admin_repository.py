@@ -20,6 +20,7 @@ class SchoolAdminRepository(SqlAlchemyRepository[SchoolAdmin]):
             parent_admin_id: Optional[int],
             person_id: Optional[int],
             school_id: Optional[int],
+            timezone: Optional[int],
             dnevnik_token: Optional[str]
     ):
         await self.create({
@@ -28,6 +29,7 @@ class SchoolAdminRepository(SqlAlchemyRepository[SchoolAdmin]):
             'parent_admin_id': parent_admin_id,
             'person_id': person_id,
             'school_id': school_id,
+            'timezone': timezone,
             'dnevnik_token': dnevnik_token
         }, security=['user_id'])
 

@@ -15,9 +15,9 @@ services:
       - "5432:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U db_user -d db"]
-      interval: 3s
-      timeout: 3s
-      retries: 5
+      interval: 1s
+      timeout: 2s
+      retries: 10
 
   app:
     build: .
@@ -42,7 +42,8 @@ services:
       PGADMIN_DEFAULT_EMAIL: admin@admin.com
       PGADMIN_DEFAULT_PASSWORD: admin_password
     depends_on:
-      - db
+      db:
+        condition: service_healthy
 
 volumes:
   postgres_data:

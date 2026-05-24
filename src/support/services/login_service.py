@@ -306,7 +306,7 @@ class LoginService(BaseService[AppUnitOfWork]):
             try:
                 dnevnik_data = await self._school_admin_dnevnik_auth(dnevnik_token)
                 assert dnevnik_data != 'no_admin', "Попытка авторизовать админа профилем не администратора"
-                name, person_id, school_id = dnevnik_data
+                name, person_id, school_id, timezone = dnevnik_data
             except AssertionError as e:
                 await log_exception('\n'.join(traceback.format_exception(e)))
                 return HtmlResponse(
@@ -329,12 +329,16 @@ class LoginService(BaseService[AppUnitOfWork]):
                     }
                 )
 
-            await self._auth_school_admin(uow, user_id, name, person_id, school_id, dnevnik_token)
+            await self._auth_school_admin(uow, user_id, name, person_id, school_id, timezone, dnevnik_token)
 
             return HtmlResponse(name='auth_school_admin_success.html', context={'redirect_url': settings.BOT_URL})
 
-    async def _school_admin_dnevnik_auth(self, dnevnik_token: str) -> Union[tuple[str, int, int], Literal["no_admin"]]:
+    async def _school_admin_dnevnik_auth(self, dnevnik_token: str) -> Union[tuple[str, int, int, int], Literal["no_admin"]]:
         dnr = AioDnevnikruApi(self.httpx_client, dnevnik_token)
+
+        info: dict = await dnr.get_info()
+        hours, minutes = map(int, info['timezone'].split(':'))
+        timezone = (hours * 60 + minutes) * 60
 
         context: dict = await dnr.get_context()
 
@@ -350,11 +354,11 @@ class LoginService(BaseService[AppUnitOfWork]):
         school: dict = next(filter(lambda s: s['type'] == 'Regular' and s['id'] in schools_id, schools))
         school_id = int(school['id'])
 
-        return name, person_id, school_id
+        return name, person_id, school_id, timezone
 
     @classmethod
-    async def _auth_school_admin(cls, uow: AppUnitOfWork, user_id: int, name: str, person_id: int, school_id: int, dnevnik_token: str):
-        await uow.school_admin_repository.create_admin(user_id, name, None, person_id, school_id, dnevnik_token)
+    async def _auth_school_admin(cls, uow: AppUnitOfWork, user_id: int, name: str, person_id: int, school_id: int, timezone: int, dnevnik_token: str):
+        await uow.school_admin_repository.create_admin(user_id, name, None, person_id, school_id, timezone, dnevnik_token)
 
         school_admin = await uow.school_admin_repository.get_admin(user_id)
         if school_admin is None:
