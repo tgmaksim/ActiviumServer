@@ -10,6 +10,7 @@ from .factories import (
 )
 
 from src.support.repositories.hour_repository import HourRepository
+from src.support.repositories.parent_repository import ParentRepository
 from src.support.repositories.version_repository import VersionRepository
 from src.support.repositories.tgbot_state_repository import TgbotStateRepository
 from src.support.repositories.school_admin_repository import SchoolAdminRepository
@@ -45,6 +46,11 @@ def extracurricular_activity_repository(session):
 @pytest.fixture
 def ea_processing_notification_repository(session):
     return EAProcessingNotificationRepository(session)
+
+
+@pytest.fixture
+def parent_repository(session):
+    return ParentRepository(session)
 
 
 @pytest.fixture
@@ -243,3 +249,12 @@ async def ea_processing_notifications(
     ])
 
     return await ea_processing_notification_repository.get_multi()
+
+
+@pytest.fixture
+async def parent(
+    parent_repository: ParentRepository
+):
+    return await parent_repository.create_parent(
+        100001
+    )
