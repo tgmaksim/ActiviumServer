@@ -1,7 +1,5 @@
 import pytest
 
-from ..fixtures import tgbot_state, tgbot_state_repository
-
 from src.support.repositories.tgbot_state_repository import TgbotStateRepository
 
 

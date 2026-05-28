@@ -1,6 +1,10 @@
 from typing import Callable, Optional, Literal
 
+from html import escape
 from httpx import AsyncClient
+
+from tgbot.notifier import send_admin_message
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 from dnevnikru import AioDnevnikruApi, BaseDnevnikruException
 from firebase.messaging import send_notifications, Notification, AppNotificationChannel
@@ -63,7 +67,7 @@ class ReviewsService(BaseService[AppUnitOfWork]):
             else:
                 review = await uow.review_repository.update_review(parent.parent_id, name, stars, text, is_open=False)
 
-            await uow.review_repository.check_review(review)
+            await self.check_review(review)
 
             await uow.statistic_repository.add_statistic(parent.parent_id, StatName.createReview)
 
@@ -81,6 +85,22 @@ class ReviewsService(BaseService[AppUnitOfWork]):
                     onModeration=True
                 )
             )
+
+    @classmethod
+    async def check_review(cls, review: Review):
+        await send_admin_message(
+            f"Новый отзыв от {review.name}!\n"
+            f"Оценка: {'<tg-emoji emoji-id="5435957248314579621">⭐️</tg-emoji>' * review.stars}"
+            f"{'<tg-emoji emoji-id="5994495149336434048">⭐️</tg-emoji>' * (5 - review.stars)}\n"
+            f"{f'<blockquote>{escape(review.text)}</blockquote>' if review.text else ''}",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton(
+                    text="Опубликовать", icon_custom_emoji_id="5206607081334906820", style='success',
+                    callback_data=f"open_review|{review.parent_id}")],
+                [InlineKeyboardButton(
+                    text="Уведомить о нарушении", icon_custom_emoji_id="5420323339723881652", style='danger',
+                    callback_data=f"block_review|{review.parent_id}")]
+            ]))
 
     async def resolve_review(self, parent_id: int, publish: bool) -> bool:
         async with self.uow_factory() as uow:

@@ -58,4 +58,4 @@ class MonitoringRepository(SqlAlchemyRepository[Monitoring]):
         )
 
         res = await self.queue.execute(statement)
-        return [row.tuple() for row in res.all()]
+        return [row._tuple() for row in res.all()]

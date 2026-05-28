@@ -1,7 +1,5 @@
 import pytest
 
-from ..fixtures import hour_repository, hour, school_hours
-
 from src.support.repositories.hour_repository import HourRepository
 
 

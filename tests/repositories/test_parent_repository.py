@@ -1,7 +1,5 @@
 import pytest
 
-from ..fixtures import parent_repository, parent
-
 from src.support.repositories.parent_repository import ParentRepository
 
 

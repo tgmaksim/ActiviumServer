@@ -1,8 +1,57 @@
 import pytest
 
-from ..fixtures import school_admin_repository, school_admin, child_school_admin
+from sqlalchemy.exc import IntegrityError
 
+from src.models import SchoolAdmin
 from src.support.repositories.school_admin_repository import SchoolAdminRepository
+
+
+@pytest.mark.asyncio
+async def test_create_admin_with_unknown_parent_raises_error(
+    school_admin_repository: SchoolAdminRepository
+):
+    with pytest.raises(IntegrityError):
+        await school_admin_repository.create_admin(
+            user_id=2,
+            name="Admin",
+            parent_admin_id=999,
+            person_id=None,
+            school_id=None,
+            timezone=None,
+            dnevnik_token=None
+        )
+
+
+@pytest.mark.asyncio
+async def test_create_self_admin_raises_error(
+    school_admin_repository: SchoolAdminRepository
+):
+    with pytest.raises(IntegrityError):
+        await school_admin_repository.create_admin(
+            user_id=1,
+            name="Admin",
+            parent_admin_id=1,
+            person_id=None,
+            school_id=None,
+            timezone=None,
+            dnevnik_token=None
+        )
+
+
+@pytest.mark.asyncio
+async def test_create_main_admin_without_required_fields_raises_error(
+    school_admin_repository
+):
+    with pytest.raises(IntegrityError):
+        await school_admin_repository.create_admin(
+            user_id=1,
+            name="Admin",
+            parent_admin_id=None,
+            person_id=None,
+            school_id=100,
+            timezone=10800,
+            dnevnik_token="token"
+        )
 
 
 @pytest.mark.asyncio
@@ -162,3 +211,20 @@ async def test_delete_other_admin_does_nothing(
     )
 
     assert result is not None
+
+
+@pytest.mark.asyncio
+async def test_delete_main_admin_cascades_children(
+    school_admin_repository: SchoolAdminRepository,
+    school_admin,
+    child_school_admin
+):
+    await school_admin_repository.delete(
+        SchoolAdmin.user_id == school_admin.user_id
+    )
+
+    result = await school_admin_repository.get_admin(
+        child_school_admin.user_id
+    )
+
+    assert result is None

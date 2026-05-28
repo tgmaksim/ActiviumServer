@@ -35,7 +35,7 @@ class InformationRepository(SqlAlchemyRepository[Information]):
 
     async def delete_information(self, parent_id: int, time: datetime, type_: str):
         return await self.delete(
-            Information.parent == parent_id, Information.type == type_, Information.time == time)
+            Information.parent_id == parent_id, Information.type == type_, Information.time == time)
 
     async def delete_informations(self, parent_id: int):
         return await self.delete(Information.parent_id == parent_id, Information.time <= func.now())

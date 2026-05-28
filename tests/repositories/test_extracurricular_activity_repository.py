@@ -2,8 +2,6 @@ import pytest
 
 from datetime import datetime, UTC
 
-from ..fixtures import extracurricular_activity_repository, extracurricular_activities
-
 from src.support.repositories.extracurricular_activity_repository import ExtracurricularActivityRepository
 
 

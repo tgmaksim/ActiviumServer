@@ -2,13 +2,58 @@ import pytest
 
 from datetime import datetime, UTC
 
-from ..factories import extracurricular_activity_factory
-from ..fixtures import ea_processing_notification_repository, ea_processing_notifications, extracurricular_activity_repository
+from sqlalchemy.exc import IntegrityError
+
+from ..factories import extracurricular_activity_factory, ea_processing_notification_factory
+
+from src.support.repositories.extracurricular_activity_repository import ExtracurricularActivityRepository
+from src.support.repositories.ea_processing_notification_repository import EAProcessingNotificationRepository
+
+
+@pytest.mark.asyncio
+async def test_create_extracurricular_activity_creates_notification(
+    extracurricular_activity_repository: ExtracurricularActivityRepository,
+    ea_processing_notification_repository: EAProcessingNotificationRepository,
+):
+    activity = await (
+        extracurricular_activity_repository.create(
+            extracurricular_activity_factory(
+                school_id=100,
+                group_id=10,
+                start_time=datetime(
+                    2030, 1, 1, 14, 0,
+                    tzinfo=UTC
+                )
+            )
+        )
+    )
+
+    notifications = await (
+        ea_processing_notification_repository.get_multi()
+    )
+
+    assert len(notifications) == 1
+
+    assert notifications[0].ea_id == activity.ea_id
+    assert notifications[0].start_time == activity.start_time
+
+
+@pytest.mark.asyncio
+async def test_create_notification_with_unknown_activity_raises_error(
+    ea_processing_notification_repository: EAProcessingNotificationRepository
+):
+    with pytest.raises(IntegrityError):
+        await ea_processing_notification_repository.create(
+            ea_processing_notification_factory(
+                ea_id=999,
+                start_time=datetime.now(UTC)
+            )
+        )
 
 
 @pytest.mark.asyncio
 async def test_get_next_extracurricular_activities(
-    ea_processing_notification_repository,
+    ea_processing_notification_repository: EAProcessingNotificationRepository,
     ea_processing_notifications
 ):
     result = await (
@@ -41,7 +86,7 @@ async def test_get_next_extracurricular_activities(
 
 @pytest.mark.asyncio
 async def test_get_next_extracurricular_activities_returns_empty(
-    ea_processing_notification_repository,
+    ea_processing_notification_repository: EAProcessingNotificationRepository,
     ea_processing_notifications
 ):
     result = await (
@@ -65,7 +110,7 @@ async def test_get_next_extracurricular_activities_returns_empty(
 
 @pytest.mark.asyncio
 async def test_finish_process(
-    ea_processing_notification_repository,
+    ea_processing_notification_repository: EAProcessingNotificationRepository,
     ea_processing_notifications
 ):
     notification = ea_processing_notifications[0]
@@ -95,7 +140,7 @@ async def test_finish_process(
 
 @pytest.mark.asyncio
 async def test_delete_overdue_ea(
-    ea_processing_notification_repository,
+    ea_processing_notification_repository: EAProcessingNotificationRepository,
     extracurricular_activity_repository
 ):
     await extracurricular_activity_repository.create(

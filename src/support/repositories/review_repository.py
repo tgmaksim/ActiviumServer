@@ -1,8 +1,4 @@
-from html import escape
 from typing import Optional
-
-from tgbot.notifier import send_admin_message
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 from ...models.review_model import Review
 from ...repositories.db_queue import AsyncDBQueue
@@ -89,19 +85,3 @@ class ReviewRepository(SqlAlchemyRepository[Review]):
         return await self.update({
             'likes': Review.likes - 1
         }, Review.parent_id == parent_id)
-
-    @staticmethod
-    async def check_review(review: Review):
-        await send_admin_message(
-            f"Новый отзыв от {review.name}!\n"
-            f"Оценка: {'<tg-emoji emoji-id="5435957248314579621">⭐️</tg-emoji>' * review.stars}"
-            f"{'<tg-emoji emoji-id="5994495149336434048">⭐️</tg-emoji>' * (5 - review.stars)}\n"
-            f"{f'<blockquote>{escape(review.text)}</blockquote>' if review.text else ''}",
-            reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-                [InlineKeyboardButton(
-                    text="Опубликовать", icon_custom_emoji_id="5206607081334906820", style='success',
-                    callback_data=f"open_review|{review.parent_id}")],
-                [InlineKeyboardButton(
-                    text="Уведомить о нарушении", icon_custom_emoji_id="5420323339723881652", style='danger',
-                    callback_data=f"block_review|{review.parent_id}")]
-            ]))

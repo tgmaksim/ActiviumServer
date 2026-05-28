@@ -1,7 +1,6 @@
 import pytest
 
 from ..factories import version_factory
-from ..fixtures import version_repository, versions, generic_version
 
 from src.support.repositories.version_repository import VersionRepository
 

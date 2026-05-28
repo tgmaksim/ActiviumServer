@@ -7,4 +7,4 @@ echo "Применение миграций Alembic..."
 alembic upgrade head
 
 echo "Запуск тестов..."
-exec pytest tests -v -s
+exec pytest tests
