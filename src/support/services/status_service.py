@@ -2,9 +2,9 @@ from typing import Union
 from datetime import datetime, UTC, timedelta
 
 from ...dependencies.auth import check_session
-from ...repositories.statistic_repository import StatName
 from ...services.base_service import BaseService
 from ..repositories.app_uow import AppUnitOfWork
+from ...repositories.statistic_repository import StatName
 
 from ..schemas.status_schemas import (
     Message,
@@ -86,12 +86,26 @@ class StatusService(BaseService[AppUnitOfWork]):
                     review = await uow.review_repository.get_review(session.parent_id, only_is_open=False)
                     if review is not None:
                         continue  # Пользователь уже написал отзыв
+                    # В следующий раз, если отзыв еще не написан, уведомление повторится с похожим текстом
                     await uow.information_repository.create_information(
                         session.parent_id,
                         'review',
                         datetime.now(UTC) + timedelta(weeks=1),
                         "❤️ Оцените Активиум",
                         "Вы уже давно пользуетесь сервисом Активиум. Оцените приложение в настройках. Мы будет очень рады!"
+                    )
+
+                if info.type == 'marks_notifications':
+                    status = await uow.marks_notification_repository.get_status(session.session_id, session.active_child_id)
+                    if status is not None:
+                        continue  # Пользователь уже включил уведомления
+                    # В следующий раз, если функция выключена, уведомление повторится
+                    await uow.information_repository.create_information(
+                        session.parent_id,
+                        'marks_notifications',
+                        datetime.now(UTC) + timedelta(days=1),
+                        "🔔 Не пропустите оценки",
+                        "Включите уведомления о новых оценках в настройках, чтобы получать уведомления после выставления учителем"
                     )
 
                 informations.append(info)

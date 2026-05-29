@@ -1,6 +1,7 @@
 from datetime import datetime
 from typing import Annotated, Optional
 
+from fastapi import status
 from fastapi import APIRouter, Query, Depends, Body, Request, Header
 
 from ..schemas.dnevnik_tools_schemas import (
@@ -30,6 +31,7 @@ router = APIRouter(prefix='/dtools', tags=["Dnevnik Tools"])
     summary="Создание или изменение заметки",
     description="Создание или изменение текстовой заметки к уроку. Синхронизируется с родителем",
     response_model=CreateNoteApiResponse0x36,
+    status_code=status.HTTP_201_CREATED,
     deprecated=True  # Устарела с версии API 1.4.1
 )
 async def _createNote0(
@@ -48,9 +50,10 @@ async def _createNote0(
     "/createNote/1",  # Начиная с версии API 1.5.0
     summary="Создание или изменение заметки",
     description="Создание или изменение текстовой заметки к уроку. Синхронизируется с родителем",
-    response_model=CreateNoteApiResponse
+    response_model=CreateNoteApiResponse,
+    status_code=status.HTTP_201_CREATED
 )
-async def _createNote0(
+async def _createNote1(
         request: Request,
         lessonKey: Annotated[str, Query(description="Ключ от урока, к которому нужно создать заметку", pattern=r'[0-9a-z]{1,13}', min_length=1, max_length=13)],
         text: Annotated[str, Body(media_type='plain/text', description="Текст заметки", min_length=1, max_length=256)],

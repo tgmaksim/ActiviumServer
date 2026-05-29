@@ -1,5 +1,6 @@
 from typing import Annotated, Optional
 
+from fastapi import status
 from fastapi.requests import Request
 from fastapi.responses import HTMLResponse
 from fastapi import APIRouter, Query, Depends
@@ -24,7 +25,8 @@ public_router = APIRouter(prefix='/login', tags=["Login"], include_in_schema=Fal
     "/login/0",
     summary="Авторизация",
     description="Создание сессии для взаимодействия с API. Возвращает ссылку для авторизации через дневник.ру",
-    response_model=LoginApiResponse
+    response_model=LoginApiResponse,
+    status_code=status.HTTP_201_CREATED,
 )
 async def _login0(
         request: Request,

@@ -1,5 +1,6 @@
 from typing import Annotated, Optional, Literal
 
+from fastapi import status
 from fastapi import APIRouter, Query, Depends, Body, Request, Header
 
 from ..schemas.reviews_schemas import (
@@ -29,7 +30,8 @@ public_router = APIRouter(prefix='/reviews', tags=["Reviews"])
     "/createReview/0",
     summary="Отправка или редактирование отзыва",
     description="Отправка или редактирование отзыва о приложение. Отзыв будет опубликован после модерации",
-    response_model=CreateReviewApiResponse
+    response_model=CreateReviewApiResponse,
+    status_code=status.HTTP_201_CREATED
 )
 async def _createReview0(
         request: Request,

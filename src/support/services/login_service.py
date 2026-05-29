@@ -10,17 +10,20 @@ from httpx import AsyncClient
 
 from sqlalchemy.exc import IntegrityError
 
-from ...repositories.statistic_repository import StatName
-from dnevnikru.aiodnevnikru.dnevnikru import AioDnevnikruApi
-from ..schemas.status_schemas import CheckSessionApiResponse, CheckSessionResult
-
-from ...services.html_response import HtmlResponse
-from ..schemas.login_schemas import LoginApiResponse, LoginResult
-
 from ...config.project_config import settings
-from ...services.base_service import BaseService
+
 from ..repositories.app_uow import AppUnitOfWork
+from ...repositories.statistic_repository import StatName
 from ..repositories.session_repository import SessionRepository
+from ..repositories.information_repository import InformationRepository
+
+from dnevnikru.aiodnevnikru.dnevnikru import AioDnevnikruApi
+
+from ...services.base_service import BaseService
+from ...services.html_response import HtmlResponse
+
+from ..schemas.login_schemas import LoginApiResponse, LoginResult
+from ..schemas.status_schemas import CheckSessionApiResponse, CheckSessionResult
 
 
 __all__ = ['LoginService']
@@ -288,11 +291,24 @@ class LoginService(BaseService[AppUnitOfWork]):
             if parent_referral_id and parent_referral_id != person_id:
                 await uow.referral_repository.link_referral(parent_referral_id, person_id, parent_name)
 
-            time = datetime.now(UTC) + timedelta(weeks=1)
-            type_ = "review"
-            title = "❤️ Оцените Активиум"
-            text = "Вы пользуетесь сервисом Активиум уже целую неделю. Оцените приложение в настройках. Мы будет очень рады!"
-            await uow.information_repository.create_information(person_id, type_, time, title, text)
+            await cls.create_review_information(uow.information_repository, person_id)
+            await cls.create_marks_notifications_information(uow.information_repository, person_id)
+
+    @classmethod
+    async def create_review_information(cls, information_repository: InformationRepository, person_id: int):
+        time = datetime.now(UTC) + timedelta(weeks=1)
+        type_ = "review"
+        title = "❤️ Оцените Активиум"
+        text = "Вы пользуетесь сервисом Активиум уже целую неделю. Оцените приложение в настройках. Мы будет очень рады!"
+        await information_repository.create_information(person_id, type_, time, title, text)
+
+    @classmethod
+    async def create_marks_notifications_information(cls, information_repository: InformationRepository, person_id: int):
+        time = datetime.now(UTC) + timedelta(days=1)
+        type_ = "marks_notifications"
+        title = "🔔 Не пропустите оценки"
+        text = "Включите уведомления о новых оценках в настройках, чтобы получать уведомления после выставления учителем"
+        await information_repository.create_information(person_id, type_, time, title, text)
 
     async def secondAuthSchoolAdmin(self, dnevnik_token: str, user_id: int) -> HtmlResponse:
         log_exception = lambda error: uow.log_repository.add_log(
