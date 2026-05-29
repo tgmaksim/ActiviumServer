@@ -1,6 +1,7 @@
 import pytest
 
 from src.models.log_model import Log
+
 from src.repositories.log_repository import LogRepository
 
 

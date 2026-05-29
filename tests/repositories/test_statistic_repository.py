@@ -7,6 +7,50 @@ from src.models.statistic_model import Statistic
 from src.repositories.statistic_repository import StatisticRepository, StatName
 
 
+@pytest.fixture
+def statistic_repository(session):
+    return StatisticRepository(session)
+
+
+@pytest.fixture
+async def statistic(
+    statistic_repository: StatisticRepository
+):
+    await statistic_repository.add_statistic(
+        parent_id=100001,
+        key=StatName.getMarks
+    )
+
+    return await statistic_repository.get_single(parent_id=100001)
+
+
+@pytest.fixture
+async def statistics(
+    statistic_repository: StatisticRepository
+):
+    await statistic_repository.add_statistic(
+        parent_id=100001,
+        key=StatName.getMarks
+    )
+
+    await statistic_repository.add_statistic(
+        parent_id=100001,
+        key=StatName.getSchedule
+    )
+
+    await statistic_repository.add_statistic(
+        parent_id=100002,
+        key=StatName.getMarks
+    )
+
+    await statistic_repository.add_statistic(
+        parent_id=None,
+        key="custom_event"
+    )
+
+    return await statistic_repository.get_multi()
+
+
 @pytest.mark.asyncio
 async def test_add_statistic_enum(
     statistic

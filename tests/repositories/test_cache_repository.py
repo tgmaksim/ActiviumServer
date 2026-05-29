@@ -3,8 +3,30 @@ import pytest
 from sqlalchemy.exc import IntegrityError
 
 from src.models.session_model import Session
+
 from src.support.repositories.cache_repository import CacheRepository
 from src.support.repositories.session_repository import SessionRepository
+
+
+@pytest.fixture
+def cache_repository(session):
+    return CacheRepository(session)
+
+
+@pytest.fixture
+async def caches(
+    cache_repository: CacheRepository,
+    auth_session,
+    child
+):
+    return await cache_repository.put_caches(
+        auth_session.session_id,
+        child.child_id,
+        [
+            ("profile", {"name": "Maksim"}),
+            ("lessons", [{"lesson": 1}])
+        ]
+    )
 
 
 @pytest.mark.asyncio

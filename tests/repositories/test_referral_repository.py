@@ -6,6 +6,11 @@ from src.support.repositories.parent_repository import ParentRepository
 from src.support.repositories.referral_repository import ReferralRepository
 
 
+@pytest.fixture
+def referral_repository(session):
+    return ReferralRepository(session)
+
+
 @pytest.mark.asyncio
 async def test_link_referral(
     referral_repository: ReferralRepository,

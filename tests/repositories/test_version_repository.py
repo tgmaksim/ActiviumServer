@@ -1,8 +1,58 @@
 import pytest
 
-from ..factories import version_factory
-
 from src.support.repositories.version_repository import VersionRepository
+
+
+def version_factory(
+    number: int,
+    version: str,
+    *,
+    status_id: float = 0.5,
+    status: str = "test",
+    logs: str = "test logs",
+    date: str = "09.12.2009",
+    **kwargs
+):
+    return {
+        "number": number,
+        "version": version,
+        "status_id": status_id,
+        "status": status,
+        "logs": logs,
+        "date": date,
+        **kwargs
+    }
+
+
+@pytest.fixture
+def version_repository(session):
+    return VersionRepository(session)
+
+
+@pytest.fixture
+async def versions(version_repository: VersionRepository):
+    return await version_repository.create_many([
+        version_factory(
+            number=1,
+            version="1.0.0",
+            parent_version=None
+        ),
+        version_factory(
+            number=2,
+            version="1.0.1",
+            parent_version=1
+        )
+    ])
+
+
+@pytest.fixture
+async def generic_version(version_repository: VersionRepository):
+    return await version_repository.create(
+        version_factory(
+            number=1,
+            version="1.0.0"
+        )
+    )
 
 
 @pytest.mark.asyncio

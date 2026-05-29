@@ -7,6 +7,71 @@ from sqlalchemy.exc import IntegrityError
 from src.support.repositories.school_post_repository import SchoolPostRepository
 
 
+@pytest.fixture
+def school_post_repository(session):
+    return SchoolPostRepository(session)
+
+
+@pytest.fixture
+async def school_post(
+    school_post_repository: SchoolPostRepository
+):
+    return await school_post_repository.create_post(
+        school_id=100,
+        timezone=10800,
+        title="School event",
+        description="Description",
+        has_image=True,
+        author="Admin",
+        schedule_date=date(2025, 9, 10),
+        content=[
+            {
+                "type": "text",
+                "text": "Hello",
+                "entities": []
+            }
+        ]
+    )
+
+
+@pytest.fixture
+async def school_posts(
+    school_post_repository: SchoolPostRepository
+):
+    return [
+        await school_post_repository.create_post(
+            school_id=100,
+            timezone=10800,
+            title="School post",
+            description=None,
+            has_image=False,
+            author="Admin",
+            schedule_date=date(2025, 9, 10),
+            content=[]
+        ),
+        await school_post_repository.create_post(
+            school_id=None,
+            timezone=0,
+            title="Global post",
+            description=None,
+            has_image=False,
+            author="System",
+            schedule_date=date(2025, 9, 15),
+            content=[]
+        ),
+        await school_post_repository.create_post(
+            school_id=200,
+            timezone=7200,
+            title="Other school",
+            description=None,
+            has_image=False,
+            author="Other",
+            schedule_date=date(2025, 10, 1),
+            content=[]
+        )
+    ]
+
+
 @pytest.mark.asyncio
 async def test_create_post(
     school_post

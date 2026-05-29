@@ -6,6 +6,46 @@ from src.models import SchoolAdmin
 from src.support.repositories.school_admin_repository import SchoolAdminRepository
 
 
+@pytest.fixture
+def school_admin_repository(session):
+    return SchoolAdminRepository(session)
+
+
+@pytest.fixture
+async def school_admin(
+    school_admin_repository: SchoolAdminRepository
+):
+    await school_admin_repository.create_admin(
+        user_id=1,
+        name="Main admin",
+        parent_admin_id=None,
+        person_id=100,
+        school_id=500,
+        timezone=0,
+        dnevnik_token="token"
+    )
+
+    return await school_admin_repository.get_admin(1)
+
+
+@pytest.fixture
+async def child_school_admin(
+    school_admin_repository: SchoolAdminRepository,
+    school_admin
+):
+    await school_admin_repository.create_admin(
+        user_id=2,
+        name="Child admin",
+        parent_admin_id=school_admin.user_id,
+        person_id=None,
+        school_id=None,
+        timezone=None,
+        dnevnik_token=None
+    )
+
+    return await school_admin_repository.get_admin(2)
+
+
 @pytest.mark.asyncio
 async def test_create_admin_with_unknown_parent_raises_error(
     school_admin_repository: SchoolAdminRepository

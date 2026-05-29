@@ -3,9 +3,80 @@ import pytest
 from sqlalchemy.exc import IntegrityError
 
 from src.models.review_like_model import ReviewLike
+
 from src.support.repositories.parent_repository import ParentRepository
 from src.support.repositories.review_repository import ReviewRepository
 from src.support.repositories.review_likes_repository import ReviewLikeRepository
+
+
+@pytest.fixture
+def review_like_repository(session):
+    return ReviewLikeRepository(session)
+
+
+@pytest.fixture
+async def second_parent(
+    parent_repository: ParentRepository
+):
+    return await parent_repository.create_parent(
+        100002
+    )
+
+
+@pytest.fixture
+async def second_review(
+    review_repository: ReviewRepository,
+    second_parent
+):
+    return await review_repository.create_review(
+        parent_id=second_parent.parent_id,
+        name="Alex",
+        stars=4,
+        text="Good app",
+        is_open=True
+    )
+
+
+@pytest.fixture
+async def review_like(
+    review_like_repository: ReviewLikeRepository,
+    parent,
+    second_review
+):
+    return await review_like_repository.like_review(
+        parent_id=parent.parent_id,
+        review_id=second_review.parent_id
+    )
+
+
+@pytest.fixture
+async def review_likes(
+    review_like_repository: ReviewLikeRepository,
+    parent,
+    second_parent,
+    review,
+    second_review
+):
+    await review_like_repository.like_review(
+        parent_id=parent.parent_id,
+        review_id=second_review.parent_id
+    )
+
+    await review_like_repository.like_review(
+        parent_id=second_parent.parent_id,
+        review_id=review.parent_id
+    )
+
+    return [
+        await review_like_repository.get_like(
+            parent.parent_id,
+            second_review.parent_id
+        ),
+        await review_like_repository.get_like(
+            second_parent.parent_id,
+            review.parent_id
+        )
+    ]
 
 
 @pytest.mark.asyncio

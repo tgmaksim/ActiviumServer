@@ -9,6 +9,23 @@ from src.support.repositories.session_repository import SessionRepository
 from src.support.repositories.ea_notification_repository import EANotificationRepository
 
 
+@pytest.fixture
+def ea_notification_repository(session):
+    return EANotificationRepository(session)
+
+
+@pytest.fixture
+async def ea_notification(
+    ea_notification_repository: EANotificationRepository,
+    auth_session,
+    child
+):
+    return await ea_notification_repository.turn_on(
+        auth_session.session_id,
+        child.child_id
+    )
+
+
 @pytest.mark.asyncio
 async def test_turn_on(
     ea_notification_repository: EANotificationRepository,

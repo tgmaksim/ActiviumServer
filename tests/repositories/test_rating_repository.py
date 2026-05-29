@@ -5,6 +5,11 @@ from sqlalchemy.exc import IntegrityError
 from src.support.repositories.rating_repository import RatingRepository
 
 
+@pytest.fixture
+def rating_repository(session):
+    return RatingRepository(session)
+
+
 @pytest.mark.asyncio
 async def test_put_rating(
     rating_repository: RatingRepository,

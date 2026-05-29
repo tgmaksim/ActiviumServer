@@ -4,10 +4,63 @@ from datetime import datetime, UTC
 
 from sqlalchemy.exc import IntegrityError
 
-from ..factories import extracurricular_activity_factory, ea_processing_notification_factory
+from .factories import extracurricular_activity_factory
 
 from src.support.repositories.extracurricular_activity_repository import ExtracurricularActivityRepository
 from src.support.repositories.ea_processing_notification_repository import EAProcessingNotificationRepository
+
+
+def ea_processing_notification_factory(
+    ea_id: int,
+    start_time: datetime,
+    **kwargs
+):
+    return {
+        "ea_id": ea_id,
+        "start_time": start_time,
+        **kwargs
+    }
+
+
+@pytest.fixture
+def ea_processing_notification_repository(session):
+    return EAProcessingNotificationRepository(session)
+
+
+@pytest.fixture
+async def ea_processing_notifications(
+    extracurricular_activity_repository: ExtracurricularActivityRepository,
+    ea_processing_notification_repository: EAProcessingNotificationRepository,
+):
+    await extracurricular_activity_repository.create_many([
+        extracurricular_activity_factory(
+            school_id=100,
+            group_id=1,
+            start_time=datetime(
+                2028, 1, 10, 14, 0,
+                tzinfo=UTC
+            )
+        ),
+        extracurricular_activity_factory(
+            school_id=100,
+            group_id=1,
+            start_time=datetime(
+                2028, 1, 10, 14, 0,
+                tzinfo=UTC
+            ),
+            subject="Physics"
+        ),
+        extracurricular_activity_factory(
+            school_id=100,
+            group_id=1,
+            start_time=datetime(
+                2028, 1, 10, 15, 0,
+                tzinfo=UTC
+            )
+        )
+    ])
+
+    return await ea_processing_notification_repository.get_multi()
 
 
 @pytest.mark.asyncio
@@ -141,7 +194,7 @@ async def test_finish_process(
 @pytest.mark.asyncio
 async def test_delete_overdue_ea(
     ea_processing_notification_repository: EAProcessingNotificationRepository,
-    extracurricular_activity_repository
+    extracurricular_activity_repository: ExtracurricularActivityRepository
 ):
     await extracurricular_activity_repository.create(
         extracurricular_activity_factory(

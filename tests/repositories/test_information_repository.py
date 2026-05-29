@@ -10,6 +10,43 @@ from src.support.repositories.parent_repository import ParentRepository
 from src.support.repositories.information_repository import InformationRepository
 
 
+@pytest.fixture
+def information_repository(session):
+    return InformationRepository(session)
+
+
+@pytest.fixture
+async def information(
+    information_repository: InformationRepository,
+    parent
+):
+    time = datetime.now(UTC) - timedelta(hours=1)
+
+    return await information_repository.create_information(
+        parent_id=parent.parent_id,
+        type_="warning",
+        time=time,
+        title="Test title",
+        text="Test text"
+    )
+
+
+@pytest.fixture
+async def future_information(
+    information_repository: InformationRepository,
+    parent
+):
+    time = datetime.now(UTC) + timedelta(days=1)
+
+    return await information_repository.create_information(
+        parent_id=parent.parent_id,
+        type_="future",
+        time=time,
+        title="Future title",
+        text="Future text"
+    )
+
+
 @pytest.mark.asyncio
 async def test_create_information(
     information_repository: InformationRepository,

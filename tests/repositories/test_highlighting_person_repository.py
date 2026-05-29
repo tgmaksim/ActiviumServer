@@ -8,6 +8,29 @@ from src.support.repositories.parent_repository import ParentRepository
 from src.support.repositories.highlighting_person_repository import HighlightingPersonRepository
 
 
+@pytest.fixture
+def highlighting_person_repository(session):
+    return HighlightingPersonRepository(session)
+
+
+@pytest.fixture
+async def highlighting_person(
+    highlighting_person_repository: HighlightingPersonRepository,
+    parent
+):
+    await highlighting_person_repository.highlight_person(
+        parent.parent_id,
+        200001
+    )
+
+    return await (
+        highlighting_person_repository.get_highlighting_person(
+            parent.parent_id,
+            200001
+        )
+    )
+
+
 @pytest.mark.asyncio
 async def test_highlight_person(
     highlighting_person_repository: HighlightingPersonRepository,

@@ -2,7 +2,49 @@ import pytest
 
 from datetime import datetime, UTC
 
+from .factories import extracurricular_activity_factory
+
 from src.support.repositories.extracurricular_activity_repository import ExtracurricularActivityRepository
+
+
+@pytest.fixture
+async def extracurricular_activities(
+    extracurricular_activity_repository: ExtracurricularActivityRepository,
+):
+    return await extracurricular_activity_repository.create_many([
+        extracurricular_activity_factory(
+            school_id=100,
+            group_id=10,
+            start_time=datetime(
+                2025, 9, 1, 14, 0,
+                tzinfo=UTC
+            )
+        ),
+        extracurricular_activity_factory(
+            school_id=100,
+            group_id=10,
+            start_time=datetime(
+                2025, 9, 2, 14, 0,
+                tzinfo=UTC
+            )
+        ),
+        extracurricular_activity_factory(
+            school_id=100,
+            group_id=20,
+            start_time=datetime(
+                2025, 9, 1, 14, 0,
+                tzinfo=UTC
+            )
+        ),
+        extracurricular_activity_factory(
+            school_id=200,
+            group_id=10,
+            start_time=datetime(
+                2025, 9, 1, 14, 0,
+                tzinfo=UTC
+            )
+        )
+    ])
 
 
 @pytest.mark.asyncio

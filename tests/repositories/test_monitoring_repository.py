@@ -5,6 +5,60 @@ from datetime import datetime, timedelta, UTC
 from src.repositories.monitoring_repository import MonitoringRepository
 
 
+@pytest.fixture
+def monitoring_repository(session):
+    return MonitoringRepository(session)
+
+
+@pytest.fixture
+async def monitoring(
+    monitoring_repository: MonitoringRepository
+):
+    await monitoring_repository.add_monitoring(
+        path="/api/test",
+        session_id="session_1",
+        status=True,
+        duration=timedelta(milliseconds=250)
+    )
+
+    return await monitoring_repository.get_single(path="/api/test")
+
+
+@pytest.fixture
+async def monitorings(
+    monitoring_repository: MonitoringRepository
+):
+    await monitoring_repository.add_monitoring(
+        path="/api/users",
+        session_id="session_1",
+        status=True,
+        duration=timedelta(milliseconds=100)
+    )
+
+    await monitoring_repository.add_monitoring(
+        path="/api/users",
+        session_id="session_2",
+        status=True,
+        duration=timedelta(milliseconds=300)
+    )
+
+    await monitoring_repository.add_monitoring(
+        path="/api/users",
+        session_id="session_3",
+        status=False,
+        duration=timedelta(milliseconds=500)
+    )
+
+    await monitoring_repository.add_monitoring(
+        path="/api/posts",
+        session_id="session_4",
+        status=True,
+        duration=timedelta(milliseconds=200)
+    )
+
+    return await monitoring_repository.get_multi()
+
+
 @pytest.mark.asyncio
 async def test_add_monitoring(
     monitoring

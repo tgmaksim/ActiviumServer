@@ -11,6 +11,28 @@ from src.support.repositories.session_repository import SessionRepository
 from src.support.repositories.marks_notification_repository import MarksNotificationRepository
 
 
+@pytest.fixture
+def marks_notification_repository(session):
+    return MarksNotificationRepository(session)
+
+
+@pytest.fixture
+async def marks_notification(
+    marks_notification_repository: MarksNotificationRepository,
+    auth_session,
+    child
+):
+    await marks_notification_repository.turn_on(
+        auth_session.session_id,
+        child.child_id
+    )
+
+    return await marks_notification_repository.get_status(
+        auth_session.session_id,
+        child.child_id
+    )
+
+
 @pytest.mark.asyncio
 async def test_turn_on(
     marks_notification_repository: MarksNotificationRepository,

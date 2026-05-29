@@ -10,6 +10,66 @@ from src.support.repositories.child_repository import ChildRepository
 from src.support.repositories.lesson_note_repository import LessonNoteRepository
 
 
+@pytest.fixture
+def lesson_note_repository(session):
+    return LessonNoteRepository(session)
+
+
+@pytest.fixture
+async def lesson_note(
+    lesson_note_repository: LessonNoteRepository,
+    child
+):
+    return await lesson_note_repository.create_note(
+        child_id=child.child_id,
+        lesson_id=1000,
+        text="Test note",
+        public=True,
+        remind_time=datetime(
+            2028, 1, 10, 12, 0,
+            tzinfo=UTC
+        )
+    )
+
+
+@pytest.fixture
+async def lesson_notes(
+    lesson_note_repository: LessonNoteRepository,
+    child
+):
+    return [
+        await lesson_note_repository.create_note(
+            child_id=child.child_id,
+            lesson_id=1000,
+            text="Public note",
+            public=True,
+            remind_time=datetime(
+                2028, 1, 10, 12, 0,
+                tzinfo=UTC
+            )
+        ),
+
+        await lesson_note_repository.create_note(
+            child_id=child.child_id,
+            lesson_id=1001,
+            text="Private note",
+            public=False,
+            remind_time=None
+        ),
+
+        await lesson_note_repository.create_note(
+            child_id=child.child_id,
+            lesson_id=1002,
+            text="Second public note",
+            public=True,
+            remind_time=datetime(
+                2028, 1, 10, 13, 0,
+                tzinfo=UTC
+            )
+        )
+    ]
+
+
 @pytest.mark.asyncio
 async def test_create_note(
     lesson_note_repository: LessonNoteRepository,

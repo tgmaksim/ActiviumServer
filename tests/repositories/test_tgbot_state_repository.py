@@ -3,6 +3,56 @@ import pytest
 from src.support.repositories.tgbot_state_repository import TgbotStateRepository
 
 
+def tgbot_state_factory(
+    key: str,
+    *,
+    state: str = "waiting_message",
+    data: dict = None,
+    **kwargs
+):
+    if data is None:
+        data = {}
+
+    return {
+        "key": key,
+        "state": state,
+        "data": data,
+        **kwargs
+    }
+
+
+@pytest.fixture
+def tgbot_state_repository(session):
+    return TgbotStateRepository(session)
+
+
+@pytest.fixture
+async def tgbot_state(
+    tgbot_state_repository: TgbotStateRepository
+):
+    state = tgbot_state_factory(
+        key="123_456",
+        state="waiting_message",
+        data={
+            "step": 1
+        }
+    )
+
+    await tgbot_state_repository.set_state(
+        state["key"],
+        state["state"]
+    )
+
+    await tgbot_state_repository.set_data(
+        state["key"],
+        state["data"]
+    )
+
+    return await tgbot_state_repository.get_state(
+        state["key"]
+    )
+
+
 @pytest.mark.asyncio
 async def test_get_state(
     tgbot_state_repository: TgbotStateRepository,

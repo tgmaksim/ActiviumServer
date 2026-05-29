@@ -6,9 +6,24 @@ from sqlalchemy.exc import IntegrityError
 
 from src.models.child_model import Child
 from src.models.parent_model import Parent
+
 from src.support.repositories.child_repository import ChildRepository
 from src.support.repositories.parent_repository import ParentRepository
 from src.support.repositories.session_repository import SessionRepository
+
+
+@pytest.fixture
+async def app_session(
+    session_repository: SessionRepository
+):
+    await session_repository.create_session(
+        "session_1"
+    )
+
+    return await session_repository.get_session(
+        "session_1",
+        only_life=False
+    )
 
 
 @pytest.mark.asyncio

@@ -2,8 +2,49 @@ import pytest
 
 from src.models.log_model import Log
 from src.models.notification_model import Notification
+
 from src.repositories.log_repository import LogRepository
 from src.repositories.notification_repository import NotificationRepository
+
+
+@pytest.fixture
+def notification_repository(session):
+    return NotificationRepository(session)
+
+
+@pytest.fixture
+async def notifications(
+    log_repository: LogRepository,
+    notification_repository: NotificationRepository
+):
+    await log_repository.add_log(
+        ip="127.0.0.1",
+        path="/api/1",
+        session_id="session_1",
+        status=True,
+        method="GET",
+        value="success"
+    )
+
+    await log_repository.add_log(
+        ip="127.0.0.1",
+        path="/api/2",
+        session_id="session_2",
+        status=False,
+        method="POST",
+        value="error"
+    )
+
+    await log_repository.add_log(
+        ip="127.0.0.1",
+        path="/api/3",
+        session_id="session_3",
+        status=True,
+        method="DELETE",
+        value="success 2"
+    )
+
+    return await notification_repository.get_multi()
 
 
 @pytest.mark.asyncio

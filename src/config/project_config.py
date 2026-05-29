@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 from pydantic_settings import BaseSettings
 
 
-__all__ = ['settings']
+__all__ = ['settings', 'load']
 
 
 class Settings(BaseSettings):
@@ -121,11 +121,16 @@ class Settings(BaseSettings):
     """Выводить в консоль все SQL-запросы"""
 
 
-if environ.get('TEST'):
-    load_dotenv(dotenv_path=".tests.env")
-elif environ.get('DEBUG'):
-    load_dotenv(dotenv_path=".debug.env")
-else:
-    load_dotenv(dotenv_path=".env")
+def load():
+    if environ.get('TEST'):
+        load_dotenv(dotenv_path=".tests.env")
+    elif environ.get('DEBUG'):
+        load_dotenv(dotenv_path=".debug.env")
+    else:
+        load_dotenv(dotenv_path=".env")
+
+
+load()
+
 settings = Settings()  # Загрузка из env
 """Настройки проекта"""

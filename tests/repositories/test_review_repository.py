@@ -7,6 +7,51 @@ from src.support.repositories.review_repository import ReviewRepository
 from src.support.repositories.parent_repository import ParentRepository
 
 
+@pytest.fixture
+async def reviews(
+    review_repository: ReviewRepository,
+    parent_repository: ParentRepository,
+    parent
+):
+    await parent_repository.create_parent(100002)
+    await parent_repository.create_parent(100003)
+
+    await review_repository.create_review(
+        parent_id=100001,
+        name="Maksim",
+        stars=5,
+        text="Best",
+        is_open=True
+    )
+
+    await review_repository.create_review(
+        parent_id=100002,
+        name="Alex",
+        stars=3,
+        text="Normal",
+        is_open=True
+    )
+
+    await review_repository.create_review(
+        parent_id=100003,
+        name="Ivan",
+        stars=1,
+        text="Bad",
+        is_open=True
+    )
+
+    await review_repository.like_review(100001)
+    await review_repository.like_review(100001)
+
+    await review_repository.like_review(100002)
+
+    return [
+        await review_repository.get_review(100001),
+        await review_repository.get_review(100002),
+        await review_repository.get_review(100003)
+    ]
+
+
 @pytest.mark.asyncio
 async def test_create_review(
     review_repository: ReviewRepository,
