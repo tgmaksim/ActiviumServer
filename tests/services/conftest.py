@@ -102,3 +102,32 @@ def important_version():
         status="critical",
         info="important info"
     )
+
+
+@pytest.fixture
+def fake_parent():
+    return SimpleNamespace(
+        parent_id=100001
+    )
+
+
+@pytest.fixture
+def fake_child():
+    return SimpleNamespace(
+        child_id=200001,
+        school_id=1,
+        group_id=2,
+        timezone=10800
+    )
+
+
+@pytest.fixture
+def mock_dnr():
+    dnr = AsyncMock()
+
+    dnr.get_context = AsyncMock()
+    dnr.get_info = AsyncMock()
+    dnr.get_children = AsyncMock()
+    dnr.get_user_info = AsyncMock()
+
+    return dnr

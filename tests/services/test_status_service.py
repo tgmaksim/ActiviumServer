@@ -6,7 +6,13 @@ from unittest.mock import patch, AsyncMock
 
 from src.repositories.statistic_repository import StatName
 from src.support.services.status_service import StatusService
-from src.support.schemas.status_schemas import HealthApiResponse
+from src.support.schemas.status_schemas import (
+    VersionsResult,
+    HealthApiResponse,
+    VersionsResult0x3,
+    VersionsApiResponse,
+    VersionsApiResponse0x4,
+)
 
 
 @pytest.fixture
@@ -70,6 +76,26 @@ async def test_health(status_service):
 
 
 @pytest.mark.asyncio
+async def test_check_latest_version_old_api_schema(
+    fake_uow,
+    status_service,
+    latest_version
+):
+    fake_uow.version_repository.get_latest_version.return_value = latest_version
+    fake_uow.version_repository.get_latest_generic_version.return_value = latest_version
+    fake_uow.version_repository.get_latest_mini_versions.return_value = []
+    fake_uow.version_repository.get_most_important_version.return_value = None
+
+    result = await status_service.check_latest_version(
+        latest_version.number,
+        api=0
+    )
+
+    assert isinstance(result, VersionsApiResponse0x4)
+    assert isinstance(result.answer, VersionsResult0x3)
+
+
+@pytest.mark.asyncio
 async def test_check_latest_version(
     fake_uow,
     uow_factory,
@@ -85,32 +111,15 @@ async def test_check_latest_version(
         latest_version.number
     )
 
+    assert isinstance(result, VersionsApiResponse)
+    assert isinstance(result.answer, VersionsResult)
+
     assert result.answer.latestVersionNumber == latest_version.number
     assert result.answer.latestVersionString == latest_version.version
     assert result.answer.versionStatusId == latest_version.status_id
     assert result.answer.versionStatus == latest_version.status
     assert result.answer.info == latest_version.info
     assert result.answer.updateLogs == latest_version.logs
-
-
-@pytest.mark.asyncio
-async def test_check_latest_version_use_most_important(
-    fake_uow,
-    uow_factory,
-    status_service,
-    latest_version,
-    important_version
-):
-    fake_uow.version_repository.get_latest_version.return_value = latest_version
-    fake_uow.version_repository.get_latest_generic_version.return_value = latest_version
-    fake_uow.version_repository.get_latest_mini_versions.return_value = []
-    fake_uow.version_repository.get_most_important_version.return_value = important_version
-
-    result = await status_service.check_latest_version(1)
-
-    assert result.answer.versionStatusId == important_version.status_id
-    assert result.answer.versionStatus == important_version.status
-    assert result.answer.info == important_version.info
 
 
 @pytest.mark.asyncio
@@ -217,10 +226,7 @@ async def test_check_latest_version_without_latest(
 
 @pytest.mark.asyncio
 async def test_check_info_notifications(
-    monkeypatch,
     fake_uow,
-    fake_session,
-    uow_factory,
     status_service,
     information,
     mock_status_check_session
