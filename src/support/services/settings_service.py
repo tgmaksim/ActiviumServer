@@ -32,6 +32,7 @@ from ..schemas.settings_schemas import (
     SwitchMarksNotificationsApiResponse,
 )
 
+
 __all__ = ['SettingsService']
 
 
@@ -61,6 +62,7 @@ class SettingsService(BaseService[AppUnitOfWork]):
 
             await uow.statistic_repository.add_statistic(parent.parent_id, StatName.getChildren)
 
+            # Для родителя возвращаются дети, а для ребенка — собственный профиль
             return ChildrenApiResponse(
                 answer=ChildrenResult(
                     children=[Child(
@@ -91,7 +93,7 @@ class SettingsService(BaseService[AppUnitOfWork]):
                     raise SessionError(session_id=session.session_id) from e
                 raise
 
-            if parent.parent_id == child_id:
+            if parent.parent_id == child_id and len(children) == 0:
                 return SwitchActiveChildApiResponse(
                     answer=ChildrenResult(
                         children=[Child(

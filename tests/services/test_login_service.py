@@ -55,31 +55,109 @@ def login_url():
     return "https://login.dnevnik.ru/auth"
 
 
+@pytest.fixture
+def mock_login_dnr(mock_dnr):
+    with patch(
+        "src.support.services.login_service.AioDnevnikruApi",
+        return_value=mock_dnr
+    ):
+        yield mock_dnr
+
+
+@pytest.fixture
+def mock_create_session(login_service):
+    with patch.object(
+        login_service,
+        "_create_session",
+        new=AsyncMock(return_value="created_session")
+    ) as mock:
+        yield mock
+
+
+@pytest.fixture
+def mock_create_new_session(login_service):
+    with patch.object(
+        login_service,
+        "_create_session",
+        new=AsyncMock(return_value="new_session")
+    ) as mock:
+        yield mock
+
+
+@pytest.fixture
+def mock_build_login_url(login_url):
+    with patch(
+        "src.support.services.login_service.AioDnevnikruApi.build_login_url",
+        return_value=login_url
+    ) as mock:
+        yield mock
+
+
+@pytest.fixture
+def mock_auth_session(login_service):
+    with patch.object(
+        login_service,
+        "_auth_session",
+        new=AsyncMock()
+    ) as mock:
+        yield mock
+
+
+@pytest.fixture
+def mock_auth_school_admin(login_service):
+    with patch.object(
+        login_service,
+        "_auth_school_admin",
+        new=AsyncMock()
+    ) as mock:
+        yield mock
+
+
+@pytest.fixture
+def mock_dnevnik_auth(login_service, student_dnevnik_data):
+    with patch.object(
+        login_service,
+        "_dnevnik_auth",
+        new=AsyncMock(
+            return_value=(student_dnevnik_data, "Parent")
+        )
+    ) as mock:
+        yield mock
+
+
+@pytest.fixture
+def mock_school_admin_dnevnik_auth(login_service, student_dnevnik_data):
+    dnevnik_result = (
+        "Admin",
+        100001,
+        200001,
+        10800
+    )
+
+    with patch.object(
+        login_service,
+        "_school_admin_dnevnik_auth",
+        new=AsyncMock(return_value=dnevnik_result)
+    ) as mock:
+        yield mock
+
+
 @pytest.mark.asyncio
 async def test_login_create_new_session(
     fake_uow,
     login_service,
-    login_url
+    login_url,
+    mock_create_new_session,
+    mock_build_login_url
 ):
     fake_uow.session_repository.get_session.return_value = None
 
-    with (
-        patch.object(
-            login_service,
-            "_create_session",
-            new=AsyncMock(return_value="new_session")
-        ) as create_session,
-        patch(
-            "src.support.services.login_service.AioDnevnikruApi.build_login_url",
-            return_value=login_url
-        )
-    ):
-        result = await login_service.login(
-            None,
-            "firebase_token"
-        )
+    result = await login_service.login(
+        None,
+        "firebase_token"
+    )
 
-    create_session.assert_awaited_once()
+    mock_create_new_session.assert_awaited_once()
 
     fake_uow.session_repository.update_firebase.assert_awaited_once_with(
         "new_session",
@@ -95,27 +173,18 @@ async def test_login_use_existing_session(
     fake_uow,
     login_service,
     login_url,
-    fake_session
+    fake_session,
+    mock_create_session,
+    mock_build_login_url,
 ):
     fake_uow.session_repository.get_session.return_value = fake_session
 
-    with (
-        patch.object(
-            login_service,
-            "_create_session",
-            new=AsyncMock()
-        ) as create_session,
-        patch(
-            "src.support.services.login_service.AioDnevnikruApi.build_login_url",
-            return_value=login_url
-        )
-    ):
-        result = await login_service.login(
-            fake_session.session_id,
-            "firebase_token"
-        )
+    result = await login_service.login(
+        fake_session.session_id,
+        "firebase_token"
+    )
 
-    create_session.assert_not_awaited()
+    mock_create_session.assert_not_awaited()
 
     fake_uow.session_repository.update_firebase.assert_awaited_once_with(
         fake_session.session_id,
@@ -129,27 +198,18 @@ async def test_login_use_existing_session(
 async def test_login_create_new_if_session_not_found(
     fake_uow,
     login_service,
-    login_url
+    login_url,
+    mock_create_session,
+    mock_build_login_url
 ):
     fake_uow.session_repository.get_session.return_value = None
 
-    with (
-        patch.object(
-            login_service,
-            "_create_session",
-            new=AsyncMock(return_value="created_session")
-        ) as create_session,
-        patch(
-            "src.support.services.login_service.AioDnevnikruApi.build_login_url",
-            return_value=login_url
-        )
-    ):
-        result = await login_service.login(
-            "old_session",
-            "firebase_token"
-        )
+    result = await login_service.login(
+        "old_session",
+        "firebase_token"
+    )
 
-    create_session.assert_awaited_once()
+    mock_create_session.assert_awaited_once()
 
     assert result.answer.sessionId == "created_session"
 
@@ -158,23 +218,14 @@ async def test_login_create_new_if_session_not_found(
 async def test_login_adds_statistic(
     fake_uow,
     login_service,
-    login_url
+    login_url,
+    mock_create_session,
+    mock_build_login_url,
 ):
-    with (
-        patch.object(
-            login_service,
-            "_create_session",
-            new=AsyncMock(return_value="session")
-        ),
-        patch(
-            "src.support.services.login_service.AioDnevnikruApi.build_login_url",
-            return_value=login_url
-        )
-    ):
-        await login_service.login(
-            None,
-            "firebase_token"
-        )
+    await login_service.login(
+        None,
+        "firebase_token"
+    )
 
     fake_uow.statistic_repository.add_statistic.assert_awaited_once_with(
         None,
@@ -275,31 +326,19 @@ async def test_second_auth_session_success_without_referral(
     fake_uow,
     login_service,
     fake_session,
-    student_dnevnik_data
+    student_dnevnik_data,
+    mock_auth_session,
+    mock_dnevnik_auth
 ):
     fake_uow.session_repository.get_session.return_value = fake_session
 
-    with (
-        patch.object(
-            login_service,
-            "_dnevnik_auth",
-            new=AsyncMock(
-                return_value=(student_dnevnik_data, "Parent")
-            )
-        ),
-        patch.object(
-            login_service,
-            "_auth_session",
-            new=AsyncMock()
-        ) as auth_session
-    ):
-        result = await login_service.secondAuthSession(
-            "token",
-            fake_session.session_id,
-            None
-        )
+    result = await login_service.secondAuthSession(
+        "token",
+        fake_session.session_id,
+        None
+    )
 
-    auth_session.assert_awaited_once_with(
+    mock_auth_session.assert_awaited_once_with(
         fake_uow,
         fake_session.session_id,
         "token",
@@ -320,34 +359,22 @@ async def test_second_auth_session_valid_referral(
     login_service,
     fake_session,
     fake_parent,
-    student_dnevnik_data
+    student_dnevnik_data,
+    mock_dnevnik_auth,
+    mock_auth_session
 ):
     fake_uow.session_repository.get_session.return_value = fake_session
     fake_uow.parent_repository.get_parent.return_value = fake_parent
 
     referral_token = hex(fake_parent.parent_id)[2:]
 
-    with (
-        patch.object(
-            login_service,
-            "_dnevnik_auth",
-            new=AsyncMock(
-                return_value=(student_dnevnik_data, "Parent")
-            )
-        ),
-        patch.object(
-            login_service,
-            "_auth_session",
-            new=AsyncMock()
-        ) as auth_session
-    ):
-        await login_service.secondAuthSession(
-            "token",
-            fake_session.session_id,
-            referral_token
-        )
+    await login_service.secondAuthSession(
+        "token",
+        fake_session.session_id,
+        referral_token
+    )
 
-    auth_session.assert_awaited_once_with(
+    mock_auth_session.assert_awaited_once_with(
         fake_uow,
         fake_session.session_id,
         "token",
@@ -362,35 +389,23 @@ async def test_second_auth_session_invalid_referral_token(
     fake_uow,
     login_service,
     fake_session,
-    student_dnevnik_data
+    student_dnevnik_data,
+    mock_dnevnik_auth,
+    mock_auth_session
 ):
     fake_uow.session_repository.get_session.return_value = fake_session
 
-    with (
-        patch.object(
-            login_service,
-            "_dnevnik_auth",
-            new=AsyncMock(
-                return_value=(student_dnevnik_data, "Parent")
-            )
-        ),
-        patch.object(
-            login_service,
-            "_auth_session",
-            new=AsyncMock()
-        ) as auth_session
-    ):
-        response = await login_service.secondAuthSession(
-            "token",
-            fake_session.session_id,
-            "invalid"
-        )
+    response = await login_service.secondAuthSession(
+        "token",
+        fake_session.session_id,
+        "invalid"
+    )
 
     assert response.name == "auth_session_success.html"
 
-    auth_session.assert_awaited_once()
+    mock_auth_session.assert_awaited_once()
 
-    assert auth_session.await_args.args[5] is None
+    assert mock_auth_session.await_args.args[5] is None
 
 
 @pytest.mark.asyncio
@@ -398,36 +413,24 @@ async def test_second_auth_session_referral_parent_not_found(
     fake_uow,
     login_service,
     fake_session,
-    student_dnevnik_data
+    student_dnevnik_data,
+    mock_dnevnik_auth,
+    mock_auth_session
 ):
     fake_uow.session_repository.get_session.return_value = fake_session
     fake_uow.parent_repository.get_parent.return_value = None
 
-    with (
-        patch.object(
-            login_service,
-            "_dnevnik_auth",
-            new=AsyncMock(
-                return_value=(student_dnevnik_data, "Parent")
-            )
-        ),
-        patch.object(
-            login_service,
-            "_auth_session",
-            new=AsyncMock()
-        ) as auth_session
-    ):
-        response = await login_service.secondAuthSession(
-            "token",
-            fake_session.session_id,
-            hex(100001)[2:]
-        )
+    response = await login_service.secondAuthSession(
+        "token",
+        fake_session.session_id,
+        hex(100001)[2:]
+    )
 
     assert response.name == "auth_session_success.html"
 
-    auth_session.assert_awaited_once()
+    mock_auth_session.assert_awaited_once()
 
-    assert auth_session.await_args.args[5] is None
+    assert mock_auth_session.await_args.args[5] is None
 
 
 @pytest.mark.asyncio
@@ -637,7 +640,8 @@ async def test_check_session_adds_statistic(
 @pytest.mark.asyncio
 async def test_dnevnik_auth_student(
     login_service,
-    mock_dnr
+    mock_dnr,
+    mock_login_dnr
 ):
     mock_dnr.get_context.return_value = {
         "personId": 100001,
@@ -663,11 +667,7 @@ async def test_dnevnik_auth_student(
         "timezone": "03:00"
     }
 
-    with patch(
-        "src.support.services.login_service.AioDnevnikruApi",
-        return_value=mock_dnr
-    ):
-        result, parent_name = await login_service._dnevnik_auth("token")
+    result, parent_name = await login_service._dnevnik_auth("token")
 
     assert parent_name == "Student"
 
@@ -682,7 +682,8 @@ async def test_dnevnik_auth_student(
 @pytest.mark.asyncio
 async def test_dnevnik_auth_parent(
     login_service,
-    mock_dnr
+    mock_dnr,
+    mock_login_dnr
 ):
     mock_dnr.get_context.return_value = {
         "personId": 500001,
@@ -720,25 +721,22 @@ async def test_dnevnik_auth_parent(
         "timezone": "03:00"
     }
 
-    with patch(
-        "src.support.services.login_service.AioDnevnikruApi",
-        return_value=mock_dnr
-    ):
-        result, parent_name = await login_service._dnevnik_auth("token")
+    result, parent_name = await login_service._dnevnik_auth("token")
 
     assert parent_name == "Parent"
 
     assert result["parent_id"] == 500001
     assert len(result["children"]) == 1
 
-    assert result["children"][0]["person_id"] == 200001
-    assert result["children"][0]["timezone"] == 10800
+    assert result["children"][0]['person_id'] == 200001
+    assert result["children"][0]['timezone'] == 10800
 
 
 @pytest.mark.asyncio
 async def test_dnevnik_auth_teacher(
     login_service,
-    mock_dnr
+    mock_dnr,
+    mock_login_dnr
 ):
     mock_dnr.get_context.return_value = {
         "personId": 1,
@@ -747,11 +745,7 @@ async def test_dnevnik_auth_teacher(
         "schools": []
     }
 
-    with patch(
-        "src.support.services.login_service.AioDnevnikruApi",
-        return_value=mock_dnr
-    ):
-        result, parent_name = await login_service._dnevnik_auth("token")
+    result, parent_name = await login_service._dnevnik_auth("token")
 
     assert result == "teacher"
     assert parent_name == "Teacher"
@@ -760,7 +754,8 @@ async def test_dnevnik_auth_teacher(
 @pytest.mark.asyncio
 async def test_dnevnik_auth_school_admin(
     login_service,
-    mock_dnr
+    mock_dnr,
+    mock_login_dnr
 ):
     mock_dnr.get_context.return_value = {
         "personId": 1,
@@ -769,11 +764,7 @@ async def test_dnevnik_auth_school_admin(
         "schools": []
     }
 
-    with patch(
-        "src.support.services.login_service.AioDnevnikruApi",
-        return_value=mock_dnr
-    ):
-        result, _ = await login_service._dnevnik_auth("token")
+    result, _ = await login_service._dnevnik_auth("token")
 
     assert result == "teacher"
 
@@ -781,7 +772,8 @@ async def test_dnevnik_auth_school_admin(
 @pytest.mark.asyncio
 async def test_dnevnik_auth_unknown_role(
     login_service,
-    mock_dnr
+    mock_dnr,
+    mock_login_dnr
 ):
     mock_dnr.get_context.return_value = {
         "personId": 1,
@@ -790,11 +782,7 @@ async def test_dnevnik_auth_unknown_role(
         "schools": []
     }
 
-    with patch(
-        "src.support.services.login_service.AioDnevnikruApi",
-        return_value=mock_dnr
-    ):
-        result, _ = await login_service._dnevnik_auth("token")
+    result, _ = await login_service._dnevnik_auth("token")
 
     assert result is None
 
@@ -957,66 +945,32 @@ async def test_second_auth_school_admin_not_admin(
 
 @pytest.mark.asyncio
 async def test_second_auth_school_admin_success(
-    login_service
+    login_service,
+    mock_school_admin_dnevnik_auth,
+    mock_auth_school_admin
 ):
-    dnevnik_result = (
-        "Admin",
-        100001,
-        200001,
-        10800
+    response = await login_service.secondAuthSchoolAdmin(
+        dnevnik_token="token",
+        user_id=123
     )
-
-    with (
-        patch.object(
-            login_service,
-            "_school_admin_dnevnik_auth",
-            AsyncMock(return_value=dnevnik_result)
-        ),
-        patch.object(
-            login_service,
-            "_auth_school_admin",
-            AsyncMock()
-        ) as auth_mock
-    ):
-        response = await login_service.secondAuthSchoolAdmin(
-            dnevnik_token="token",
-            user_id=123
-        )
 
     assert response.name == "auth_school_admin_success.html"
 
-    auth_mock.assert_awaited_once()
+    mock_auth_school_admin.assert_awaited_once()
 
 
 @pytest.mark.asyncio
 async def test_second_auth_school_admin_calls_auth_with_correct_args(
-    login_service
+    login_service,
+    mock_school_admin_dnevnik_auth,
+    mock_auth_school_admin
 ):
-    dnevnik_result = (
-        "Admin",
-        100001,
-        200001,
-        10800
+    await login_service.secondAuthSchoolAdmin(
+        dnevnik_token="token",
+        user_id=123
     )
 
-    with (
-        patch.object(
-            login_service,
-            "_school_admin_dnevnik_auth",
-            AsyncMock(return_value=dnevnik_result)
-        ),
-        patch.object(
-            login_service,
-            "_auth_school_admin",
-            AsyncMock()
-        ) as auth_mock
-    ):
-        await login_service.secondAuthSchoolAdmin(
-            dnevnik_token="token",
-            user_id=123
-        )
-
-    args = auth_mock.await_args.args
+    args = mock_auth_school_admin.await_args.args
 
     assert args[1:] == (
         123,
@@ -1031,7 +985,8 @@ async def test_second_auth_school_admin_calls_auth_with_correct_args(
 @pytest.mark.asyncio
 async def test_school_admin_dnevnik_auth_staff(
     login_service,
-    mock_dnr
+    mock_dnr,
+    mock_login_dnr
 ):
     mock_dnr.get_info.return_value = {
         "timezone": "03:00"
@@ -1050,13 +1005,9 @@ async def test_school_admin_dnevnik_auth_staff(
         ]
     }
 
-    with patch(
-        "src.support.services.login_service.AioDnevnikruApi",
-        return_value=mock_dnr
-    ):
-        result = await login_service._school_admin_dnevnik_auth(
-            "token"
-        )
+    result = await login_service._school_admin_dnevnik_auth(
+        "token"
+    )
 
     assert result == (
         "Admin",
@@ -1069,7 +1020,8 @@ async def test_school_admin_dnevnik_auth_staff(
 @pytest.mark.asyncio
 async def test_school_admin_dnevnik_auth_school_administrator(
     login_service,
-    mock_dnr
+    mock_dnr,
+    mock_login_dnr
 ):
     mock_dnr.get_info.return_value = {
         "timezone": "03:00"
@@ -1088,13 +1040,9 @@ async def test_school_admin_dnevnik_auth_school_administrator(
         ]
     }
 
-    with patch(
-        "src.support.services.login_service.AioDnevnikruApi",
-        return_value=mock_dnr
-    ):
-        result = await login_service._school_admin_dnevnik_auth(
-            "token"
-        )
+    result = await login_service._school_admin_dnevnik_auth(
+        "token"
+    )
 
     assert result == (
         "Admin",
@@ -1107,7 +1055,8 @@ async def test_school_admin_dnevnik_auth_school_administrator(
 @pytest.mark.asyncio
 async def test_school_admin_dnevnik_auth_no_admin(
     login_service,
-    mock_dnr
+    mock_dnr,
+    mock_login_dnr
 ):
     mock_dnr.get_info.return_value = {
         "timezone": "03:00"
@@ -1121,13 +1070,9 @@ async def test_school_admin_dnevnik_auth_no_admin(
         "schools": []
     }
 
-    with patch(
-        "src.support.services.login_service.AioDnevnikruApi",
-        return_value=mock_dnr
-    ):
-        result = await login_service._school_admin_dnevnik_auth(
-            "token"
-        )
+    result = await login_service._school_admin_dnevnik_auth(
+        "token"
+    )
 
     assert result == "no_admin"
 

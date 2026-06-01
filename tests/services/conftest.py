@@ -112,6 +112,13 @@ def fake_parent():
 
 
 @pytest.fixture
+def fake_session_with_parent(fake_session, fake_parent):
+    fake_session.parent = fake_parent
+    fake_session.dnevnik_token = "dnevnik_token"
+    return fake_session
+
+
+@pytest.fixture
 def fake_child():
     return SimpleNamespace(
         child_id=200001,
@@ -127,7 +134,34 @@ def mock_dnr():
 
     dnr.get_context = AsyncMock()
     dnr.get_info = AsyncMock()
+    dnr.get_schools = AsyncMock()
+    dnr.get_person_groups = AsyncMock()
+    dnr.get_person_schedule = AsyncMock()
+    dnr.get_group_lessons = AsyncMock()
+    dnr.get_group_marks = AsyncMock()
+    dnr.get_work_types = AsyncMock()
+    dnr.get_group_persons = AsyncMock()
+    dnr.get_homeworks = AsyncMock()
+    dnr.get_person_recent_marks = AsyncMock()
+    dnr.get_reporting_periods = AsyncMock()
+    dnr.get_many_marks = AsyncMock()
+    dnr.get_marks_by_work = AsyncMock()
+    dnr.get_person_subject_marks = AsyncMock()
+    dnr.get_group_avg_marks = AsyncMock()
+    dnr.get_person_final_marks = AsyncMock()
     dnr.get_children = AsyncMock()
+    dnr.get_lesson = AsyncMock()
+    dnr.get_group_avg_marks_by_date = AsyncMock()
     dnr.get_user_info = AsyncMock()
+    dnr.get_person_marks = AsyncMock()
+    dnr.get_many_lessons = AsyncMock()
+    dnr.get_marks_by_lesson = AsyncMock()
+    dnr.get_person = AsyncMock()
+    dnr.get_person_marks_by_lesson = AsyncMock()
+    dnr.get_children_relatives = AsyncMock()
+    dnr.get_person_marks_by_work = AsyncMock()
+    dnr.get_work = AsyncMock()
+    dnr.get_subjects = AsyncMock()
+    dnr.build_login_url = AsyncMock()
 
     return dnr
