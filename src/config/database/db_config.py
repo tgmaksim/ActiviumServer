@@ -1,7 +1,7 @@
 from pydantic import PostgresDsn
 from pydantic_settings import BaseSettings
 
-from ..project_config import load
+from ..project_config import load_environ
 
 
 __all__ = ['settings_db']
@@ -40,7 +40,7 @@ class ConfigDataBase(BaseSettings):
         ).unicode_string()
 
 
-load()
+load_environ()
 
 settings_db = ConfigDataBase()  # Загрузка из env
 """Настройки соединения с БД"""

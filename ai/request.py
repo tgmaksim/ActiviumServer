@@ -32,6 +32,9 @@ async def request(messages: list[Message]) -> str:
     :return: следующее сообщение от ИИ в виде строки
     """
 
-    response = await client.chat.completions.create(messages=[message.model_dump() for message in messages], model=settings.OPENAI_MODEL)
+    response = await client.chat.completions.create(
+        messages=[message.model_dump() for message in messages],
+        model=settings.OPENAI_MODEL
+    )
 
     return response.choices[0].message.content

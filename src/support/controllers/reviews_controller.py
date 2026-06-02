@@ -168,20 +168,25 @@ async def _public_deleteReviewLike0(
 ) -> DeleteReviewLikeApiResponse:
     csrf_token = request.cookies.get('csrf_token')
     session_id = request.cookies.get('session_id')
+
     request.state.session_id = session_id
+
     if csrf_token != csrfToken:
         return DeleteReviewLikeApiResponse(
             status=False,
             error=ApiError(
-                type="CSRFInvalid"
+                type="CSRFInvalid",
+                errorMessage="Перезагрузите страницу и повторите запрос"
             )
         )
+
     if not isinstance(session_id, str):
         return DeleteReviewLikeApiResponse(
             status=False,
             error=ApiError(
                 type="UnauthorizedError",
-                errorMessage="Требуется авторизация. Откройте сайт через приложение"
+                errorMessage="Требуется авторизация. Откройте сайт через приложение (в настройках)"
             )
         )
+
     return await service.delete_review_like(session_id, reviewId)

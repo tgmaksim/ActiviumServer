@@ -24,9 +24,9 @@ class SqlAlchemyUnitOfWork(UnitOfWork):
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         try:
             if exc_val:
-                await self.queue.rollback()
+                await self.rollback()
             else:
-                await self.queue.commit()
+                await self.commit()
         finally:
             await self.queue.stop()
             await self.session.close()
@@ -34,9 +34,9 @@ class SqlAlchemyUnitOfWork(UnitOfWork):
     async def commit(self):
         """Сохранение изменений"""
 
-        await self.session.commit()
+        await self.queue.commit()
 
     async def rollback(self):
         """Откат всех изменений"""
 
-        await self.session.rollback()
+        await self.queue.rollback()

@@ -33,7 +33,7 @@ class AsyncDBQueue:
     async def _worker(self):
         while True:
             statement, future = await self.queue.get()  # Получение следующей задачи с ожиданием
-            if statement is None:
+            if statement is None:  # При передаче (None, None) worker останавливается
                 break
 
             try:

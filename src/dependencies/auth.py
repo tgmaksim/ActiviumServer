@@ -9,7 +9,8 @@ __all__ = ['check_session']
 
 async def check_session(session_id: str, session_repository: SessionRepository, check_auth: bool = True) -> Session:
     """
-    Получение сессии по идентификатору
+    Получение сессии по ее идентификатору.
+    Если сессии не существует или она не работает, то выбрасывается исключение SessionError
 
     :param session_id: идентификатор сессии
     :param session_repository: объект ``SessionRepository``

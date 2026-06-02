@@ -8,7 +8,7 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 
-from src.config.project_config import settings  # Сначала project_config для загрузки env
+from src.config.project_config import settings
 from src.config.database.db_helper import db_helper
 
 from background import add_backgrounds

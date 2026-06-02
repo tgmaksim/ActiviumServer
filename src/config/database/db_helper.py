@@ -1,6 +1,3 @@
-from contextlib import asynccontextmanager
-
-from sqlalchemy import exc
 from sqlalchemy.ext.asyncio import (
     AsyncSession,
     async_sessionmaker,
@@ -27,15 +24,6 @@ class DatabaseHelper:
             expire_on_commit=False,
             class_=AsyncSession
         )
-
-    @asynccontextmanager
-    async def get_db_session(self):
-        async with self.session_factory() as session:
-            try:
-                yield session
-            except exc.SQLAlchemyError:
-                await session.rollback()
-                raise
 
     async def dispose(self):
         """Закрытие пула соединений с БД"""
