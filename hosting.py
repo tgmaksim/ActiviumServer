@@ -10,6 +10,8 @@ __all__ = ['reload_server']
 
 
 async def reload_server() -> dict:
+    """Перезагрузить сервер через API хостинга или через os.kill для debug-запуска"""
+
     if settings.DEBUG:
         # Отправка запроса на завершение процесса
         os.kill(os.getpid(), signal.SIGTERM)

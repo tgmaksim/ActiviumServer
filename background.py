@@ -13,6 +13,17 @@ def add_backgrounds(
         ea_notifications: bool = False,
         notes_notifications: bool = False
 ) -> list[asyncio.Task]:
+    """
+    Добавить фоновые задачи в event loop
+
+    :param loop: async event loop
+    :param tgbot: запустить Telegram-бота
+    :param marks_notifications: запустить проверку новых оценок
+    :param ea_notifications: запустить напоминания о внеурочных занятиях
+    :param notes_notifications: запустить напоминания о заметках к урокам
+    :return: список созданных задач
+    """
+
     tasks = []
 
     from src.dependencies.httpx import get_httpx_client
@@ -38,6 +49,12 @@ def add_backgrounds(
 
 
 def start_backgrounds(**params):
+    """
+    Запуск фоновых задач в текущем процессе
+
+    :param params: какие задачи запускать
+    """
+
     loop = asyncio.new_event_loop()
     tasks = add_backgrounds(loop, **params)
 
