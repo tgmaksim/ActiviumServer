@@ -101,6 +101,35 @@ async def test_get_count(
 
 
 @pytest.mark.asyncio
+async def test_get_count_for_two_sessions_one_child(
+    marks_notification_repository: MarksNotificationRepository,
+    session_repository: SessionRepository,
+    parent,
+    child,
+    marks_notification
+):
+    await session_repository.create_session(
+        "session_2"
+    )
+
+    await session_repository.auth_session(
+        session_id="session_2",
+        dnevnik_token="token",
+        parent_id=parent.parent_id,
+        active_child_id=child.child_id
+    )
+
+    await marks_notification_repository.turn_on(
+        "session_2",
+        child.child_id
+    )
+
+    result = await marks_notification_repository.get_count()
+
+    assert result == 1
+
+
+@pytest.mark.asyncio
 async def test_get_empty_count(
     marks_notification_repository: MarksNotificationRepository
 ):

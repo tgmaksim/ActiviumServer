@@ -469,13 +469,13 @@ class DnevnikToolsService(BaseService[AppUnitOfWork]):
                     path='unhighlightPerson',
                     session_id=session_id,
                     status=False,
-                    value=f"Одноклассник {person_id} не найден"
+                    value=f"Одноклассник {person_id} не выделен"
                 )
                 return UnhighlightPersonApiResponse(
                     status=False,
                     error=ApiError(
                         type="ValueError",
-                        errorMessage="Одноклассник не найден"
+                        errorMessage="Одноклассник не выделен"
                     )
                 )
 

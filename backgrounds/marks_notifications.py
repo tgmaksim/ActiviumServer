@@ -313,7 +313,8 @@ class MarksNotificationWorker:
 
         draw.rounded_rectangle([0, 0, size, size], radius=radius, fill=bg_color)
 
-        font = ImageFont.truetype("Roboto-Medium.ttf", font_size)
+        font_file = Path(settings.RESOURCES_PATH, "Roboto-Medium.ttf")
+        font = ImageFont.truetype(font_file, font_size)
 
         draw.text((size // 2, size // 2), mark, fill='white', font=font, anchor='mm')
 

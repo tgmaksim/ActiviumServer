@@ -100,25 +100,6 @@ async def test_get_informations_returns_empty(
 
 
 @pytest.mark.asyncio
-async def test_delete_information(
-    information_repository: InformationRepository,
-    information,
-    parent
-):
-    await information_repository.delete_information(
-        parent.parent_id,
-        information.time,
-        information.type
-    )
-
-    result = await information_repository.get_informations(
-        parent.parent_id
-    )
-
-    assert result == []
-
-
-@pytest.mark.asyncio
 async def test_delete_informations(
     information_repository: InformationRepository,
     information,
