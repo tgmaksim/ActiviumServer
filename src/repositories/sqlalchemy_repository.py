@@ -77,12 +77,12 @@ class SqlAlchemyRepository(AbstractRepository[ModelType]):
 
     async def update(self, data: dict, *where, **filters) -> Optional[ModelType]:
         """
-        Обновление данных в таблице
+        Обновление данных в таблице. Если под условие попадется несколько строк, возникнет ошибка
 
         :param data: обновленные данные
         :param where: фильтры через модели
         :param filters: примитивные фильтры
-        :return: обновленная модель (первая), если есть
+        :return: обновленная модель (единственная), если есть
         """
 
         statement = update(self.model).values(**data)
@@ -98,6 +98,30 @@ class SqlAlchemyRepository(AbstractRepository[ModelType]):
 
         res = await self.queue.execute(statement)
         return res.scalar_one_or_none()
+
+    async def update_many(self, data: dict, *where, **filters) -> list[ModelType]:
+        """
+        Обновление нескольких данных в таблице
+
+        :param data: обновленные данные
+        :param where: фильтры через модели
+        :param filters: примитивные фильтры
+        :return: обновленные модели, если есть
+        """
+
+        statement = update(self.model).values(**data)
+
+        if where:
+            statement = statement.where(*where)
+        if filters:
+            statement = statement.filter_by(**filters)
+
+        # Вернуть новые записи и обновить ORM-кэш
+        statement = statement.returning(self.model)
+        statement = statement.execution_options(populate_existing=True)
+
+        res = await self.queue.execute(statement)
+        return list(res.scalars().all())
 
     async def delete(self, *where, **filters) -> Optional[int]:
         """

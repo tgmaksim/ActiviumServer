@@ -8,12 +8,14 @@ from dnevnikru import AioDnevnikruApi, BaseDnevnikruException
 from ...config.project_config import settings
 
 from ...dependencies.auth import check_session
-from ...repositories.statistic_repository import StatName
-from ...schemas.error_schema import ApiError
 from ...services.base_service import BaseService
 from ..repositories.app_uow import AppUnitOfWork
+from ...repositories.statistic_repository import StatName
 
 from ...models.parent_model import Parent
+from ...models.session_model import Session
+
+from ...schemas.error_schema import ApiError
 from ...api.session_error import SessionError
 
 from ..schemas.settings_schemas import (
@@ -45,7 +47,7 @@ class SettingsService(BaseService[AppUnitOfWork]):
 
     async def getChildren(self, session_id: str) -> ChildrenApiResponse:
         async with self.uow_factory() as uow:
-            session = await check_session(session_id, uow.session_repository)
+            session = await check_session(session_id, uow.session_repository)  # Проверка и получение сессии
             parent: Parent = session.parent
 
             dnr = AioDnevnikruApi(self.httpx_client, session.dnevnik_token)
@@ -55,7 +57,7 @@ class SettingsService(BaseService[AppUnitOfWork]):
                     dnr.get_children(parent.parent_id),
                     dnr.get_info()
                 )
-            except BaseDnevnikruException as e:
+            except BaseDnevnikruException as e:  # Если возникла ошибка, проверяется авторизация сессии
                 if not await uow.session_repository.check_session_auth(session.session_id, dnr):
                     raise SessionError(session_id=session.session_id) from e
                 raise
@@ -78,7 +80,7 @@ class SettingsService(BaseService[AppUnitOfWork]):
 
     async def setActiveChild(self, session_id: str, child_id: int) -> SwitchActiveChildApiResponse:
         async with self.uow_factory() as uow:
-            session = await check_session(session_id, uow.session_repository)
+            session = await check_session(session_id, uow.session_repository)  # Проверка и получение сессии
             parent: Parent = session.parent
 
             dnr = AioDnevnikruApi(self.httpx_client, session.dnevnik_token)
@@ -88,11 +90,12 @@ class SettingsService(BaseService[AppUnitOfWork]):
                     dnr.get_children(parent.parent_id),
                     dnr.get_info()
                 )
-            except BaseDnevnikruException as e:
+            except BaseDnevnikruException as e:  # Если возникла ошибка, проверяется авторизация сессии
                 if not await uow.session_repository.check_session_auth(session.session_id, dnr):
                     raise SessionError(session_id=session.session_id) from e
                 raise
 
+            # Если запрос от ребенка (владельца профиля)
             if parent.parent_id == child_id and len(children) == 0:
                 return SwitchActiveChildApiResponse(
                     answer=ChildrenResult(
@@ -104,6 +107,7 @@ class SettingsService(BaseService[AppUnitOfWork]):
                     )
                 )
 
+            # Проверка существования ребенка (профиля), которого требуется установить
             try:
                 next(filter(lambda c: c['id'] == child_id, children))
             except StopIteration:
@@ -123,6 +127,7 @@ class SettingsService(BaseService[AppUnitOfWork]):
 
             child = await uow.child_repository.get_child(child_id)
 
+            # Если ребенок (профиль) еще не добавлен
             if child is None:
                 context = await dnr.get_context()
                 schools = context['schools']
@@ -145,6 +150,7 @@ class SettingsService(BaseService[AppUnitOfWork]):
                     hours, minutes = map(int, info['timezone'].split(':'))
                     timezone = (hours * 60 + minutes) * 60
 
+                    # Создается ребенок (профиль)
                     await uow.child_repository.create_child(
                         child_id=child_id,
                         school_id=school_id,
@@ -169,8 +175,9 @@ class SettingsService(BaseService[AppUnitOfWork]):
 
     async def getStatusMarksNotifications(self, session_id: str, child_id: Optional[int]) -> StatusMarksNotificationsApiResponse:
         async with self.uow_factory() as uow:
-            session = await check_session(session_id, uow.session_repository)
+            session = await check_session(session_id, uow.session_repository)  # Проверка и получение сессии
 
+            # По умолчанию используется активный ребенок (профиль)
             if child_id is None:
                 child_id = session.active_child_id
 
@@ -184,9 +191,10 @@ class SettingsService(BaseService[AppUnitOfWork]):
 
     async def switchMarksNotifications(self, session_id: str, child_id: Optional[int], status: bool) -> SwitchMarksNotificationsApiResponse:
         async with self.uow_factory() as uow:
-            session = await check_session(session_id, uow.session_repository)
+            session = await check_session(session_id, uow.session_repository)  # Проверка и получение сессии
             parent: Parent = session.parent
 
+            # По умолчанию используется активный ребенок (профиль)
             if child_id is None:
                 child_id = session.active_child_id
 
@@ -195,25 +203,9 @@ class SettingsService(BaseService[AppUnitOfWork]):
                 await uow.statistic_repository.add_statistic(parent.parent_id, StatName.turnOffMarksNotifications)
                 return SwitchMarksNotificationsApiResponse()
 
+            # Проверка существования ребенка (профиля)
             if child_id != session.active_child_id:
-                dnr = AioDnevnikruApi(self.httpx_client, session.dnevnik_token)
-
-                try:
-                    children = await dnr.get_children(parent.parent_id)
-                except BaseDnevnikruException as e:
-                    if not await uow.session_repository.check_session_auth(session.session_id, dnr):
-                        raise SessionError(session_id=session.session_id) from e
-                    raise
-
-                try:
-                    next(filter(lambda c: c['id'] == child_id, children))
-                except StopIteration:
-                    await uow.log_repository.add_log(
-                        path='switchMarksNotifications',
-                        status=False,
-                        session_id=session_id,
-                        value=f"Ребенок {child_id} не найден"
-                    )
+                if not await self._check_child(uow, session, child_id):
                     return SwitchMarksNotificationsApiResponse(
                         status=False,
                         error=ApiError(
@@ -229,6 +221,7 @@ class SettingsService(BaseService[AppUnitOfWork]):
 
     async def update_firebase(self, session_id: str, firebase_token: str) -> UpdateFirebaseApiResponse:
         async with self.uow_factory() as uow:
+            # Получение сессии, в том числе еще неавторизованной (без parent_id и других параметров)
             session = await check_session(session_id, uow.session_repository, check_auth=False)
 
             await uow.session_repository.update_firebase(session_id, firebase_token)
@@ -239,8 +232,9 @@ class SettingsService(BaseService[AppUnitOfWork]):
 
     async def getStatusEANotifications(self, session_id: str, child_id: Optional[int]) -> StatusEANotificationsApiResponse:
         async with self.uow_factory() as uow:
-            session = await check_session(session_id, uow.session_repository)
+            session = await check_session(session_id, uow.session_repository)  # Проверка и получение сессии
 
+            # По умолчанию используется активный ребенок (профиль)
             if child_id is None:
                 child_id = session.active_child_id
 
@@ -254,9 +248,10 @@ class SettingsService(BaseService[AppUnitOfWork]):
 
     async def switchEANotifications(self, session_id: str, child_id: Optional[int], status: bool) -> SwitchEANotificationsApiResponse:
         async with self.uow_factory() as uow:
-            session = await check_session(session_id, uow.session_repository)
+            session = await check_session(session_id, uow.session_repository)  # Проверка и получение сессии
             parent: Parent = session.parent
 
+            # По умолчанию используется активный ребенок (профиль)
             if child_id is None:
                 child_id = session.active_child_id
 
@@ -265,25 +260,9 @@ class SettingsService(BaseService[AppUnitOfWork]):
                 await uow.statistic_repository.add_statistic(parent.parent_id, StatName.turnOffEANotifications)
                 return SwitchEANotificationsApiResponse()
 
+            # Проверка существования ребенка (профиля)
             if child_id != session.active_child_id:
-                dnr = AioDnevnikruApi(self.httpx_client, session.dnevnik_token)
-
-                try:
-                    children = await dnr.get_children(parent.parent_id)
-                except BaseDnevnikruException as e:
-                    if not await uow.session_repository.check_session_auth(session.session_id, dnr):
-                        raise SessionError(session_id=session.session_id) from e
-                    raise
-
-                try:
-                    next(filter(lambda c: c['id'] == child_id, children))
-                except StopIteration:
-                    await uow.log_repository.add_log(
-                        path='switchMarksNotifications',
-                        status=False,
-                        session_id=session_id,
-                        value=f"Ребенок {child_id} не найден"
-                    )
+                if not await self._check_child(uow, session, child_id):
                     return SwitchEANotificationsApiResponse(
                         status=False,
                         error=ApiError(
@@ -297,15 +276,47 @@ class SettingsService(BaseService[AppUnitOfWork]):
 
             return SwitchEANotificationsApiResponse()
 
+    async def _check_child(self, uow: AppUnitOfWork, session: Session, child_id: int) -> bool:
+        """
+        Проверка существования и связи ребенка (профиля) с пользователем
+
+        :param uow: объект AppUnitOfWork для взаимодействия с БД
+        :param session: сессия пользователя
+        :param child_id: идентификатор проверяемого ребенка (профиля)
+        :return: существует и принадлежит ли ребенок (профиль) пользователю
+        """
+
+        dnr = AioDnevnikruApi(self.httpx_client, session.dnevnik_token)
+
+        try:
+            children = await dnr.get_children(session.parent_id)
+        except BaseDnevnikruException as e:
+            if not await uow.session_repository.check_session_auth(session.session_id, dnr):
+                raise SessionError(session_id=session.session_id) from e
+            raise
+
+        try:
+            next(filter(lambda c: c['id'] == child_id, children))
+        except StopIteration:
+            await uow.log_repository.add_log(
+                path='switchMarksNotifications',
+                status=False,
+                session_id=session.session_id,
+                value=f"Ребенок {child_id} не найден"
+            )
+            return False
+
+        return True
+
     async def getReferralParams(self, session_id: str) -> ReferralParamsApiResponse:
         async with self.uow_factory() as uow:
-            session = await check_session(session_id, uow.session_repository)
+            session = await check_session(session_id, uow.session_repository)  # Проверка и получение сессии
             parent: Parent = session.parent
 
-            me_referral = await uow.referral_repository.get_me_referral(parent.parent_id)
-            count_referrals = await uow.referral_repository.get_count_my_referrals(parent.parent_id)
+            me_referral = await uow.referral_repository.get_me_referral(parent.parent_id)  # Кто пригласил пользователя
+            count_referrals = await uow.referral_repository.get_count_my_referrals(parent.parent_id)  # Сколько пригласил пользователь
 
-            link = str(URL(settings.URL).update_query(referral=hex(parent.parent_id)[2:]))
+            link = str(URL(settings.URL).update_query(referral=hex(parent.parent_id)[2:]))  # Ссылка для приглашения
 
             return ReferralParamsApiResponse(
                 answer=ReferralParamsResult(

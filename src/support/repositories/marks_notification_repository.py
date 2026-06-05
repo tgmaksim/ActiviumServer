@@ -93,16 +93,16 @@ class MarksNotificationRepository(SqlAlchemyRepository[MarksNotification]):
         res = await self.queue.execute(statement)
         return res.scalars().all()
 
-    async def update_date(self, child_id: int, last_mark: Optional[datetime]) -> Optional[MarksNotification]:
+    async def update_date(self, child_id: int, last_mark: Optional[datetime]) -> list[MarksNotification]:
         """
-        Обновление времени последней обработки ребенка (профиля) для проверки новых оценок
+        Обновление времени последней обработки ребенка (профиля) у всех сессий для проверки новых оценок
 
         :param child_id: идентификатор ребенка (профиля)
         :param last_mark: время выставления последней оценки, если выставлена новая
-        :return: обновленные параметры функции, если включена
+        :return: обновленные параметры функции всех сессий
         """
 
         # Если last_mark = None, то обновится только created_at
-        return await self.update({
+        return await self.update_many({
             'last_mark': last_mark or MarksNotification.last_mark
         }, MarksNotification.child_id == child_id)

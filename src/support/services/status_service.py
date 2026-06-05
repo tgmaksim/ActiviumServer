@@ -26,14 +26,17 @@ class StatusService(BaseService[AppUnitOfWork]):
 
     async def check_latest_version(self, version_number: int, api: int = None) -> Union[VersionsApiResponse0x4, VersionsApiResponse]:
         async with self.uow_factory() as uow:
-            latest = await uow.version_repository.get_latest_version()
+            latest = await uow.version_repository.get_latest_version()  # Самая последняя версия
             assert latest, "get_latest_version returned None"
 
+            # Последняя общая версия и ее мини-версии (например, 1.1.0; 1.1.1, 1.1.2)
             generic_latest = await uow.version_repository.get_latest_generic_version()
             latest_mini_versions = await uow.version_repository.get_latest_mini_versions(generic_latest.number)
 
+            # Самая важная (с наибольшим status_id) версия
             most_important = await uow.version_repository.get_most_important_version(version_number)
 
+            # В качестве важности версии и информационного сообщения к ней используются данные самой важной версии
             status_id = latest.status_id
             status = latest.status
             info = latest.info
@@ -43,9 +46,12 @@ class StatusService(BaseService[AppUnitOfWork]):
                 info = most_important.info
 
             logs = latest.logs
+            # Если текущая версия меньше последней общей или общая версия - самая последняя
             if version_number < generic_latest.number or not latest_mini_versions:
                 logs = generic_latest.logs
+            # Текущая версия не меньше последней общей, но не является самой новой
             elif version_number < latest.number:
+                # Список изменений складывается из всех изменений последних мини-версий
                 logs = '\n\n'.join(map(lambda v: v.logs, filter(lambda v: v.number > version_number, latest_mini_versions)))
 
             await uow.statistic_repository.add_statistic(None, StatName.checkVersion)
@@ -64,7 +70,7 @@ class StatusService(BaseService[AppUnitOfWork]):
                     date=latest.date,
                     versionStatusId=status_id,
                     versionStatus=status,
-                    info=info,
+                    info=info,  # Для VersionsResult0x3 игнорируется
                     updateLogs=logs
                 )
             )
@@ -75,8 +81,9 @@ class StatusService(BaseService[AppUnitOfWork]):
 
     async def check_info_notifications(self, session_id: str) -> InformationApiResponse:
         async with self.uow_factory() as uow:
-            session = await check_session(session_id, uow.session_repository)
+            session = await check_session(session_id, uow.session_repository)  # Проверка и получение сессии
 
+            # Получение информационных оповещений и удаление их
             _informations = await uow.information_repository.get_informations(session.parent_id)
             await uow.information_repository.delete_informations(session.parent_id)
 
@@ -85,7 +92,7 @@ class StatusService(BaseService[AppUnitOfWork]):
                 if info.type == 'review':
                     review = await uow.review_repository.get_review(session.parent_id, only_is_open=False)
                     if review is not None:
-                        continue  # Пользователь уже написал отзыв
+                        continue  # Пользователь уже написал отзыв, оповещение не требуется
                     # В следующий раз, если отзыв еще не написан, уведомление повторится с похожим текстом
                     await uow.information_repository.create_information(
                         session.parent_id,
@@ -98,7 +105,7 @@ class StatusService(BaseService[AppUnitOfWork]):
                 if info.type == 'marks_notifications':
                     status = await uow.marks_notification_repository.get_status(session.session_id, session.active_child_id)
                     if status is not None:
-                        continue  # Пользователь уже включил уведомления
+                        continue  # Пользователь уже включил уведомления, оповещение не требуется
                     # В следующий раз, если функция выключена, уведомление повторится
                     await uow.information_repository.create_information(
                         session.parent_id,

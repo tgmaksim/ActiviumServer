@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from typing import Generic, TypeVar, Optional
+from typing import Generic, TypeVar, Optional, Iterable
 
 from ..models.base_model import BaseModel
 
@@ -14,11 +14,19 @@ class AbstractRepository(ABC, Generic[ModelType]):
     """Абстрактный репозиторий с базовыми методами"""
 
     @abstractmethod
-    async def create(self, data: dict) -> ModelType:
+    async def create(self, data: dict, **kwargs) -> ModelType:
         raise NotImplementedError
 
     @abstractmethod
-    async def update(self, data: dict, **kwargs) -> Optional[ModelType]:
+    async def create_many(self, data: Iterable[dict], **kwargs) -> list[ModelType]:
+        raise NotImplementedError
+
+    @abstractmethod
+    async def update(self, data: dict, *args, **kwargs) -> Optional[ModelType]:
+        raise NotImplementedError
+
+    @abstractmethod
+    async def update_many(self, data: dict, *args, **kwargs) -> list[ModelType]:
         raise NotImplementedError
 
     @abstractmethod
@@ -27,6 +35,10 @@ class AbstractRepository(ABC, Generic[ModelType]):
 
     @abstractmethod
     async def get_single(self, *args, **kwargs) -> Optional[ModelType]:
+        raise NotImplementedError
+
+    @abstractmethod
+    async def get_first(self, *args, **kwargs) -> Optional[ModelType]:
         raise NotImplementedError
 
     @abstractmethod

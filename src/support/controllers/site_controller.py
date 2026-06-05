@@ -32,6 +32,7 @@ async def _root(
     session_id = sessionId or request.cookies.get('session_id')
     request.state.session_id = session_id
 
+    # Query-параметры записываются в cookies и убираются из запроса
     if sessionId is not None:
         response = RedirectResponse(
             url=request.url.remove_query_params('sessionId'),
@@ -40,6 +41,7 @@ async def _root(
         response.set_cookie('session_id', session_id, max_age=30 * 24 * 60 * 60, secure=True, httponly=True)
         return response
 
+    # Query-параметры записываются в cookies и убираются из запроса
     if referral is not None:
         response = RedirectResponse(
             url=request.url.remove_query_params('referral'),
