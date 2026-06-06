@@ -5,6 +5,8 @@ __all__ = ['get_tg_router']
 
 
 def get_tg_router() -> Router:
+    """Основной роутер для обработки событий Telegram-бота (сообщения, нажатия кнопок и др.)"""
+
     from .handlers import start, reviews, app, help, admin, school, menu
 
     router = Router()

@@ -15,15 +15,16 @@ router = Router()
 
 @router.message(Command('reload'))
 async def _cmd_reload(message: Message):
+    """Перезагрузка сервера по команде админа"""
+
     if message.from_user.id not in settings.ADMIN_CHAT_IDS:
         await message.answer("Данная команда доступна только администраторам")
         return
 
     try:
-        response = await reload_server()
-        state = response['state']
+        await reload_server()
     except Exception:
         await message.answer("Произошла ошибка при перезагрузке")
         raise
     else:
-        await message.answer(f"Activium перезагружается ({state})")
+        await message.answer(f"{settings.PROJECT_NAME} перезагружается")

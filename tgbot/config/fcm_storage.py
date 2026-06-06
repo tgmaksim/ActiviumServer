@@ -6,8 +6,13 @@ from aiogram.fsm.storage.base import BaseStorage, StorageKey, StateType, KeyBuil
 from src.support.repositories.app_uow import AppUnitOfWork
 
 
+__all__ = ['PostgresStorage']
+
+
 class PostgresStorage(BaseStorage):
-    def __init__(self, uow_factory: Callable[[], AppUnitOfWork], key_builder: KeyBuilder | None = None,):
+    """Хранилище состояний пользователей в БД сервера"""
+
+    def __init__(self, uow_factory: Callable[[], AppUnitOfWork], key_builder: Optional[KeyBuilder] = None):
         self.uow_factory = uow_factory
         self._key_builder = key_builder or DefaultKeyBuilder()
 

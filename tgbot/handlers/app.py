@@ -1,6 +1,7 @@
 from aiogram import Router
 
 from aiogram.filters import Command
+from aiogram.utils.formatting import Text, CustomEmoji
 from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
 
 from src.config.project_config import settings
@@ -13,9 +14,14 @@ router = Router()
 
 @router.message(Command('app'))
 async def _cmd_app(message: Message):
+    """Ссылки на скачивание приложения и его исходный код"""
+
+    text = Text(CustomEmoji("🤓", custom_emoji_id="5406575351272872039"), " Активиум — ссылки")
+
     await message.answer(
-        "<tg-emoji emoji-id=\"5406575351272872039\">🤓</tg-emoji> Активиум — ссылки",
+        **text.as_kwargs(),
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="Скачать", icon_custom_emoji_id="5197404349399054325", url=settings.URL)],
-            [InlineKeyboardButton(text="Исходный код", icon_custom_emoji_id="4961044117187462239", url=settings.GITHUB)]]
-        ))
+            [InlineKeyboardButton(text="Исходный код", icon_custom_emoji_id="4961044117187462239", url=settings.GITHUB)]
+        ])
+    )

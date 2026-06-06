@@ -6,14 +6,16 @@ from contextlib import suppress
 from src.services.log_service import LogService
 from src.dependencies.uow import get_log_uow_factory
 
-from .bot import create_bot_and_dispatcher
 from src.config.project_config import settings
+from .config.bot import create_bot_and_dispatcher
 
 
 __all__ = ['add_polling_task']
 
 
 async def run_polling():
+    """Запуск прослушивания"""
+
     bot, dp = create_bot_and_dispatcher()
 
     try:
@@ -45,6 +47,8 @@ async def run_polling():
 
 
 def add_polling_task(loop: asyncio.AbstractEventLoop) -> asyncio.Task:
+    """Запуск прослушивания в event loop"""
+
     return loop.create_task(run_polling())
 
 
