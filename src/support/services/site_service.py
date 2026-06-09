@@ -44,13 +44,22 @@ class SiteService(BaseService[AppUnitOfWork]):
             reviews, liked_reviews, next_offset = await ReviewsService.get_top_reviews(uow, mode, offset, limit, session)
             csrf_token = secrets.token_urlsafe(32)  # Для постановки и удаления реакций на отзывах
 
-            cookies = [{
-                'key': 'csrf_token',
-                'value': csrf_token,
-                'max_age': 30 * 24 * 60 * 60,  # 30 дней
-                'httponly': False,
-                'samesite': 'lax'
-            }]
+            cookies = [
+                {
+                    'key': 'csrf_token',
+                    'value': csrf_token,
+                    'max_age': 30 * 24 * 60 * 60,  # 30 дней
+                    'httponly': False,
+                    'samesite': 'lax'
+                },
+                {
+                    'key': 'session_id',
+                    'value': session_id,
+                    'max_age': 30 * 24 * 60 * 60,  # 30 дней
+                    'httponly': False,
+                    'secure': True
+                }
+            ]
 
             await uow.statistic_repository.add_statistic(session and session.parent_id, StatName.site)
 

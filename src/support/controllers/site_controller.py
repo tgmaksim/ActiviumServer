@@ -60,7 +60,6 @@ async def _root(
         context=template_params.context
     )
 
-    response.set_cookie('session_id', session_id, max_age=30 * 24 * 60 * 60, secure=True, httponly=True)
     if template_params.cookies:
         for cookie in template_params.cookies:
             response.set_cookie(**cookie)

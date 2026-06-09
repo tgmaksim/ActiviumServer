@@ -16,7 +16,15 @@ class DatabaseHelper:
     def __init__(self, url: str, echo: bool = False):
         """Создание пула запросов к БД"""
 
-        self.engine = create_async_engine(url=url, echo=echo, pool_pre_ping=True)
+        self.engine = create_async_engine(
+            url=url,
+            echo=echo,
+            pool_size=10,        # Постоянные соединения
+            max_overflow=20,     # Дополнительные при пике нагрузки
+            pool_timeout=30,     # Сколько ждать свободного соединения
+            pool_recycle=1800,   # Пересоздавать соединения каждые 30 мин
+            pool_pre_ping=True,  # Проверять соединение перед использованием
+        )
 
         self.session_factory = async_sessionmaker(
             bind=self.engine,

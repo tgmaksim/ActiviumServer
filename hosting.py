@@ -21,6 +21,5 @@ async def reload_server():
         token = response_token.json()['token']
 
         # С помощью полученного токена перезапускает полностью сервер
-        response = await client.put(f"{settings.HOSTING_API_URL}/virtualhosts/{settings.VIRTUALHOST_ID}/restart/",
-                                    headers={'Authorization': f'Bearer {token}'})
-        print(response.json())
+        await client.put(f"{settings.HOSTING_API_URL}/virtualhosts/{settings.VIRTUALHOST_ID}/restart/",
+                         headers={'Authorization': f'Bearer {token}'})

@@ -43,7 +43,6 @@ async def run_polling():
         print("Бот остановлен")
         with suppress(RuntimeError):
             await dp.stop_polling()
-        await bot.close()
 
 
 def add_polling_task(loop: asyncio.AbstractEventLoop) -> asyncio.Task:
