@@ -3,7 +3,7 @@ import secrets
 from typing import Optional
 
 from .reviews_service import ReviewsService
-from src.config.project_config import settings
+from ...config.project_config import settings
 from ...services.html_response import HtmlResponse
 from ...repositories.statistic_repository import StatName
 

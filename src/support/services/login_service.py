@@ -15,6 +15,7 @@ from ...config.project_config import settings
 from ..repositories.app_uow import AppUnitOfWork
 from ...repositories.statistic_repository import StatName
 from ..repositories.session_repository import SessionRepository
+from ...dependencies.referral_token import decode_referral_token
 from ..repositories.information_repository import InformationRepository
 
 from dnevnikru.aiodnevnikru.dnevnikru import AioDnevnikruApi
@@ -167,17 +168,10 @@ class LoginService(BaseService[AppUnitOfWork]):
                     }
                 )
 
-            # Если пользователь был приглашен, то записывается этот факт
-            parent_referral_id = None
-            if referral_token:
-                try:
-                    parent_referral_id = int(referral_token, 16)
-                except (ValueError, TypeError):
-                    pass
-                else:
-                    parent_referral = await uow.parent_repository.get_parent(parent_referral_id)
-                    if parent_referral is None:
-                        parent_referral_id = None
+            # Если пользователь был приглашен и ссылка валидна, то записывается этот факт
+            parent_referral_id = referral_token and decode_referral_token(referral_token)  # Декодирование токена
+            parent_referral = parent_referral_id and await uow.parent_repository.get_parent(parent_referral_id)  # Проверка пользователя
+            parent_referral_id = parent_referral and parent_referral_id
 
             # Авторизация сессии с полученными данными
             await self._auth_session(uow, session_id, dnevnik_token, dnevnik_data, parent_name, parent_referral_id)

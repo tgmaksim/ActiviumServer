@@ -3,6 +3,7 @@ import pytest
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
+from src.dependencies.referral_token import encode_referral_token
 from src.repositories.statistic_repository import StatName
 from src.support.services.settings_service import SettingsService
 
@@ -619,7 +620,7 @@ async def test_get_referral_params(
     assert result.answer.meReferralName == "Ivan"
     assert result.answer.referralsCount == 5
 
-    assert hex(fake_parent.parent_id)[2:] in result.answer.referralUrl
+    assert encode_referral_token(fake_parent.parent_id) in result.answer.referralUrl
 
 
 @pytest.mark.asyncio

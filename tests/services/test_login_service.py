@@ -3,6 +3,7 @@ import pytest
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
+from src.dependencies.referral_token import encode_referral_token
 from src.services.html_response import HtmlResponse
 from src.repositories.statistic_repository import StatName
 from src.support.services.login_service import LoginService
@@ -366,7 +367,7 @@ async def test_second_auth_session_valid_referral(
     fake_uow.session_repository.get_session.return_value = fake_session
     fake_uow.parent_repository.get_parent.return_value = fake_parent
 
-    referral_token = hex(fake_parent.parent_id)[2:]
+    referral_token = encode_referral_token(fake_parent.parent_id)
 
     await login_service.secondAuthSession(
         "token",

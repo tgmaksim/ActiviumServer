@@ -11,6 +11,7 @@ from ...dependencies.auth import check_session
 from ...services.base_service import BaseService
 from ..repositories.app_uow import AppUnitOfWork
 from ...repositories.statistic_repository import StatName
+from ...dependencies.referral_token import encode_referral_token
 
 from ...models.parent_model import Parent
 from ...models.session_model import Session
@@ -316,12 +317,15 @@ class SettingsService(BaseService[AppUnitOfWork]):
             me_referral = await uow.referral_repository.get_me_referral(parent.parent_id)  # Кто пригласил пользователя
             count_referrals = await uow.referral_repository.get_count_my_referrals(parent.parent_id)  # Сколько пригласил пользователь
 
-            link = str(URL(settings.URL).update_query(referral=hex(parent.parent_id)[2:]))  # Ссылка для приглашения
+            # Ссылка для приглашения
+            link = URL(settings.URL).update_query(
+                referral=encode_referral_token(parent.parent_id)
+            )
 
             return ReferralParamsApiResponse(
                 answer=ReferralParamsResult(
                     meReferralName=me_referral and me_referral.name,
                     referralsCount=count_referrals,
-                    referralUrl=link
+                    referralUrl=str(link)
                 )
             )
