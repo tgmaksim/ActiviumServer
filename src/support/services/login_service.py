@@ -14,8 +14,8 @@ from ...config.project_config import settings
 
 from ..repositories.app_uow import AppUnitOfWork
 from ...repositories.statistic_repository import StatName
+from ...utils.referral_token import decode_referral_token
 from ..repositories.session_repository import SessionRepository
-from ...dependencies.referral_token import decode_referral_token
 from ..repositories.information_repository import InformationRepository
 
 from dnevnikru.aiodnevnikru.dnevnikru import AioDnevnikruApi

@@ -21,12 +21,12 @@ from ..schemas.dnevnik_tools_schemas import Note
 
 from ...config.project_config import settings
 from ...dependencies.auth import check_session
+from ...utils.zip_int import zip_int, unzip_int
 from ...dependencies.httpx import get_httpx_client
-from ...dependencies.zip_int import zip_int, unzip_int
-from ...models import LessonNote
+from ...utils.datetime import datetime_now, astimezone
 from ...repositories.statistic_repository import StatName
-from ...dependencies.datetime import datetime_now, astimezone
 
+from ...models import LessonNote
 from ...models.hour_model import Hour
 from ...services.base_service import BaseService
 from ..repositories.app_uow import AppUnitOfWork
@@ -857,13 +857,10 @@ class DnevnikService(BaseService[AppUnitOfWork]):
                 params = rating_key.split('.')
 
                 period_id = unzip_int(params[0])
-                assert period_id is not None, "rating_key is invalid (period_id is None)"
-
                 subject_id = unzip_int(params[1])
-                assert subject_id is not None, "rating_key is invalid (subject_id is None)"
 
                 lesson_date = datetime.fromisoformat(params[2]).date()
-            except (AssertionError, IndexError) as e:
+            except (ValueError, IndexError, TypeError) as e:
                 await uow.log_repository.add_log(
                     path='getLessonRatingStats',
                     session_id=session_id,
@@ -1278,8 +1275,7 @@ class DnevnikService(BaseService[AppUnitOfWork]):
                 key_type = rating_key[0]
 
                 entity_id = unzip_int(rating_key[1:])
-                assert entity_id is not None, "rating_key is invalid (entity_id is None)"
-            except (AssertionError, IndexError) as e:
+            except (ValueError, IndexError, TypeError) as e:
                 await uow.log_repository.add_log(
                     path='getMarksRatingStats',
                     session_id=session_id,
@@ -1437,8 +1433,7 @@ class DnevnikService(BaseService[AppUnitOfWork]):
                 subject_id = unzip_int(key.group('subject_id')) if key.group('subject_id') else None
 
                 period_id = unzip_int(key.group('period_id'))
-                assert period_id is not None, "rating_key is invalid (period_id is None)"
-            except AssertionError as e:
+            except (ValueError, TypeError) as e:
                 await uow.log_repository.add_log(
                     path='getMarksSubjectRating',
                     session_id=session_id,

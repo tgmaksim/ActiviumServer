@@ -11,7 +11,7 @@ from ...dependencies.auth import check_session
 from ...services.base_service import BaseService
 from ..repositories.app_uow import AppUnitOfWork
 from ...repositories.statistic_repository import StatName
-from ...dependencies.referral_token import encode_referral_token
+from ...utils.referral_token import encode_referral_token
 
 from ...models.parent_model import Parent
 from ...models.session_model import Session

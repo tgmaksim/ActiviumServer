@@ -1,7 +1,5 @@
 import string
 
-from typing import Optional
-
 
 __all__ = ['zip_int', 'unzip_int']
 
@@ -32,7 +30,7 @@ def zip_int(number: int) -> str:
     return base36
 
 
-def unzip_int(number: str) -> Optional[int]:
+def unzip_int(number: str) -> int:
     """
     Перевод числа из "сжатого формата" (в системе счисления с основанием 36) в десятичную
 
@@ -44,10 +42,7 @@ def unzip_int(number: str) -> Optional[int]:
     36
 
     :param number: число в "сжатотом формате" (в системе счисления с основанием 36)
-    :return: исходное число, если входное число валидно, иначе None
+    :return: исходное число
     """
 
-    try:
-        return int(number, 36)
-    except (TypeError, ValueError):
-        return None
+    return int(number, 36)

@@ -3,8 +3,8 @@ import pytest
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
-from src.dependencies.referral_token import encode_referral_token
 from src.services.html_response import HtmlResponse
+from src.utils.referral_token import encode_referral_token
 from src.repositories.statistic_repository import StatName
 from src.support.services.login_service import LoginService
 

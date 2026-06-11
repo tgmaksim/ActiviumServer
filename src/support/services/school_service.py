@@ -6,11 +6,11 @@ from yarl import URL
 from httpx import AsyncClient
 from fastapi import HTTPException
 
+from ...utils.datetime import astimezone
 from ...models.session_model import Session
 from ...schemas.error_schema import ApiError
 from ...config.project_config import settings
 from ...dependencies.auth import check_session
-from ...dependencies.datetime import astimezone
 from ...services.html_response import HtmlResponse
 from ...repositories.statistic_repository import StatName
 from ...models.school_post_model import SchoolPostContentEntityType
@@ -47,12 +47,14 @@ class SchoolService(BaseService[AppUnitOfWork]):
         async with self.uow_factory() as uow:
             post = await uow.school_post_repository.get_post(post_id)
 
+            # Если пост не найден, выбросится исключение, которое обработает stable middleware
             if post is None:
                 raise HTTPException(404)
 
+            # Контент из JSON конвертируется в список HTML с форматированием
             content = [{
-                'type': block['type'],
-                'text': self._format_to_html(block['text'], block['entities'])
+                'type': block['type'],  # Если тип — не просто текст, то медиа получается по индексу элемента списка (см. post.html)
+                'text': self._format_to_html(block['text'], block['entities'])  # Текст может быть у медиа
             } for block in post.content]
 
             await uow.statistic_repository.add_statistic(None, StatName.post)
@@ -82,6 +84,14 @@ class SchoolService(BaseService[AppUnitOfWork]):
 
     @classmethod
     def _format_to_html(cls, text: Optional[str], entities: list[SchoolPostContentEntityType]) -> Optional[str]:
+        """
+        Конвертация JSON контента в HTML с учетом форматирования
+
+        :param text: текст абзаца или подписи к медиа
+        :param entities: сущности форматирования
+        :return: HTML-текст с форматированием
+        """
+
         if text is None:
             return None
 
@@ -135,19 +145,26 @@ class SchoolService(BaseService[AppUnitOfWork]):
 
     async def getPosts(self, session_id: str, offset: int) -> SchoolPostsApiResponse:
         async with self.uow_factory() as uow:
-            session = await check_session(session_id, uow.session_repository)
+            session = await check_session(session_id, uow.session_repository)  # Проверка и получение сессии
 
             limit = 10
-            posts = await uow.school_post_repository.get_school_posts(session.active_child.school_id, offset=offset, limit=limit + 1)
+            posts = await uow.school_post_repository.get_school_posts(
+                session.active_child.school_id,
+                offset=offset,
+                limit=limit + 1
+            )
 
             post_ids = [post.post_id for post in posts]
 
+            # Реакции пользователя на посты
             likes = await uow.school_post_like_repository.has_my_likes(session.parent_id, post_ids)
             my_likes = [like.post_id for like in likes]
 
+            # Какие посты пользователь уже увидел
             visions = await uow.school_post_vision_repository.has_my_visions(session.parent_id, post_ids)
             my_visions = [vision.post_id for vision in visions]
 
+            # Если посты еще есть, то определяется next_offset
             next_offset = None
             if len(posts) > limit:
                 next_offset = offset + limit
@@ -160,7 +177,12 @@ class SchoolService(BaseService[AppUnitOfWork]):
                         postId=post.post_id,
                         title=post.title,
                         description=post.description,
-                        imageUrl=str(URL(settings.URL).joinpath('school', 'posts', str(post.post_id), 'image.jpg')) if post.has_image else None,
+                        imageUrl=str(URL(settings.URL).joinpath(
+                            'school',
+                            'posts',
+                            str(post.post_id),
+                            'image.jpg'
+                        )) if post.has_image else None,
                         author=post.author,
                         authorVerified=post.author_verified,
                         scheduleDate=post.schedule_date,
@@ -180,7 +202,7 @@ class SchoolService(BaseService[AppUnitOfWork]):
 
     async def checkNewPosts(self, session_id: str) -> SchoolPostsWithoutVisionApiResponse:
         async with self.uow_factory() as uow:
-            session = await check_session(session_id, uow.session_repository)
+            session = await check_session(session_id, uow.session_repository)  # Проверка и получение сессии
 
             await uow.statistic_repository.add_statistic(session.parent_id, StatName.checkNewPosts)
 
@@ -192,21 +214,46 @@ class SchoolService(BaseService[AppUnitOfWork]):
 
     @classmethod
     async def _check_new_posts(cls, uow: AppUnitOfWork, session: Session) -> int:
-        posts = await uow.school_post_repository.get_school_posts(session.active_child.school_id, last=timedelta(days=14))
-        saw_posts = await uow.school_post_vision_repository.has_my_visions(session.parent_id, [post.post_id for post in posts])
+        """
+        Проверка новых, еще не увиденных постов
+
+        :param uow: AppUnitOfWork для взаимодействия с БД
+        :param session: сессия пользователя
+        :return: количество неувиденных постов
+        """
+
+        posts = await uow.school_post_repository.get_school_posts(
+            session.active_child.school_id,
+            last=timedelta(days=14)
+        )
+        saw_posts = await uow.school_post_vision_repository.has_my_visions(
+            session.parent_id,
+            [post.post_id for post in posts]
+        )
 
         return len(posts) - len(saw_posts)
 
     @classmethod
-    async def _get_post(cls, post_id: int, uow: AppUnitOfWork, session: Session):
+    async def _get_post(cls, post_id: int, uow: AppUnitOfWork, session: Session) -> SchoolPost:
+        """
+        Получение схемы поста
+
+        :param post_id: идентификатор поста
+        :param uow: AppUnitOfWork для взаимодействия с БД
+        :param session: сессия пользователя
+        :return: схема поста для пользователя
+        """
+
         post = await uow.school_post_repository.get_post(post_id)
         assert post is not None, "post is None"
 
         post_ids = [post_id]
 
+        # Проверка наличия реакции на пост
         likes = await uow.school_post_like_repository.has_my_likes(session.parent_id, post_ids)
         my_likes = [like.post_id for like in likes]
 
+        # Увидел ли пользователь пост
         visions = await uow.school_post_vision_repository.has_my_visions(session.parent_id, post_ids)
         my_visions = [vision.post_id for vision in visions]
 
@@ -235,7 +282,7 @@ class SchoolService(BaseService[AppUnitOfWork]):
 
     async def seePost(self, session_id: str, post_id: int) -> SeeSchoolPostApiResponse:
         async with self.uow_factory() as uow:
-            session = await check_session(session_id, uow.session_repository)
+            session = await check_session(session_id, uow.session_repository)  # Проверка и получение сессии
 
             post = await uow.school_post_repository.get_post(post_id)
             if post is None:
@@ -266,6 +313,8 @@ class SchoolService(BaseService[AppUnitOfWork]):
 
     @classmethod
     async def _see_post(cls, post_id: int, uow: AppUnitOfWork, session: Session):
+        """Пометить пост увиденным"""
+
         vision = await uow.school_post_vision_repository.get_vision(session.parent_id, post_id)
         if vision is None:
             await uow.school_post_vision_repository.see_post(session.parent_id, post_id)
@@ -273,7 +322,7 @@ class SchoolService(BaseService[AppUnitOfWork]):
 
     async def clickPost(self, session_id: str, post_id: int) -> ClickSchoolPostApiResponse:
         async with self.uow_factory() as uow:
-            session = await check_session(session_id, uow.session_repository)
+            session = await check_session(session_id, uow.session_repository)  # Проверка и получение сессии
 
             post = await uow.school_post_repository.get_post(post_id)
             if post is None:
@@ -291,6 +340,7 @@ class SchoolService(BaseService[AppUnitOfWork]):
                     )
                 )
 
+            # Если пользователь открыл пост, значит он его увидел
             await self._see_post(post_id, uow, session)
             await self._click_post(post_id, uow, session)
 
@@ -305,6 +355,8 @@ class SchoolService(BaseService[AppUnitOfWork]):
 
     @classmethod
     async def _click_post(cls, post_id: int, uow: AppUnitOfWork, session: Session):
+        """Отметить пост открытым"""
+
         click = await uow.school_post_click_repository.get_click(session.parent_id, post_id)
         if click is None:
             await uow.school_post_click_repository.click_post(session.parent_id, post_id)
@@ -312,7 +364,7 @@ class SchoolService(BaseService[AppUnitOfWork]):
 
     async def viewPost(self, session_id: str, post_id: int) -> ViewSchoolPostApiResponse:
         async with self.uow_factory() as uow:
-            session = await check_session(session_id, uow.session_repository)
+            session = await check_session(session_id, uow.session_repository)  # Проверка и получение сессии
 
             post = await uow.school_post_repository.get_post(post_id)
             if post is None:
@@ -330,6 +382,7 @@ class SchoolService(BaseService[AppUnitOfWork]):
                     )
                 )
 
+            # Если пост прочитан, то он был увиден и открыт
             await self._see_post(post_id, uow, session)
             await self._click_post(post_id, uow, session)
             await self._view_post(post_id, uow, session)
@@ -345,6 +398,8 @@ class SchoolService(BaseService[AppUnitOfWork]):
 
     @classmethod
     async def _view_post(cls, post_id: int, uow: AppUnitOfWork, session: Session):
+        """Отметить пост прочитанным"""
+
         view = await uow.school_post_viewing_repository.get_view(session.parent_id, post_id)
         if view is None:
             await uow.school_post_viewing_repository.view_post(session.parent_id, post_id)
@@ -352,7 +407,7 @@ class SchoolService(BaseService[AppUnitOfWork]):
 
     async def likePost(self, session_id: str, post_id: int) -> LikeSchoolPostApiResponse:
         async with self.uow_factory() as uow:
-            session = await check_session(session_id, uow.session_repository)
+            session = await check_session(session_id, uow.session_repository)  # Проверка и получение сессии
 
             post = await uow.school_post_repository.get_post(post_id)
             if post is None:
@@ -370,6 +425,7 @@ class SchoolService(BaseService[AppUnitOfWork]):
                     )
                 )
 
+            # Если на пост поставлена реакция, то он был увиден, открыт и прочитан
             await self._see_post(post_id, uow, session)
             await self._click_post(post_id, uow, session)
             await self._view_post(post_id, uow, session)
@@ -386,6 +442,8 @@ class SchoolService(BaseService[AppUnitOfWork]):
 
     @classmethod
     async def _like_post(cls, post_id: int, uow: AppUnitOfWork, session: Session):
+        """Поставить реакцию на пост"""
+
         like = await uow.school_post_like_repository.get_like(session.parent_id, post_id)
         if like is None:
             await uow.school_post_like_repository.like_post(session.parent_id, post_id)
@@ -393,7 +451,7 @@ class SchoolService(BaseService[AppUnitOfWork]):
 
     async def unlikePost(self, session_id: str, post_id: int) -> UnlikeSchoolPostApiResponse:
         async with self.uow_factory() as uow:
-            session = await check_session(session_id, uow.session_repository)
+            session = await check_session(session_id, uow.session_repository)  # Проверка и получение сессии
 
             post = await uow.school_post_repository.get_post(post_id)
             if post is None:
@@ -411,6 +469,7 @@ class SchoolService(BaseService[AppUnitOfWork]):
                     )
                 )
 
+            # Если удалена реакция с поста, то пост был увиден, открыт и прочитан
             await self._see_post(post_id, uow, session)
             await self._click_post(post_id, uow, session)
             await self._view_post(post_id, uow, session)
@@ -427,6 +486,8 @@ class SchoolService(BaseService[AppUnitOfWork]):
 
     @classmethod
     async def _unlike_post(cls, post_id: int, uow: AppUnitOfWork, session: Session):
+        """Убрать реакцию с поста"""
+
         like = await uow.school_post_like_repository.get_like(session.parent_id, post_id)
         if like is not None:
             await uow.school_post_like_repository.delete_like(session.parent_id, post_id)

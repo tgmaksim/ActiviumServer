@@ -16,7 +16,7 @@ from aiogram.enums import ContentType, MessageEntityType
 from ..utils.message_model import MessageModel
 from aiogram.utils.formatting import Text, CustomEmoji, Bold
 
-from src.dependencies.datetime import astimezone
+from src.utils.datetime import astimezone
 from src.dependencies.uow import get_app_uow_factory
 from src.models.school_admin_model import SchoolAdmin
 from src.repositories.statistic_repository import StatName
