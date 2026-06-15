@@ -92,19 +92,20 @@ class LogService(BaseService[LogUnitOfWork]):
             last_messages = list(map(lambda m: m.message, await uow.statistic_message_repository.get_last_messages(count_last_messages)))
             await uow.statistic_message_repository.write_message(text)
 
-        ai_chat = [
-            ai.request.Message(role='system', content='\n'.join((self.ai_system(), self.ai_header()))),
-            ai.request.Message(role='user', content=f"Последние {len(last_messages)} собранных статистик:\n\n" +
-                                                    '\n\n'.join(last_messages) + "Текущий день:\n" + text)]
+        if settings.AI_STATISTICS_ANALISE:
+            ai_chat = [
+                ai.request.Message(role='system', content='\n'.join((self.ai_system(), self.ai_header()))),
+                ai.request.Message(role='user', content=f"Последние {len(last_messages)} собранных статистик:\n\n" +
+                                                        '\n\n'.join(last_messages) + "Текущий день:\n" + text)]
 
-        try:
-            ai_message = await ai.request.request(ai_chat)
-        except Exception as e:
-            ai_message = '\n'.join(traceback.format_exception(e))
-        ai_message = f"Обзор ИИ\n{ai_message}"
+            try:
+                ai_message = await ai.request.request(ai_chat)
+            except Exception as e:
+                ai_message = '\n'.join(traceback.format_exception(e))
+            ai_message = f"Обзор ИИ\n{ai_message}"
 
-        for i in range(0, len(ai_message), 4096):
-            await uow.notification_repository.notify(ai_message[i:i+4096])
+            for i in range(0, len(ai_message), 4096):
+                await uow.notification_repository.notify(ai_message[i:i+4096])
 
     @staticmethod
     def ai_system():

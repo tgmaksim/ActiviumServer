@@ -70,6 +70,10 @@ class Settings(BaseSettings):
     OPENAI_MODEL: str
     """Идентификатор нейромодели"""
 
+    # Статистика
+    AI_STATISTICS_ANALISE: bool
+    """Использовать ИИ для анализа статистики"""
+
     # Telegram-бот
     BOT_TOKEN: str
     """Telegram-токен для работы бота"""

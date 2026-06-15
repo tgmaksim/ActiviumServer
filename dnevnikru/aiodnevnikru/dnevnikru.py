@@ -179,3 +179,8 @@ class AioDnevnikruApi(BaseAioDnevnikruApi):
         """Список предметов группы в текущем отчетном периоде"""
 
         return await self.get(f"edu-groups/{group_id}/subjects")
+
+    async def get_groups(self, groups: list[int]) -> list[dict]:
+        """Список учебных групп (классов) с ее участниками"""
+
+        return await self.post("edu-groups", data=groups)

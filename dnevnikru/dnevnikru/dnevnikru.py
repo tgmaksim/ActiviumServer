@@ -179,3 +179,8 @@ class DnevnikruApi(BaseDnevnikruApi):
         """Список предметов группы в текущем отчетном периоде"""
 
         return self.get(f"edu-groups/{group_id}/subjects")
+
+    def get_groups(self, groups: list[int]) -> list[dict]:
+        """Список учебных групп (классов) с ее участниками"""
+
+        return self.post("edu-groups", data=groups)
