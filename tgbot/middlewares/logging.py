@@ -9,6 +9,9 @@ from src.services.log_service import LogService
 from src.dependencies.uow import get_log_uow_factory
 
 
+__all__ = ['LoggingMiddleware']
+
+
 class LoggingMiddleware(BaseMiddleware):
     """Middleware для логирования всех событий с Telegram-ботом"""
 

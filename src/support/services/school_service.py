@@ -60,6 +60,7 @@ class SchoolService(BaseService[AppUnitOfWork]):
             await uow.statistic_repository.add_statistic(None, StatName.post)
 
             return HtmlResponse(name='post.html', context={
+                'project_name': settings.PROJECT_NAME_RU,
                 'theme': 'dark' if is_dark_theme else 'light',
                 'title': post.title,
                 'description': post.description,

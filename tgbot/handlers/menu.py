@@ -1,11 +1,14 @@
 from aiogram import Router, F
 
+from ..utils.auth import check_school_admin
 from ..utils.message_model import MessageModel
 from aiogram.utils.formatting import Text, CustomEmoji
 
 from src.dependencies.uow import get_app_uow_factory
 
-from aiogram.filters import Command
+from aiogram.fsm.context import FSMContext
+from aiogram.filters import Command, CommandStart
+
 from aiogram.types import (
     Message,
     CallbackQuery,
@@ -23,13 +26,24 @@ uow_factory = get_app_uow_factory()
 
 
 @router.message(Command('menu'))
-async def _cmd_menu(message: Message):
+async def _cmd_menu(message: Message, state: FSMContext):
     """Открытие меню администратора образовательной организации"""
 
+    await state.clear()
+
     async with uow_factory() as uow:
-        school_admin = await uow.school_admin_repository.get_admin(message.from_user.id)
+        school_admin = await uow.school_admin_repository.get_admin(message.from_user.id, only_life=False)
+
         if school_admin is None:
             await message.answer("Меню Активиум доступно только администраторам ОО\nДля подключения: /school")
+            return
+
+        if school_admin.dnevnik_admin.life is False:
+            admin_type = "Ваша сессия" if school_admin.parent_admin_id is None else "Сессия старшего"
+            await message.answer(
+                f"{admin_type} администратора ОО истекла и требует повторной авторизации\n\n"
+                f"Для этого откройте /school и повторите или выберите другой способ авторизации"
+            )
             return
 
         # Удаление клавиатурных кнопок
@@ -56,17 +70,26 @@ def admin_menu() -> MessageModel:
 
 
 @router.callback_query(F.data == 'menu')
-async def _callback_menu(callback_query: CallbackQuery):
+async def _callback_menu(callback_query: CallbackQuery, state: FSMContext):
     """Открытие меню кнопкой Назад"""
 
+    await state.clear()
+
     async with uow_factory() as uow:
-        school_admin = await uow.school_admin_repository.get_admin(callback_query.from_user.id)
-        if school_admin is None:
-            await callback_query.answer("Меню Активиум доступно только администраторам ОО\nДля подключения: /school")
-            return
+        await check_school_admin(callback_query.from_user.id, uow.school_admin_repository)
 
         answer = admin_menu()
         await callback_query.message.edit_text(**answer)
+
+
+@router.message(CommandStart(deep_link=True, magic=F.args == "menu"))
+async def _start_with_menu(message: Message, state: FSMContext):
+    """Открытие меню после авторизации администратора образовательной организации"""
+
+    await state.clear()
+
+    menu = admin_menu()
+    await message.answer(**menu)
 
 
 @router.callback_query(F.data == "admin_bells")
@@ -74,10 +97,7 @@ async def _bells(callback_query: CallbackQuery):
     """Добавление звонкового расписания, отличного от Дневника.ру"""
 
     async with uow_factory() as uow:
-        school_admin = await uow.school_admin_repository.get_admin(callback_query.from_user.id)
-        if school_admin is None:
-            await callback_query.message.edit_text("Меню Активиум доступно только администраторам ОО\nДля подключения: /school")
-            return
+        await check_school_admin(callback_query.from_user.id, uow.school_admin_repository)
 
         await callback_query.answer("Данная функция в разработке", show_alert=True)
 
@@ -87,9 +107,6 @@ async def _admin_ea(callback_query: CallbackQuery):
     """Добавление расписания внеурочных занятий в образовательной организации"""
 
     async with uow_factory() as uow:
-        school_admin = await uow.school_admin_repository.get_admin(callback_query.from_user.id)
-        if school_admin is None:
-            await callback_query.message.edit_text("Меню Активиум доступно только администраторам ОО\nДля подключения: /school")
-            return
+        await check_school_admin(callback_query.from_user.id, uow.school_admin_repository)
 
         await callback_query.answer("Данная функция в разработке", show_alert=True)

@@ -10,8 +10,8 @@ from aiogram.utils.formatting import Text, CustomEmoji
 from datetime import datetime, UTC
 from src.utils.datetime import astimezone
 
-from dnevnikru import AioDnevnikruApi
 from src.dependencies.httpx import get_httpx_client
+from dnevnikru import AioDnevnikruApi, BaseDnevnikruException
 
 from src.repositories.statistic_repository import StatName
 
@@ -21,6 +21,9 @@ from .repository import SchoolStatisticsRepository
 from src.dependencies.uow import get_app_uow_factory
 
 from .service import create_admin_stats
+
+from ...utils.auth import check_school_admin
+from ...utils.school_admin_error import SchoolAdminError
 
 from aiogram.types import (
     FSInputFile,
@@ -42,17 +45,15 @@ async def _admin_stats(callback_query: CallbackQuery):
     """Просмотр статистики по приложению в образовательной организации"""
 
     async with uow_factory() as uow:
-        school_admin = await uow.school_admin_repository.get_admin(callback_query.from_user.id)
-        if school_admin is None:
-            await callback_query.message.edit_text("Меню Активиум доступно только администраторам ОО\nДля подключения: /school")
-            return
+        await check_school_admin(callback_query.from_user.id, uow.school_admin_repository)
 
         text = Text(
-            CustomEmoji("📊", custom_emoji_id="5231200819986047254"), "Статистика Активиум в ОО\n\n",
+            CustomEmoji("📊", custom_emoji_id="5231200819986047254"),
+            f"Статистика {settings.PROJECT_NAME_RU} в ОО\n\n",
 
-            "Вы можете запросить отчет со статистикой пользования Активиум по Вашей образовательной организацией. "
-            "В отчете будут графики и диаграммы по динамике числа зарегистрированных и активных пользователей, "
-            "а также по отношению детей и родителей\n\n",
+            f"Вы можете запросить отчет со статистикой пользования {settings.PROJECT_NAME_RU} "
+            "по Вашей образовательной организацией. В отчете будут графики и диаграммы по динамике числа "
+            "зарегистрированных и активных пользователей, а также по отношению детей и родителей\n\n",
 
             "Для составления отчета потребуется немного времени"
         )
@@ -71,10 +72,7 @@ async def _create_admin_stats(callback_query: CallbackQuery):
     """Формирование отчета со статистикой для администратора образовательной организации"""
 
     async with uow_factory() as uow:
-        school_admin = await uow.school_admin_repository.get_admin(callback_query.from_user.id)
-        if school_admin is None:
-            await callback_query.message.edit_text("Меню Активиум доступно только администраторам ОО\nДля подключения: /school")
-            return
+        school_admin = await check_school_admin(callback_query.from_user.id, uow.school_admin_repository)
 
         relative_path = ('temp', 'school_statistics', str(school_admin.dnevnik_admin.school_id), 'statistics.pdf')
         path = Path(settings.WWW_PATH, *relative_path)
@@ -102,6 +100,10 @@ async def _create_admin_stats(callback_query: CallbackQuery):
                 school_statistics_repository.get_all_users(),
                 school_statistics_repository.get_class_distribution()
             )
+        except BaseDnevnikruException as e:
+            if not await uow.school_admin_repository.check_auth(school_admin.user_id, dnr):
+                raise SchoolAdminError(user_id=school_admin.user_id) from e
+            raise
         except Exception:
             await callback_query.answer("Произошла ошибка при получении данных", show_alert=True)
             raise

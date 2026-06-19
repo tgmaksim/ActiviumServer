@@ -13,6 +13,7 @@ from aiogram.fsm.state import StatesGroup, State
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.enums import ContentType, MessageEntityType
 
+from ..utils.auth import check_school_admin
 from ..utils.message_model import MessageModel
 from aiogram.utils.formatting import Text, CustomEmoji, Bold
 
@@ -98,9 +99,7 @@ async def _school_posts(callback_query: CallbackQuery):
 async def menu_school_posts(uow: AppUnitOfWork, user_id: int, offset: int) -> MessageModel:
     """Список школьных постов"""
 
-    school_admin = await uow.school_admin_repository.get_admin(user_id)
-    if school_admin is None:
-        return MessageModel(text="Меню Активиум доступно только администраторам ОО\nДля подключения: /school")
+    school_admin = await check_school_admin(user_id, uow.school_admin_repository)
 
     posts = await uow.school_post_repository.get_admin_school_posts(
         school_admin.dnevnik_admin.school_id,
@@ -151,9 +150,7 @@ async def _school_post(callback_query: CallbackQuery):
 async def menu_school_post(uow: AppUnitOfWork, user_id: int, post_id: int, callback: str) -> MessageModel:
     """Меню поста"""
 
-    school_admin = await uow.school_admin_repository.get_admin(user_id)
-    if school_admin is None:
-        return MessageModel(text="Меню Активиум доступно только администраторам ОО\nДля подключения: /school")
+    school_admin = await check_school_admin(user_id, uow.school_admin_repository)
 
     # Получение поста или открытие списка всех постов
     post = await uow.school_post_repository.get_post(post_id)
@@ -211,10 +208,7 @@ async def _create_post(callback_query: CallbackQuery, state: FSMContext):
     """Создать новый пост"""
 
     async with uow_factory() as uow:
-        school_admin = await uow.school_admin_repository.get_admin(callback_query.from_user.id)
-        if school_admin is None:
-            await callback_query.message.edit_text("Меню Активиум доступно только администраторам ОО\nДля подключения: /school")
-            return
+        await check_school_admin(callback_query.from_user.id, uow.school_admin_repository, check_auth=True)
 
         # Временная директория для хранения файлов поста
         temp_post_relative_path = ('temp', 'school', 'posts', str(callback_query.from_user.id))
@@ -260,11 +254,7 @@ async def _post_title(message: Message, state: FSMContext):
     """Выбор заголовка нового поста"""
 
     async with uow_factory() as uow:
-        school_admin = await uow.school_admin_repository.get_admin(message.from_user.id)
-        if school_admin is None:
-            await state.clear()
-            await message.answer("Меню Активиум доступно только администраторам ОО\nДля подключения: /school")
-            return
+        await check_school_admin(message.from_user.id, uow.school_admin_repository)
 
         if message.text == "Отмена":
             await (await message.answer(".", reply_markup=ReplyKeyboardRemove())).delete()
@@ -312,11 +302,7 @@ async def _post_description(message: Message, state: FSMContext):
     """Выбор описания поста"""
 
     async with uow_factory() as uow:
-        school_admin = await uow.school_admin_repository.get_admin(message.from_user.id)
-        if school_admin is None:
-            await state.clear()
-            await message.answer("Меню Активиум доступно только администраторам ОО\nДля подключения: /school")
-            return
+        await check_school_admin(message.from_user.id, uow.school_admin_repository)
 
         if message.text == "Отмена":
             await (await message.answer(".", reply_markup=ReplyKeyboardRemove())).delete()
@@ -370,11 +356,7 @@ async def _post_image(message: Message, state: FSMContext):
     """Выбор главной картинки поста"""
 
     async with uow_factory() as uow:
-        school_admin = await uow.school_admin_repository.get_admin(message.from_user.id)
-        if school_admin is None:
-            await state.clear()
-            await message.answer("Меню Активиум доступно только администраторам ОО\nДля подключения: /school")
-            return
+        await check_school_admin(message.from_user.id, uow.school_admin_repository)
 
         if message.text == "Отмена":
             await (await message.answer(".", reply_markup=ReplyKeyboardRemove())).delete()
@@ -444,11 +426,7 @@ async def _post_schedule_date(message: Message, state: FSMContext):
     """Выбор даты мероприятия"""
 
     async with uow_factory() as uow:
-        school_admin = await uow.school_admin_repository.get_admin(message.from_user.id)
-        if school_admin is None:
-            await state.clear()
-            await message.answer("Меню Активиум доступно только администраторам ОО\nДля подключения: /school")
-            return
+        school_admin = await check_school_admin(message.from_user.id, uow.school_admin_repository)
 
         if message.text == "Отмена":
             await (await message.answer(".", reply_markup=ReplyKeyboardRemove())).delete()
@@ -526,11 +504,7 @@ async def _post_content(message: Message, state: FSMContext):
     """Последовательное написание поста по абзацам"""
 
     async with uow_factory() as uow:
-        school_admin = await uow.school_admin_repository.get_admin(message.from_user.id)
-        if school_admin is None:
-            await state.clear()
-            await message.answer("Меню Активиум доступно только администраторам ОО\nДля подключения: /school")
-            return
+        school_admin = await check_school_admin(message.from_user.id, uow.school_admin_repository)
 
         if message.text == "Отмена":
             await (await message.answer(".", reply_markup=ReplyKeyboardRemove())).delete()
@@ -541,6 +515,9 @@ async def _post_content(message: Message, state: FSMContext):
 
         if message.text == "Опубликовать":
             data = await state.get_data()
+
+            school_admin = await check_school_admin(message.from_user.id, uow.school_admin_repository, check_auth=True)
+
             post_id = await create_post(uow, school_admin, data)
             await state.clear()
 
@@ -722,10 +699,7 @@ async def _delete_post(callback_query: CallbackQuery):
     post_id = int(callback_query.data.split("|")[1])
 
     async with uow_factory() as uow:
-        school_admin = await uow.school_admin_repository.get_admin(callback_query.from_user.id)
-        if school_admin is None:
-            await callback_query.message.edit_text("Меню Активиум доступно только администраторам ОО\nДля подключения: /school")
-            return
+        await check_school_admin(callback_query.from_user.id, uow.school_admin_repository, check_auth=True)
 
         # Удаление всех файлов поста
         media_relative_path = ('school', 'posts', str(post_id))
@@ -745,9 +719,9 @@ async def _edit_post(callback_query: CallbackQuery):
     # post_id = int(callback_query.data.split("|")[1])
 
     async with uow_factory() as uow:
-        school_admin = await uow.school_admin_repository.get_admin(callback_query.from_user.id)
-        if school_admin is None:
-            await callback_query.message.edit_text("Меню Активиум доступно только администраторам ОО\nДля подключения: /school")
-            return
+        await check_school_admin(callback_query.from_user.id, uow.school_admin_repository, check_auth=True)
 
-        await callback_query.answer("Данный функционал еще в разработке!", show_alert=True)
+        await callback_query.answer(
+            "Данный функционал еще в разработке! Для изменения публикации обратитесь в поддержку",
+            show_alert=True
+        )

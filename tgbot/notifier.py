@@ -1,3 +1,5 @@
+from asyncio import gather
+
 from aiogram.types import Message
 
 from .config.bot import get_bot
@@ -19,8 +21,8 @@ async def send_admin_message(message: str, **kwargs) -> list[Message]:
 
     bot = get_bot()
 
-    messages = []
-    for admin in settings.ADMIN_CHAT_IDS:
-        messages.append(await bot.send_message(admin, message, **kwargs))
+    messages: list[Message] = await gather(
+        *(bot.send_message(admin, message, **kwargs) for admin in settings.ADMIN_CHAT_IDS)
+    )
 
     return messages

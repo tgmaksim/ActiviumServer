@@ -241,7 +241,6 @@ class SchoolStatisticsRepository(SqlAlchemyRepository[BaseModel]):
 
         # Данные об учебных группах (классах)
         full_groups = await self.dnr.get_groups(list(groups_by_id.keys()))
-        # TODO: обработать старую сессию
 
         class_distribution: list[ClassDistributionType] = [
             {

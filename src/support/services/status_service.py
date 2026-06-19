@@ -1,6 +1,7 @@
 from typing import Union
 from datetime import datetime, UTC, timedelta
 
+from ...config.project_config import settings
 from ...dependencies.auth import check_session
 from ...services.base_service import BaseService
 from ..repositories.app_uow import AppUnitOfWork
@@ -98,8 +99,8 @@ class StatusService(BaseService[AppUnitOfWork]):
                         session.parent_id,
                         'review',
                         datetime.now(UTC) + timedelta(weeks=1),
-                        "❤️ Оцените Активиум",
-                        "Вы уже давно пользуетесь сервисом Активиум. Оцените приложение в настройках. Мы будет очень рады!"
+                        f"❤️ Оцените {settings.PROJECT_NAME_RU}",
+                        f"Вы уже давно пользуетесь сервисом {settings.PROJECT_NAME_RU}. Оцените приложение в настройках. Мы будет очень рады!"
                     )
 
                 if info.type == 'marks_notifications':

@@ -1,6 +1,7 @@
+from datetime import timedelta
 from typing import Optional, Union
 
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.dialects.postgresql import insert
 
 from ...models.cache_model import Cache
@@ -104,3 +105,8 @@ class CacheRepository(SqlAlchemyRepository[Cache]):
         """Удаление записей кэша, которые привязаны с неработающим сессиям"""
 
         return await self.delete(Cache.session_id.in_(select(Session.session_id).where(Session.life == False)))
+
+    async def delete_old_cache(self, lifetime: timedelta):
+        """Удаление старого кэша"""
+
+        return await self.delete((func.now() - Cache.created_at) > lifetime)

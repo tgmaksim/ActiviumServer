@@ -10,7 +10,6 @@ def get_tg_router() -> Router:
     from .handlers import start, reviews, app, help, admin, school, menu, school_admins, school_posts, school_statistics
 
     router = Router()
-    router.include_router(start.router)
     router.include_router(reviews.router)
     router.include_router(app.router)
     router.include_router(help.router)
@@ -20,5 +19,7 @@ def get_tg_router() -> Router:
     router.include_router(school_admins.router)
     router.include_router(school_posts.router)
     router.include_router(school_statistics.router)
+
+    router.include_router(start.router)  # start всегда в конце, чтобы маршрутизировать deep link
 
     return router

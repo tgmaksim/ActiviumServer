@@ -15,6 +15,8 @@ class Settings(BaseSettings):
     # Базовые параметры
     PROJECT_NAME: str
     """Название проекта латиницей"""
+    PROJECT_NAME_RU: str
+    """Название проекта по-русски"""
     VERSION: str
     """Строковая версия сервера"""
     DEBUG: bool

@@ -3,6 +3,7 @@ from aiogram.enums import ContentType
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
 
+from ..utils.auth import check_school_admin
 from ..utils.message_model import MessageModel
 from aiogram.utils.formatting import Text, CustomEmoji
 
@@ -51,9 +52,7 @@ async def _my_admins(callback_query: CallbackQuery):
 async def menu_my_admins(uow: AppUnitOfWork, user_id: int) -> MessageModel:
     """Список дочерних администраторов образовательной организации"""
 
-    school_admin = await uow.school_admin_repository.get_admin(user_id)
-    if school_admin is None:
-        return MessageModel(text="Меню Активиум доступно только администраторам ОО\nДля подключения: /school")
+    await check_school_admin(user_id, uow.school_admin_repository)
 
     # Дочерние администраторы образовательной организации
     my_admins = await uow.school_admin_repository.get_my_admins(user_id)
@@ -79,10 +78,7 @@ async def _query_add_admin(callback_query: CallbackQuery, state: FSMContext):
     """Добавление дочернего администратора образовательной организации"""
 
     async with uow_factory() as uow:
-        school_admin = await uow.school_admin_repository.get_admin(callback_query.from_user.id)
-        if school_admin is None:
-            await callback_query.message.edit_text("Меню Активиум доступно только администраторам ОО\nДля подключения: /school")
-            return
+        await check_school_admin(callback_query.from_user.id, uow.school_admin_repository)
 
         await callback_query.message.answer(
             "Отправьте пользователя (или несколько), которому будет выдано разрешение на администрирование",
@@ -104,10 +100,7 @@ async def _add_admin(message: Message, state: FSMContext):
     """Ожидание сообщения с администратором(-ами) образовательной организации"""
 
     async with uow_factory() as uow:
-        school_admin = await uow.school_admin_repository.get_admin(message.from_user.id)
-        if school_admin is None:
-            await message.answer("Меню Активиум доступно только администраторам ОО\nДля подключения: /school")
-            return
+        await check_school_admin(message.from_user.id, uow.school_admin_repository)
 
         if message.content_type != ContentType.USERS_SHARED and message.text != "Отмена":
             await message.answer("Пришлите администратором кнопкой")
@@ -140,16 +133,14 @@ async def _delete_admin(callback_query: CallbackQuery):
     """Удаление дочернего администратора образовательной организации"""
 
     admin_id = int(callback_query.data.split("|")[1])
+    user_id = callback_query.from_user.id
 
     async with uow_factory() as uow:
-        school_admin = await uow.school_admin_repository.get_admin(callback_query.from_user.id)
-        if school_admin is None:
-            await callback_query.answer("Меню Активиум доступно только администраторам ОО\nДля подключения: /school")
-            return
+        await check_school_admin(user_id, uow.school_admin_repository)
 
-        await uow.school_admin_repository.delete_my_admin(callback_query.from_user.id, admin_id)
+        await uow.school_admin_repository.delete_my_admin(user_id, admin_id)
 
-        await uow.statistic_repository.add_statistic(callback_query.from_user.id, StatName.deleteSchoolAdminFrom)
+        await uow.statistic_repository.add_statistic(user_id, StatName.deleteSchoolAdminFrom)
 
-        answer = await menu_my_admins(uow, callback_query.from_user.id)
+        answer = await menu_my_admins(uow, user_id)
         await callback_query.message.edit_text(**answer)

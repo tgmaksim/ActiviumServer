@@ -603,8 +603,6 @@ class DnevnikService(BaseService[AppUnitOfWork]):
         if not work_types_id:
             return {}
 
-        now = datetime_now()
-
         # Получение типов работ из кэша
         work_types_key = [f"workType|{work_type_id}" for work_type_id in work_types_id]
         caches = await cache_repository.get_caches(session.session_id, child.child_id, work_types_key)
@@ -614,7 +612,6 @@ class DnevnikService(BaseService[AppUnitOfWork]):
                 abbr=cache.value['abbr']
             )
             for cache in caches
-            if now - cache.updated_at < timedelta(days=28)
         }
 
         # Если из кэша все необходимые типы работ получены
@@ -666,15 +663,12 @@ class DnevnikService(BaseService[AppUnitOfWork]):
         if not persons_id:
             return {}
 
-        now = datetime_now()
-
         # Получение имен одноклассников из кэша
         persons_id_key = [f"person|{person_id}" for person_id in persons_id]
         caches = await cache_repository.get_caches(session.session_id, child.child_id, persons_id_key)
         results = {
             int(cache.key.split("|")[1]): cache.value['name']
             for cache in caches
-            if now - cache.updated_at < timedelta(days=28)
         }
 
         # Если из кэша все необходимые имена одноклассников получены
@@ -986,11 +980,8 @@ class DnevnikService(BaseService[AppUnitOfWork]):
 
         cache_key = "periods"
 
-        now = datetime_now()
-
         # Получение из кэша
-        if ((cache := await cache_repository.get_cache(session.session_id, child.child_id, cache_key)) and
-                now - cache.created_at < timedelta(days=28)):
+        if cache := await cache_repository.get_cache(session.session_id, child.child_id, cache_key):
             return cache.value
         else:
             # Запрос из Дневника.ру

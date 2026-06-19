@@ -39,7 +39,7 @@ class SchoolPost(ApiBase):
         description="Имя автора поста"
     )
     authorVerified: bool = Field(
-        description="Автор является сотрудником Активиум"
+        description="Автор является авторизованным сотрудником приложения"
     )
     scheduleDate: Optional[datetime.date] = Field(
         description="Дата мероприятия в расписании"

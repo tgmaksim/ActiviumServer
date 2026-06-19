@@ -66,6 +66,7 @@ class SiteService(BaseService[AppUnitOfWork]):
             return HtmlResponse(
                 name='main.html',
                 context={
+                    'project_name': settings.PROJECT_NAME_RU,
                     'version': "0.0.1" if latest_version is None else latest_version.version,
                     'date': '' if latest_version is None else latest_version.date,
                     'version_status': "Небольшие улучшения" if latest_version is None else latest_version.status,

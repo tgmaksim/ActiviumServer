@@ -107,11 +107,21 @@ class LoginService(BaseService[AppUnitOfWork]):
 
     @classmethod
     async def firstAuthSession(cls) -> HtmlResponse:
-        return HtmlResponse(name='auth_session.html')
+        return HtmlResponse(
+            name='auth_session.html',
+            context={
+                'project_name': settings.PROJECT_NAME_RU
+            }
+        )
 
     @classmethod
     async def firstAuthSchoolAdmin(cls) -> HtmlResponse:
-        return HtmlResponse(name='auth_session.html')
+        return HtmlResponse(
+            name='auth_session.html',
+            context={
+                'project_name': settings.PROJECT_NAME_RU
+            }
+        )
 
     async def secondAuthSession(self, dnevnik_token: str, session_id: str, referral_token: Optional[str]) -> HtmlResponse:
         # Функция для логирования
@@ -161,6 +171,7 @@ class LoginService(BaseService[AppUnitOfWork]):
                     name='auth_session_error.html',
                     status_code=403,
                     context={
+                        'project_name': settings.PROJECT_NAME_RU,
                         'reason': f"Учитель, не являющийся родителем, не может пользоваться приложением {settings.PROJECT_NAME}. "
                                   "Если вы является администратором образовательного учреждения и хотите выставлять новости "
                                   "и объявлять о мероприятиях для обучающихся своей организации, то сделайте это в "
@@ -178,6 +189,9 @@ class LoginService(BaseService[AppUnitOfWork]):
 
             return HtmlResponse(
                 name='auth_session_success.html',
+                context={
+                    'project_name': settings.PROJECT_NAME_RU
+                },
                 cookies=[{
                     'key': 'session_id',
                     'value': session_id,
@@ -376,8 +390,8 @@ class LoginService(BaseService[AppUnitOfWork]):
 
         time = datetime.now(UTC) + timedelta(weeks=1)
         type_ = "review"
-        title = "❤️ Оцените Активиум"
-        text = "Вы пользуетесь сервисом Активиум уже целую неделю. Оцените приложение в настройках. Мы будет очень рады!"
+        title = f"❤️ Оцените {settings.PROJECT_NAME_RU}"
+        text = f"Вы пользуетесь сервисом {settings.PROJECT_NAME_RU} уже целую неделю. Оцените приложение в настройках. Мы будет очень рады!"
         await information_repository.create_information(person_id, type_, time, title, text)
 
     @classmethod
@@ -430,7 +444,13 @@ class LoginService(BaseService[AppUnitOfWork]):
             # Авторизация администратора образовательной организации с полученными данными
             await self._auth_school_admin(uow, user_id, name, person_id, school_id, timezone, dnevnik_token)
 
-            return HtmlResponse(name='auth_school_admin_success.html', context={'redirect_url': settings.BOT_URL})
+            return HtmlResponse(
+                name='auth_school_admin_success.html',
+                context={
+                    'redirect_url': str(URL(settings.BOT_URL).update_query(start='menu')),
+                    'project_name': settings.PROJECT_NAME_RU
+                }
+            )
 
     async def _school_admin_dnevnik_auth(self, dnevnik_token: str) -> Union[tuple[str, int, int, int], Literal["no_admin"]]:
         """
@@ -487,7 +507,7 @@ class LoginService(BaseService[AppUnitOfWork]):
         :param dnevnik_token: API-токен Дневника.ру для взаимодействия с ним
         """
 
-        school_admin = await uow.school_admin_repository.get_admin(user_id)
+        school_admin = await uow.school_admin_repository.get_admin(user_id, only_life=False)
         if school_admin is None:
             stat_name = StatName.registrationSchoolAdmin
         else:

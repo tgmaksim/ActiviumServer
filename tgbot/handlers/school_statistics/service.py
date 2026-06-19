@@ -4,6 +4,8 @@ import numpy as np
 from typing import TypeVar
 from datetime import datetime, date
 
+from src.config.project_config import settings
+
 from .types import (
     DataWithDateType,
     CumulativeUsersType,
@@ -245,7 +247,7 @@ def plot_daily_actions_stacked(ax: plt.Axes, daily_actions: list[DailyActionsTyp
     :param daily_actions: данные с количеством действия родителей и детей за каждый день
     """
 
-    title = "Общее количество совершенных действий в приложении"
+    title = "Общее количество совершенных действий (активность) в приложении"
     no_data = "Нет данных"
     ylabel = "Действия"
     parents_label = "Родители"
@@ -415,7 +417,7 @@ def create_admin_stats(
         plot_registration_pie(ax5, *all_users)
         plot_class_distribution(ax6, class_distribution)
 
-        title = "Статистика использования Активиум пользователями от образовательной организации"
+        title = f"Статистика использования {settings.PROJECT_NAME_RU} пользователями от образовательной организации"
         fig.suptitle(title, fontsize=18, fontweight="bold")
 
         with PdfPages(output_path) as pdf:

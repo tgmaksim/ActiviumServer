@@ -1,7 +1,7 @@
 from typing import Optional
 
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy.sql.sqltypes import BigInteger, String, Integer
+from sqlalchemy.sql.sqltypes import BigInteger, String, Integer, Boolean
 from sqlalchemy.sql.schema import PrimaryKeyConstraint, Index, ForeignKeyConstraint, CheckConstraint
 
 from .base_model import BaseModel
@@ -29,6 +29,11 @@ class SchoolAdmin(BaseModel):
         nullable=True,
         comment="Идентификатор верхнего по уровню администратора образовательной организации (user_id)"
     )
+    life: Mapped[Optional[bool]] = mapped_column(
+        Boolean,
+        nullable=True,
+        comment="Сессия администратора образовательной организации активна или больше не работает"
+    )
     person_id: Mapped[int] = mapped_column(
         BigInteger,
         nullable=True,
@@ -51,7 +56,7 @@ class SchoolAdmin(BaseModel):
     )
 
     parent_admin: Mapped['SchoolAdmin'] = relationship(
-        'SchoolAdmin', foreign_keys=[parent_admin_id], lazy="selectin")
+        'SchoolAdmin', foreign_keys=[parent_admin_id], remote_side=[user_id], lazy="raise")
 
     __custom_table_args__ = (
         PrimaryKeyConstraint('user_id', name="school_admins_user_id"),
@@ -65,7 +70,8 @@ class SchoolAdmin(BaseModel):
             "((((parent_admin_id IS NULL) <> (person_id IS NULL)) "
             "AND ((parent_admin_id IS NULL) <> (school_id IS NULL)) "
             "AND ((parent_admin_id IS NULL) <> (dnevnik_token IS NULL)) "
-            "AND ((parent_admin_id IS NULL) <> (timezone IS NULL))))",
+            "AND ((parent_admin_id IS NULL) <> (timezone IS NULL))))"
+            "AND ((parent_admin_id IS NULL) <> (life IS NULL))",
             name="check_type_admin"
         ),
 

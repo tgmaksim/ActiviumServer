@@ -139,12 +139,11 @@ class SessionRepository(SqlAlchemyRepository[Session]):
             return False
         return True
 
-    async def kill_old_sessions(self, lifetime: timedelta):
+    async def kill_old_sessions(self, lifetime: timedelta) -> list[Session]:
         """
         Пометить старые сессии неработающими
 
         :param lifetime: время жизни сессии
         """
 
-        # update возвращает только первую измененную строку
-        await self.update({'life': False}, func.now() - Session.created_at > lifetime)
+        return await self.update_many({'life': False}, func.now() - Session.created_at > lifetime)

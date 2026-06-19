@@ -30,7 +30,9 @@ def create_bot_and_dispatcher() -> tuple[Bot, Dispatcher]:
 
     from ..routers import get_tg_router
     from .fcm_storage import PostgresStorage
+
     from ..middlewares.logging import LoggingMiddleware
+    from ..middlewares.api_exception import ApiMiddleware
 
     from src.dependencies.uow import get_app_uow_factory
 
@@ -41,6 +43,7 @@ def create_bot_and_dispatcher() -> tuple[Bot, Dispatcher]:
     storage = PostgresStorage(get_app_uow_factory())
     dp = Dispatcher(storage=storage, events_isolation=SimpleEventIsolation())
 
+    dp.update.outer_middleware(ApiMiddleware())
     dp.update.outer_middleware(LoggingMiddleware())
 
     dp.include_router(get_tg_router())

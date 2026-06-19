@@ -6,11 +6,11 @@
 
     <meta name="csrf-token" content="{{ csrf_token }}">
 
-    <title>Активиум — Мобильное приложение</title>
-    <meta property="og:title" content="Активиум — Мобильное приложение">
-    <meta property="og:description" content="Официальный сайт приложения Активиум — расписание, оценки, мероприятия, рейтинг и статистика — все под рукой!">
+    <title>{{ project_name }} — Мобильное приложение</title>
+    <meta property="og:title" content="{{ project_name }} — Мобильное приложение">
+    <meta property="og:description" content="Официальный сайт приложения {{ project_name }} — расписание, оценки, мероприятия, рейтинг и статистика — все под рукой!">
     <meta property="og:image" content="/assets/icons/preview.png?v=2">
-    <meta name="description" content="Официальный сайт приложения Активиум — расписание, оценки, мероприятия, рейтинг и статистика — все под рукой!">
+    <meta name="description" content="Официальный сайт приложения {{ project_name }} — расписание, оценки, мероприятия, рейтинг и статистика — все под рукой!">
 
     <link rel="manifest" href="/site.webmanifest">
     <link rel="apple-touch-icon" sizes="180x180" href="/assets/icons/apple-touch-icon.png">
@@ -30,7 +30,7 @@
             <div class="brand">
                 <img src="/assets/icons/preview.png?v=2" alt="logo" class="logo" aria-hidden="true">
                 <div>
-                    <h1>Активиум</h1>
+                    <h1>{{ project_name }}</h1>
                     <p>Для учеников и их родителей</p>
                 </div>
             </div>
@@ -145,7 +145,7 @@
         <section class="columns" aria-label="О приложении и разработчике">
             <div class="box">
                 <h3>О приложении</h3>
-                <p class="muted">Приложение Активиум — это не просто мобильная версия dnevnik.ru, это удобный доступ к учебной информации в своем телефоне даже без интернета: расписанию, оценкам, мероприятиям и домашним заданиям — все под рукой. Синхронизация и безопасная авторизация происходит при запуске с помощью портала dnevnik.ru.</p>
+                <p class="muted">Приложение {{ project_name }} — это не просто мобильная версия dnevnik.ru, это удобный доступ к учебной информации в своем телефоне даже без интернета: расписанию, оценкам, мероприятиям и домашним заданиям — все под рукой. Синхронизация и безопасная авторизация происходит при запуске с помощью портала dnevnik.ru.</p>
 
                 <h4 style="margin:0">Ключевые особенности</h4>
                 <ul>
@@ -323,7 +323,7 @@
 
             <div class="toast-text">
                 <strong>Скачивание началось</strong>
-                <p class="muted">Пока файл загружается, посмотрите возможности Активиума</p>
+                <p class="muted">Пока файл загружается, посмотрите, что умеет {{ project_name }}</p>
             </div>
         </div>
 

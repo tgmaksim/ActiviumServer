@@ -7,6 +7,8 @@ __all__ = ['main']
 
 # SESSION_LIFETIME = timedelta(days=64)
 LESSON_NOTE_LIFETIME = timedelta(days=32)
+SCHOOL_ADMIN_LIFETIME = timedelta(days=64)
+CACHE_LIFETIME = timedelta(days=7)
 
 
 async def main():
@@ -17,7 +19,9 @@ async def main():
     async with uow_factory() as uow:
         # await uow.session_repository.kill_old_sessions(SESSION_LIFETIME)
         await uow.cache_repository.delete_unregistered_cache()
+        await uow.cache_repository.delete_old_cache(CACHE_LIFETIME)
         await uow.ea_processing_notification_repository.delete_overdue_ea()
         await uow.lesson_note_repository.delete_old_note(LESSON_NOTE_LIFETIME)
+        await uow.school_admin_repository.kill_old_admins(SCHOOL_ADMIN_LIFETIME)
 
         await uow.log_repository.add_log(ip='127.0.0.1', path='clear', method='DELETE', value="Success")

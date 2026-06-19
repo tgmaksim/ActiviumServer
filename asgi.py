@@ -37,7 +37,7 @@ async def lifespan(_: FastAPI) -> AsyncIterator:
         )
 
         service = LogService(get_log_uow_factory())
-        await service.log(path='lifespan', value="Сервер запущен")
+        await service.log(path='lifespan', value=f"Сервер v{settings.VERSION} запущен")
 
         yield  # Работа сервера
 
@@ -45,7 +45,7 @@ async def lifespan(_: FastAPI) -> AsyncIterator:
         print("Сервер остановлен")
 
         service = LogService(get_log_uow_factory())
-        await service.log(path='lifespan', value="Сервер остановлен")
+        await service.log(path='lifespan', value=f"Сервер v{settings.VERSION} остановлен")
 
         for task in tasks:
             task.cancel()  # Завершение запущенных фоновых процессов
