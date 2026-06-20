@@ -63,6 +63,8 @@ class Settings(BaseSettings):
     """Идентификатор сайта"""
     LOGS_PGADMIN_OPEN: str
     """Ссылка для открытия таблицы логов в БД с параметрами {min_created_at} и {max_created_at}"""
+    ERROR_LOGS_PGADMIN_OPEN: str
+    """Ссылка для открытия таблицы логов с ошибками в БД с параметрами {min_created_at} и {max_created_at}"""
 
     # ИИ
     OPENAI_URL: str

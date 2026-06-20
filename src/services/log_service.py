@@ -50,6 +50,8 @@ class LogService(BaseService[LogUnitOfWork]):
 
             logs_open_url = settings.LOGS_PGADMIN_OPEN.format(
                 min_created_at=quote(str(min_created_at)), max_created_at=quote(str(max_created_at)))
+            error_logs_open_url = settings.ERROR_LOGS_PGADMIN_OPEN.format(
+                min_created_at=quote(str(min_created_at)), max_created_at=quote(str(max_created_at)))
 
             from_date = min_created_at.astimezone(ADMIN_TIMEZONE).strftime('%e %b. %H:%M:%S')
             ru_logs = 'лога' if 2 <= count_all % 10 <= 4 else ('лог' if count_all % 10 == 1 else 'логов')
@@ -86,7 +88,12 @@ class LogService(BaseService[LogUnitOfWork]):
 
             for i in range(0, len(text), 4096):
                 await uow.notification_repository.notify(text[i:i + 4096])
-            await uow.notification_repository.notify(f"<a href=\"{html.quote(logs_open_url)}\">Открыть логи</a>\n", parse_mode='html')
+
+            await uow.notification_repository.notify(
+                f"<a href=\"{html.quote(logs_open_url)}\">Открыть логи</a>\n"
+                f"<a href=\"{html.quote(error_logs_open_url)}\">Открыть логи с ошибками</a>",
+                parse_mode='html'
+            )
 
             count_last_messages = 3
             last_messages = list(map(lambda m: m.message, await uow.statistic_message_repository.get_last_messages(count_last_messages)))
