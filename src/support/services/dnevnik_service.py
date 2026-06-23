@@ -327,7 +327,7 @@ class DnevnikService(BaseService[AppUnitOfWork]):
                 }
 
                 # Время урока
-                if hours:
+                if hours and len(hours.hours) >= lesson['number']:
                     start = time.fromisoformat(hours.hours[lesson['number'] - 1]['start'])
                     end = time.fromisoformat(hours.hours[lesson['number'] - 1]['end'])
                     string = hours.hours[lesson['number'] - 1]['string']

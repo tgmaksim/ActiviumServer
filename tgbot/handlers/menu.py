@@ -59,9 +59,9 @@ def admin_menu() -> MessageModel:
     return MessageModel(
         text=Text(CustomEmoji("⚙️", custom_emoji_id="5341715473882955310"), " Меню администратора ОО"),
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="Звонки", icon_custom_emoji_id="5458603043203327669", callback_data="admin_bells"),
+            [InlineKeyboardButton(text="Звонки", icon_custom_emoji_id="5458603043203327669", callback_data="school_bells"),
              InlineKeyboardButton(text="Статистика", icon_custom_emoji_id="5231200819986047254", callback_data="admin_stats")],
-            [InlineKeyboardButton(text="Внеурочные занятия", icon_custom_emoji_id="5265002646397285605", callback_data="admin_ea")],
+            [InlineKeyboardButton(text="Внеурочные занятия", icon_custom_emoji_id="5265002646397285605", callback_data="school_ea")],
             [InlineKeyboardButton(text="Новости и мероприятия", icon_custom_emoji_id="5382013970905309819", callback_data="school_posts|0")],
             [InlineKeyboardButton(text="Мои администраторы", icon_custom_emoji_id="5440712623219822019", callback_data="my_admins")],
             [InlineKeyboardButton(text="Назад", icon_custom_emoji_id="5467864676320681402", callback_data="start")]
@@ -92,17 +92,7 @@ async def _start_with_menu(message: Message, state: FSMContext):
     await message.answer(**menu)
 
 
-@router.callback_query(F.data == "admin_bells")
-async def _bells(callback_query: CallbackQuery):
-    """Добавление звонкового расписания, отличного от Дневника.ру"""
-
-    async with uow_factory() as uow:
-        await check_school_admin(callback_query.from_user.id, uow.school_admin_repository)
-
-        await callback_query.answer("Данная функция в разработке", show_alert=True)
-
-
-@router.callback_query(F.data == "admin_ea")
+@router.callback_query(F.data == "school_ea")
 async def _admin_ea(callback_query: CallbackQuery):
     """Добавление расписания внеурочных занятий в образовательной организации"""
 

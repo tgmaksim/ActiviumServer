@@ -504,7 +504,7 @@ async def _post_content(message: Message, state: FSMContext):
     """Последовательное написание поста по абзацам"""
 
     async with uow_factory() as uow:
-        school_admin = await check_school_admin(message.from_user.id, uow.school_admin_repository)
+        await check_school_admin(message.from_user.id, uow.school_admin_repository)
 
         if message.text == "Отмена":
             await (await message.answer(".", reply_markup=ReplyKeyboardRemove())).delete()

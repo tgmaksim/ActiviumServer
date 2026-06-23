@@ -222,8 +222,8 @@ class SettingsService(BaseService[AppUnitOfWork]):
 
     async def update_firebase(self, session_id: str, firebase_token: str) -> UpdateFirebaseApiResponse:
         async with self.uow_factory() as uow:
-            # Получение сессии, в том числе еще неавторизованной (без parent_id и других параметров)
-            session = await check_session(session_id, uow.session_repository, check_auth=False)
+            # Получение сессии, в том числе еще неавторизованной (без parent_id и других параметров) и неработающей
+            session = await uow.session_repository.get_session(session_id, only_life=False)
 
             await uow.session_repository.update_firebase(session_id, firebase_token)
 

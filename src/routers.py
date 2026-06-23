@@ -11,7 +11,8 @@ from .support.controllers import (
     dnevnik_controller,
     reviews_controller,
     settings_controller,
-    dnevnik_tools_controller
+    tg_webapp_controller,
+    dnevnik_tools_controller,
 )
 
 __all__ = ['get_api_router', 'get_site_router', 'get_public_api_router']
@@ -47,6 +48,7 @@ def get_public_api_router() -> APIRouter:
     public_router.include_router(login_controller.public_router)
     public_router.include_router(reviews_controller.public_router)
     public_router.include_router(school_controller.public_router)
+    public_router.include_router(tg_webapp_controller.public_router)
 
     return public_router
 

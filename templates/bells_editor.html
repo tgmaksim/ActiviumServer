@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+
+    <title>{{ project_name }} — Расписание звонков</title>
+
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+    <link rel="apple-touch-icon" sizes="180x180" href="/assets/icons/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/assets/icons/favicon-16x16.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/assets/icons/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="/assets/icons/android-chrome-192x192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="/assets/icons/android-chrome-512x512.png">
+    <link rel="icon" type="image/x-icon" sizes="32x32" href="/assets/icons/favicon.ico">
+
+    <link rel="stylesheet" href="/css/bells_editor.css">
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h1>Расписание звонков</h1>
+
+        <p>
+            Добавьте расписание звонков для Вашей образовательной
+            организации, чтобы оно использовалось в приложении Активиум.
+        </p>
+    </div>
+
+    <div class="filters">
+
+        <div class="filter-group">
+            <label>Месяцы</label>
+            <div id="months-selector" class="chips"></div>
+        </div>
+
+        <div class="filter-group">
+            <label>Дни недели</label>
+            <div id="weekdays-selector" class="chips"></div>
+        </div>
+
+    </div>
+
+    <div id="empty-state" class="empty-state">
+        Расписание пока не добавлено
+    </div>
+
+    <div id="bells-list" class="bells-list"></div>
+</div>
+
+<div id="modal-backdrop" class="modal-backdrop hidden">
+    <div class="modal">
+
+        <h2 id="modal-title">Новый урок</h2>
+
+        <div class="field">
+            <label>Начало</label>
+            <input id="start-time" type="time">
+        </div>
+
+        <div class="field">
+            <label>Конец</label>
+            <input id="end-time" type="time">
+        </div>
+
+    </div>
+</div>
+
+<script src="/js/telegram.js"></script>
+<script src="/js/bells_editor.js"></script>
+
+</body>
+</html>
