@@ -103,8 +103,8 @@
     docker-compose up --build
     ```
 После запуска 
-- pgAdmin доступен по адресу http://localhost:5050 с логином и паролем <mark>admin@admin.com</mark> <mark>admin_password</mark>
-- База данных развернута на хосту <mark>postgres_db</mark> с логином и паролем <mark>db_user</mark> <mark>db_password</mark>
+- pgAdmin доступен по адресу http://localhost:5050 с логином и паролем `admin@admin.com` `admin_password`
+- База данных развернута на хосту `postgres_db` с логином и паролем `db_user` `db_password`
 - Сайт и сервер доступны по адресу http://localhost:8000
 - Документация Activium API - Swagger доступна по адресу http://localhost:8000/api/v2/docs
 
@@ -141,9 +141,12 @@ python cron.py reload
 ```
 
 > [!NOTE]
-> Для полноценного тестирования в любом случае кроме <mark>DNEVNIK_CLIENT_ID</mark> требуется профиль в Дневнике.ру. 
+> Для полноценного тестирования в любом случае кроме `DNEVNIK_CLIENT_ID` требуется профиль в Дневнике.ру. 
 > Если Вы хотите протестировать Activium Server, то обратитесь к [@tgmaksim_company](https://t.me/tgmaksim_company). 
 > Я помогу с ключом к API Дневника.ру и предоставлю аккаунт в нем
+
+## 📖 Документация
+Работа некоторых основных сущностей и процессов сервера описана в [документации](DOCUMENTATION.md) 
 
 ## 📄 Лицензия
 Проект распространяет под лицензией GNU GPLv3, доступной в файле [LICENSE](LICENSE)
