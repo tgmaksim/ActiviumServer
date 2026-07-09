@@ -244,7 +244,7 @@ class SchoolStatisticsRepository(SqlAlchemyRepository[BaseModel]):
 
         class_distribution: list[ClassDistributionType] = [
             {
-                "class_name": full_group['group']['name'],
+                "class_name": full_group['group']['fullName'],
                 "count": groups_by_id[full_group['group']['id']]
             }
             for full_group in full_groups

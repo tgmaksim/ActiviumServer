@@ -224,6 +224,8 @@ class SettingsService(BaseService[AppUnitOfWork]):
         async with self.uow_factory() as uow:
             # Получение сессии, в том числе еще неавторизованной (без parent_id и других параметров) и неработающей
             session = await uow.session_repository.get_session(session_id, only_life=False)
+            if session is None:
+                raise SessionError(session_id=session_id)
 
             await uow.session_repository.update_firebase(session_id, firebase_token)
 

@@ -90,13 +90,3 @@ async def _start_with_menu(message: Message, state: FSMContext):
 
     menu = admin_menu()
     await message.answer(**menu)
-
-
-@router.callback_query(F.data == "school_ea")
-async def _admin_ea(callback_query: CallbackQuery):
-    """Добавление расписания внеурочных занятий в образовательной организации"""
-
-    async with uow_factory() as uow:
-        await check_school_admin(callback_query.from_user.id, uow.school_admin_repository)
-
-        await callback_query.answer("Данная функция в разработке", show_alert=True)

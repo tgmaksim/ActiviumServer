@@ -10,11 +10,11 @@ from pathlib import Path
 from aiogram import Router, F
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
-from aiogram.exceptions import TelegramBadRequest
 from aiogram.enums import ContentType, MessageEntityType
 
 from ..utils.auth import check_school_admin
 from ..utils.message_model import MessageModel
+from ..utils.messages import secure_edit_message
 from aiogram.utils.formatting import Text, CustomEmoji, Bold
 
 from src.utils.datetime import astimezone
@@ -62,18 +62,6 @@ class CreatePostStatesGroup(StatesGroup):
     """Ожидание сообщения с датой мероприятия для поста"""
     content = State('content')
     """Ожидание сообщения с содержанием поста"""
-
-
-async def secure_edit_message(callback_query: CallbackQuery, **kwargs):
-    """Изменить сообщения или в случе ошибки 'message is not modified' вызвать answer()"""
-
-    try:
-        await callback_query.message.edit_text(**kwargs)
-    except TelegramBadRequest as e:
-        if "message is not modified" in e.message:
-            await callback_query.answer()
-        else:
-            raise
 
 
 async def send_loading(message: Message, text: str):

@@ -15,6 +15,7 @@ async def reload_server():
     if settings.DEBUG:
         # Отправка запроса на завершение процесса
         os.kill(os.getpid(), signal.SIGTERM)
+        return
 
     async with AsyncClient() as client:
         response_token = await client.post(settings.HOSTING_GATEWAY_TOKEN_URL, data={'api_key': settings.HOSTING_API_KEY})

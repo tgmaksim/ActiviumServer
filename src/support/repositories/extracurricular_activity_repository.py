@@ -1,5 +1,7 @@
 from datetime import datetime
 
+from sqlalchemy import select, distinct
+
 from ...repositories.db_queue import AsyncDBQueue
 from ...models.extracurricular_activity_model import ExtracurricularActivity
 
@@ -35,4 +37,91 @@ class ExtracurricularActivityRepository(SqlAlchemyRepository[ExtracurricularActi
             ExtracurricularActivity.group_id == group_id,
             ExtracurricularActivity.start_time.between(*period),
             orders_=ExtracurricularActivity.start_time.asc()
+        )
+
+    async def get_groups(self, school_id: int, since: datetime, offset: int, limit: int) -> list[int]:
+        """
+        Получение идентификаторов учебных групп (классов) у внеурочных занятий в образовательной организации от нужной даты
+
+        :param school_id: идентификатор образовательной организации
+        :param since: начальная дата сбора внеурочных занятий
+        :param offset: смещение списка
+        :param limit: лимит запроса
+        :return: идентификаторы учебных групп (классов)
+        """
+
+        statement = (
+            select(distinct(ExtracurricularActivity.group_id))
+            .where(ExtracurricularActivity.school_id == school_id)
+            .where(ExtracurricularActivity.start_time >= since)
+            .offset(offset)
+            .limit(limit)
+        )
+
+        res = await self.queue.execute(statement)
+        return res.scalars().all()
+
+    async def get_subject_place_by_group(
+            self,
+            school_id: int,
+            group_id: int,
+            since: datetime,
+            offset: int,
+            limit: int
+    ) -> list[tuple[str, str]]:
+        """
+        Получение предметов и мест проведения внеурочных занятий
+        в учебной группе (классе) образовательной организации от нужной даты
+
+        :param school_id: идентификатор образовательной организации
+        :param group_id: идентификатор учебной группы (класса)
+        :param since: начальная дата сбора внеурочных занятий
+        :param offset: смещение списка
+        :param limit: лимит запроса
+        :return: список внеурочных занятий
+        """
+
+        statement = (
+            select(ExtracurricularActivity.subject, ExtracurricularActivity.place)
+            .distinct(ExtracurricularActivity.subject, ExtracurricularActivity.place)
+            .where(ExtracurricularActivity.school_id == school_id)
+            .where(ExtracurricularActivity.group_id == group_id)
+            .where(ExtracurricularActivity.start_time >= since)
+            .offset(offset)
+            .limit(limit)
+        )
+
+        res = await self.queue.execute(statement)
+        return res.all()
+
+    async def get_extracurricular_activities_by_subject_place(
+            self,
+            school_id: int,
+            group_id: int,
+            subject: str,
+            place: str,
+            since: datetime,
+            offset: int,
+            limit: int
+    ) -> list[ExtracurricularActivity]:
+        """
+        Получение внеурочных занятий в учебной группе (классе) образовательной организации по предмету в кабинете
+
+        :param school_id: идентификатор образовательной организации
+        :param group_id: идентификатор учебной группы (класса)
+        :param subject: название предмета
+        :param place: место проведения (кабинет)
+        :param since: начальная дата сбора внеурочных занятий
+        :param offset: смещение списка
+        :param limit: лимит запроса
+        :return: список внеурочных занятий
+        """
+
+        return await self.get_multi(
+            ExtracurricularActivity.school_id == school_id,
+            ExtracurricularActivity.group_id == group_id,
+            ExtracurricularActivity.subject == subject,
+            ExtracurricularActivity.place == place,
+            ExtracurricularActivity.start_time >= since,
+            offset=offset, limit=limit
         )

@@ -8,6 +8,12 @@ __all__ = ['DnevnikruApi']
 
 
 class DnevnikruApi(BaseDnevnikruApi):
+    """
+    Общая информация об API Дневника.ру и авторизации: https://api.dnevnik.ru
+
+    Полная документация API Дневника.ру: https://api.dnevnik.ru/partners/swagger/ui/index/index.html
+    """
+
     def get_info(self) -> dict:
         """Общая информация о текущем пользователе"""
 
@@ -184,3 +190,8 @@ class DnevnikruApi(BaseDnevnikruApi):
         """Список учебных групп (классов) с ее участниками"""
 
         return self.post("edu-groups", data=groups)
+
+    def get_group(self, edu_group: int) -> dict:
+        """Общая информация об учебной группе (классе)"""
+
+        return self.get(f"edu-groups/{edu_group}")
