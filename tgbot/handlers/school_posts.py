@@ -180,7 +180,7 @@ async def menu_school_post(uow: AppUnitOfWork, user_id: int, post_id: int, callb
     buttons = [
         [InlineKeyboardButton(text="Посмотреть", icon_custom_emoji_id="5210956306952758910", url=url),
          InlineKeyboardButton(text="Редактировать", icon_custom_emoji_id="5395444784611480792", callback_data=f"edit_post|{post_id}")],
-        [InlineKeyboardButton(text="Удалить публикацию", icon_custom_emoji_id="5210952531676504517", callback_data=f"delete_post|{post_id}")],
+        [InlineKeyboardButton(text="Удалить публикацию", icon_custom_emoji_id="5210952531676504517", style='danger', callback_data=f"delete_post|{post_id}")],
         [InlineKeyboardButton(text="Назад", icon_custom_emoji_id="5467864676320681402", callback_data=callback)]
     ]
 

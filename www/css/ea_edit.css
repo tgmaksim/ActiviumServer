@@ -1,0 +1,157 @@
+:root {
+    --bg: var(--tg-theme-bg-color, #ffffff);
+    --secondary-bg: var(--tg-theme-secondary-bg-color, #f5f7fb);
+    --text: var(--tg-theme-text-color, #111827);
+    --hint: var(--tg-theme-hint-color, #6b7280);
+    --border: rgba(127, 127, 127, 0.16);
+
+    --button-color: var(
+        --tg-theme-button-color,
+        #2481cc
+    );
+
+    --button-text-color: var(
+        --tg-theme-button-text-color,
+        #ffffff
+    );
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    min-height: 100vh;
+
+    background: var(--bg);
+    color: var(--text);
+
+    font-family:
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        Roboto,
+        Helvetica,
+        Arial,
+        sans-serif;
+}
+
+.container {
+    padding: 20px;
+    padding-bottom: 110px;
+}
+
+.header {
+    margin-bottom: 24px;
+}
+
+.header h1 {
+    margin-bottom: 8px;
+
+    font-size: 24px;
+    line-height: 1.2;
+    font-weight: 700;
+}
+
+.header p {
+    color: var(--hint);
+
+    font-size: 14px;
+    line-height: 1.45;
+}
+
+.form {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.row {
+    display: grid;
+    gap: 12px;
+}
+
+.row.two-columns {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.field {
+    min-width: 0;
+}
+
+.field-label {
+    display: block;
+
+    margin: 0 0 7px 4px;
+
+    color: var(--hint);
+
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.input {
+    display: block;
+
+    width: 100%;
+    min-width: 0;
+
+    height: 50px;
+
+    padding: 0 14px;
+
+    border: 1px solid var(--border);
+    border-radius: 13px;
+
+    outline: none;
+
+    background: var(--secondary-bg);
+    color: var(--text);
+
+    font: inherit;
+    font-size: 16px;
+
+    transition:
+        border-color 0.15s ease,
+        box-shadow 0.15s ease;
+}
+
+.input:focus {
+    border-color: var(--button-color);
+
+    box-shadow:
+        0 0 0 2px
+        color-mix(
+            in srgb,
+            var(--button-color) 18%,
+            transparent
+        );
+}
+
+input[type="date"],
+input[type="time"] {
+    appearance: auto;
+    -webkit-appearance: auto;
+}
+
+.error {
+    margin-top: 6px;
+    padding: 0 4px;
+
+    color: #e53935;
+
+    font-size: 13px;
+    line-height: 1.4;
+}
+
+.hidden {
+    display: none;
+}
+
+@media (max-width: 360px) {
+    .row.two-columns {
+        grid-template-columns: 1fr;
+    }
+}

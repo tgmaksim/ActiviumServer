@@ -3,17 +3,21 @@ import itertools
 
 from yarl import URL
 from asyncio import gather
-from datetime import timedelta
+from typing import Optional
+from datetime import timedelta, datetime, time, timezone
 
 from aiogram import Router, F
+from aiogram.enums import ContentType
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
 
 from dnevnikru import AioDnevnikruApi, DnevnikruApiException
 
+from src.models import SchoolAdmin
 from src.config.project_config import settings
-from src.utils.zip_int import zip_int, unzip_int
+from src.support.repositories.app_uow import AppUnitOfWork
 
+from src.utils.zip_int import zip_int, unzip_int
 from src.dependencies.httpx import get_httpx_client
 from src.dependencies.uow import get_app_uow_factory
 from src.utils.datetime import datetime_now, astimezone
@@ -24,8 +28,12 @@ from ..utils.messages import secure_edit_message
 from aiogram.utils.formatting import Text, CustomEmoji
 
 from aiogram.types import (
+    Message,
     WebAppInfo,
     CallbackQuery,
+    KeyboardButton,
+    ReplyKeyboardRemove,
+    ReplyKeyboardMarkup,
     InlineKeyboardMarkup,
     InlineKeyboardButton,
 )
@@ -50,12 +58,13 @@ class ExtracurricularActivitiesStatesGroup(StatesGroup):
     """Ожидание сообщения от Web Mini App с данными о созданных внеурочных занятиях"""
 
 
-async def get_group_name(group_id: int, dnr: AioDnevnikruApi, callback_query: CallbackQuery) -> str:
+async def get_group_name(group_id: int, dnr: AioDnevnikruApi, callback_query: Optional[CallbackQuery] = None) -> str:
     try:
         group = await dnr.get_group(group_id)
         group_name = group['fullName']
     except DnevnikruApiException:
-        await callback_query.answer("Не удалось получить данные класса от Дневника.ру", show_alert=True)
+        if callback_query is not None:
+            await callback_query.answer("Не удалось получить данные класса от Дневника.ру", show_alert=True)
         raise
 
     return group_name
@@ -99,35 +108,56 @@ async def _school_extracurricular_activity_menu(callback_query: CallbackQuery):
     group_id, _i, ea_id = map(unzip_int, callback_query.data.split("|")[3:])
 
     async with uow_factory() as uow:
-        school_admin = await check_school_admin(callback_query.from_user.id, uow.school_admin_repository,
-                                                check_auth=True)
+        school_admin = await check_school_admin(callback_query.from_user.id, uow.school_admin_repository, check_auth=True)
         dnr = AioDnevnikruApi(get_httpx_client(), school_admin.dnevnik_admin.dnevnik_token)
 
-        group_name, extracurricular_activity = await gather(
-            get_group_name(group_id, dnr, callback_query),
-            uow.extracurricular_activity_repository
-            .get_extracurricular_activity(school_admin.dnevnik_admin.school_id, ea_id)
-        )
+        try:
+            answer = await school_extracurricular_activity_menu(
+                uow, dnr, school_admin, ea_id, group_id, _i, callback_query
+            )
+        except ValueError as e:
+            if len(e.args) > 0 and e.args[0] == "extracurricular_activity is None":
+                await callback_query.answer("Внеурочное занятие не найдено. Обновите список", show_alert=True)
+            else:
+                raise
 
-        if extracurricular_activity is None:
-            await callback_query.answer("Внеурочное занятие не найдено. Обновите список", show_alert=True)
-            return
+        await callback_query.message.edit_text(**answer)
 
-        text = Text(
-            CustomEmoji("🏫", custom_emoji_id="5265002646397285605"), " ",
-            f"Внеурочное занятие у {group_name} {extracurricular_activity.start_time.strftime('%e %b.')}"
-            f" ({extracurricular_activity.hours['string']})\n",
-            extracurricular_activity.subject, "\n",
-            extracurricular_activity.place
-        )
 
-        buttons = [
-            [InlineKeyboardButton(text="Изменить данные", callback_data=f"edit_ea|{zip_int(ea_id)}", icon_custom_emoji_id="5395444784611480792")],
-            [InlineKeyboardButton(text="Удалить внеурочное занятие", callback_data=f"delete_ea|{zip_int(ea_id)}", style='danger', icon_custom_emoji_id="5210952531676504517")],
-            [InlineKeyboardButton(text="Назад", callback_data=f"lea|ea|0|{zip_int(group_id)}|{zip_int(_i)}", icon_custom_emoji_id="5467864676320681402")]
-        ]
+async def school_extracurricular_activity_menu(
+        uow: AppUnitOfWork, dnr: AioDnevnikruApi, school_admin: SchoolAdmin,
+        ea_id: int, group_id: int, _i: int = 0,
+        callback_query: Optional[CallbackQuery] = None
+) -> MessageModel:
+    """Меню конкретного внеурочного занятия в образовательной организации"""
 
-        await callback_query.message.edit_text(**text.as_kwargs(), reply_markup=InlineKeyboardMarkup(inline_keyboard=buttons))
+    group_name, extracurricular_activity = await gather(
+        get_group_name(group_id, dnr, callback_query),
+        uow.extracurricular_activity_repository
+        .get_extracurricular_activity(school_admin.dnevnik_admin.school_id, ea_id)
+    )
+
+    if extracurricular_activity is None:
+        raise ValueError("extracurricular_activity is None")
+
+    text = Text(
+        CustomEmoji("🏫", custom_emoji_id="5265002646397285605"), " ",
+        f"Внеурочное занятие у {group_name} {extracurricular_activity.start_time.strftime('%e %b.')}"
+        f" ({extracurricular_activity.hours['string']})\n",
+        extracurricular_activity.subject, "\n",
+        extracurricular_activity.place
+    )
+
+    buttons = [
+        [InlineKeyboardButton(text="Изменить данные", callback_data=f"edit_ea|{zip_int(ea_id)}", icon_custom_emoji_id="5395444784611480792")],
+        [InlineKeyboardButton(text="Удалить внеурочное занятие", callback_data=f"delete_ea|{zip_int(ea_id)}", style='danger', icon_custom_emoji_id="5210952531676504517")],
+        [InlineKeyboardButton(text="Назад", callback_data=f"lea|ea|0|{zip_int(group_id)}|{zip_int(_i)}", icon_custom_emoji_id="5467864676320681402")]
+    ]
+
+    return MessageModel(
+        text=text,
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=buttons)
+    )
 
 
 @router.callback_query(F.data.startswith("lea|"))
@@ -363,31 +393,110 @@ async def _add_school_ea(callback_query: CallbackQuery, state: FSMContext):
 async def _edit_extracurricular_activity(callback_query: CallbackQuery, state: FSMContext):
     """Редактирование данных внеурочного занятия"""
 
-    await callback_query.answer("Данная функция в разработке", show_alert=True)
+    ea_id = unzip_int(callback_query.data.split("|")[1])
 
-    # ea_id = unzip_int(callback_query.data.split("|")[1])
-    #
-    # async with uow_factory() as uow:
-    #     school_admin = await check_school_admin(callback_query.from_user.id, uow.school_admin_repository)
-    #
-    #     extracurricular_activity = await (
-    #         uow.extracurricular_activity_repository
-    #         .get_extracurricular_activity(school_admin.dnevnik_admin.school_id, ea_id)
-    #     )
-    #
-    #     if extracurricular_activity is None:
-    #         await callback_query.answer("Внеурочное занятие не найдено! Вернитесь назад", show_alert=True)
-    #         return
-    #
-    #     await state.set_state(ExtracurricularActivitiesStatesGroup.update_extracurricular_activity)
-    #     await state.update_data(ea_id=ea_id)
-    #
-    #     web_app = WebAppInfo(url=str(
-    #         URL(settings.URL)
-    #         .joinpath("tg-webapp", "extracurricular_activity")
-    #         .update_query(
-    #             subject=extracurricular_activity.subject,
-    #             place=extracurricular_activity.place,
-    #             hours=json.dumps(extracurricular_activity.hours)
-    #         )
-    #     ))
+    async with uow_factory() as uow:
+        school_admin = await check_school_admin(callback_query.from_user.id, uow.school_admin_repository)
+
+        extracurricular_activity = await (
+            uow.extracurricular_activity_repository
+            .get_extracurricular_activity(school_admin.dnevnik_admin.school_id, ea_id)
+        )
+
+        if extracurricular_activity is None:
+            await callback_query.answer("Внеурочное занятие не найдено! Вернитесь назад", show_alert=True)
+            return
+
+        await state.set_state(ExtracurricularActivitiesStatesGroup.update_extracurricular_activity)
+        await state.update_data(ea_id=ea_id)
+
+        web_app = WebAppInfo(url=str(
+            URL(settings.URL)
+            .joinpath("tg-webapp", "extracurricular_activity", "edit")
+            .update_query(
+                subject=extracurricular_activity.subject,
+                place=extracurricular_activity.place,
+                date=extracurricular_activity.start_time.date().isoformat(),
+                start_time=extracurricular_activity.hours['start'],
+                end_time=extracurricular_activity.hours['end']
+            )
+        ))
+
+        text = Text(
+            CustomEmoji("✏️", custom_emoji_id="5395444784611480792"), " ",
+            "Вы можете изменить данные конкретного внеурочного занятия или отменить операцию"
+        )
+
+        buttons = [
+            [KeyboardButton(text="Изменить внеурочное занятие", web_app=web_app)],
+            [KeyboardButton(text="Отмена")]
+        ]
+
+        await callback_query.message.answer(**text.as_kwargs(), reply_markup=ReplyKeyboardMarkup(keyboard=buttons, resize_keyboard=True))
+        await callback_query.message.delete()
+
+
+@router.message(ExtracurricularActivitiesStatesGroup.update_extracurricular_activity)
+async def _update_extracurricular_activity(message: Message, state: FSMContext):
+    """Получение данных от редактора для изменения внеурочного занятия"""
+
+    async with uow_factory() as uow:
+        school_admin = await check_school_admin(message.from_user.id, uow.school_admin_repository, check_auth=True)
+        dnr = AioDnevnikruApi(get_httpx_client(), school_admin.dnevnik_admin.dnevnik_token)
+
+        ea_id = int((await state.get_data())['ea_id'])
+
+        if message.text == "Отмена":
+            await state.clear()
+
+            ea = await uow.extracurricular_activity_repository.get_extracurricular_activity(
+                school_admin.dnevnik_admin.school_id, ea_id)
+
+        else:
+            if message.content_type != ContentType.WEB_APP_DATA:
+                await message.answer("Откройте редактор по кнопке ниже или отмените операцию")
+                return
+
+            try:
+                data = json.loads(message.web_app_data.data)
+
+                start = time.fromisoformat(data['start_time'])
+                end = time.fromisoformat(data['end_time'])
+
+                start_str = start.strftime('%H:%M')
+                end_str = end.strftime('%H:%M')
+
+                start_time = datetime.fromisoformat(data['date']).replace(hour=start.hour, minute=start.minute)
+                start_time = start_time.replace(tzinfo=timezone(timedelta(seconds=school_admin.dnevnik_admin.timezone)))
+            except Exception:
+                await message.answer("Произошла ошибка при обработке данных, попробуйте еще раз или отмените операцию")
+                raise
+
+            ea = await uow.extracurricular_activity_repository.edit(
+                school_admin.dnevnik_admin.school_id, ea_id,
+                subject=data['subject'],
+                place=data['place'],
+                start_time=start_time,
+                hours={
+                    'start': start_str,
+                    'end': end_str,
+                    'string': f"{start_str} - {end_str}"
+                }
+            )
+
+        try:
+            if ea is None:
+                raise ValueError("extracurricular_activity is None")
+            group_id = ea.group_id
+
+            answer = await school_extracurricular_activity_menu(
+                uow, dnr, school_admin, ea_id, group_id
+            )
+        except ValueError as e:
+            if len(e.args) > 0 and e.args[0] == "extracurricular_activity is None":
+                answer = school_ea()
+            else:
+                raise
+
+        await (await message.answer('.', reply_markup=ReplyKeyboardRemove())).delete()
+        await message.answer(**answer)

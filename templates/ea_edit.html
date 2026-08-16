@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+
+    <title>{{ project_name }} — Внеурочное занятие</title>
+
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+    <link rel="apple-touch-icon" sizes="180x180" href="/assets/icons/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/assets/icons/favicon-16x16.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/assets/icons/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="/assets/icons/android-chrome-192x192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="/assets/icons/android-chrome-512x512.png">
+    <link rel="icon" type="image/x-icon" sizes="32x32" href="/assets/icons/favicon.ico">
+
+    <link rel="stylesheet" href="/css/ea_edit.css">
+</head>
+<body>
+
+<div class="container">
+    <header class="header">
+        <h1>Внеурочное занятие</h1>
+
+        <p>
+            Укажите информацию о занятии и сохраните изменения.
+        </p>
+    </header>
+
+    <main class="form">
+
+        <div class="row two-columns">
+
+            <div class="field">
+                <label class="field-label" for="subject">Предмет</label>
+                <input id="subject" class="input" type="text" autocomplete="off">
+            </div>
+
+            <div class="field">
+                <label class="field-label" for="place">Место</label>
+                <input id="place" class="input" type="text" autocomplete="off">
+            </div>
+
+        </div>
+
+        <div class="row two-columns">
+
+            <div class="field">
+                <label class="field-label" for="start-time">Начало</label>
+                <input id="start-time" class="input" type="time" step="60">
+            </div>
+
+            <div class="field">
+                <label class="field-label" for="end-time">Окончание</label>
+                <input id="end-time" class="input" type="time" step="60">
+            </div>
+
+        </div>
+
+        <div id="time-error" class="error hidden" role="alert"></div>
+
+        <div class="row">
+
+            <div class="field">
+                <label class="field-label" for="date">Дата</label>
+                <input id="date" class="input" type="date">
+            </div>
+
+        </div>
+
+    </main>
+
+</div>
+
+<script src="/js/telegram.js"></script>
+<script src="/js/ea_edit.js"></script>
+
+</body>
+</html>

@@ -3,6 +3,7 @@ from typing import Optional
 
 from sqlalchemy import select, distinct
 
+from ...models.hours_type import HoursType
 from ...repositories.db_queue import AsyncDBQueue
 from ...models.extracurricular_activity_model import ExtracurricularActivity
 
@@ -176,3 +177,27 @@ class ExtracurricularActivityRepository(SqlAlchemyRepository[ExtracurricularActi
         """
 
         return await self.delete(ExtracurricularActivity.ea_id == ea_id, ExtracurricularActivity.school_id == school_id)
+
+    async def edit(self, school_id: int, ea_id: int, subject: str, place: str, start_time: datetime, hours: HoursType) -> Optional[ExtracurricularActivity]:
+        """
+        Редактирование внеурочного занятия
+
+        :param school_id: идентификатор образовательной организации
+        :param ea_id: идентификатор внеурочного занятия
+        :param subject: название предмета
+        :param place: место проведения (кабинет)
+        :param start_time: дата и время начала внеурочного занятия с часовым поясом
+        :param hours: расписание (время начала и окончания)
+        :return: измененное внеурочное занятие (если есть)
+        """
+
+        return await self.update(
+            {
+                'subject': subject,
+                'place': place,
+                'start_time': start_time,
+                'hours': hours,
+            },
+            ExtracurricularActivity.ea_id == ea_id,
+            ExtracurricularActivity.school_id == school_id
+        )

@@ -61,6 +61,7 @@ async def menu_my_admins(uow: AppUnitOfWork, user_id: int) -> MessageModel:
     buttons = [[InlineKeyboardButton(
         text=admin.name,
         icon_custom_emoji_id="5210952531676504517",
+        style='danger',
         callback_data=f"delete_my_admin|{admin.user_id}"
     )] for admin in my_admins]
 

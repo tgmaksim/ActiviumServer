@@ -169,7 +169,7 @@ async def bell_menu(uow: AppUnitOfWork, user_id: int, hour_id: int) -> MessageMo
         ),
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="Редактировать расписание", callback_data=f"edit_school_bell|{hour_id}", icon_custom_emoji_id="5395444784611480792")],
-            [InlineKeyboardButton(text="Удалить расписание", callback_data=f"delete_school_bell|{hour_id}", icon_custom_emoji_id="5210952531676504517")],
+            [InlineKeyboardButton(text="Удалить расписание", callback_data=f"delete_school_bell|{hour_id}", style='danger', icon_custom_emoji_id="5210952531676504517")],
             [InlineKeyboardButton(text="Назад", callback_data="school_bells", icon_custom_emoji_id="5467864676320681402")]
         ])
     )
