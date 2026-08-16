@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Optional
 
 from sqlalchemy import select, distinct
 
@@ -125,3 +126,53 @@ class ExtracurricularActivityRepository(SqlAlchemyRepository[ExtracurricularActi
             ExtracurricularActivity.start_time >= since,
             offset=offset, limit=limit
         )
+
+    async def get_extracurricular_activity(self, school_id: int, ea_id: int) -> Optional[ExtracurricularActivity]:
+        """
+        Получение внеурочного занятия в образовательной организации
+
+        :param school_id: идентификатор образовательной организации
+        :param ea_id: идентификатор внеурочного занятия
+        :return: внеурочное занятие, если существует
+        """
+
+        return await self.get_single(
+            ExtracurricularActivity.ea_id == ea_id,
+            ExtracurricularActivity.school_id == school_id
+        )
+
+    async def delete_all_school(self, school_id: int):
+        """
+        Удаление всех внеурочных занятий в образовательной организации
+
+        :param school_id: идентификатор образовательной организации
+        """
+
+        return await self.delete(ExtracurricularActivity.school_id == school_id)
+
+    async def delete_extracurricular_activities_by_subject_place(self, school_id: int, group_id: int, subject: str, place: str):
+        """
+        Удаление внеурочных занятий в учебной группе (классе) образовательной организации по предмету в кабинете
+
+        :param school_id: идентификатор образовательной организации
+        :param group_id: идентификатор учебной группы (класса)
+        :param subject: название предмета
+        :param place: место проведения
+        """
+
+        return await self.delete(
+            ExtracurricularActivity.school_id == school_id,
+            ExtracurricularActivity.group_id == group_id,
+            ExtracurricularActivity.subject == subject,
+            ExtracurricularActivity.place == place
+        )
+
+    async def delete_extracurricular_activity(self, school_id: int, ea_id: int):
+        """
+        Удаление конкретного внеурочного занятия в образовательной организации
+
+        :param school_id: идентификатор образовательной организации
+        :param ea_id: идентификатор внеурочного занятия
+        """
+
+        return await self.delete(ExtracurricularActivity.ea_id == ea_id, ExtracurricularActivity.school_id == school_id)
