@@ -2,8 +2,8 @@ from aiogram import Router, F
 
 from aiogram.filters import CommandStart
 from aiogram.fsm.context import FSMContext
-from aiogram.types import Message, CallbackQuery
 from aiogram.utils.formatting import Text, CustomEmoji
+from aiogram.types import Message, CallbackQuery, ReplyKeyboardRemove
 
 from src.config.project_config import settings
 
@@ -31,7 +31,7 @@ async def _cmd_start(message: Message, state: FSMContext):
 
     await state.clear()
 
-    await message.answer(**start_text.as_kwargs())
+    await message.answer(**start_text.as_kwargs(), reply_markup=ReplyKeyboardRemove())
 
 
 @router.callback_query(F.data == "start")

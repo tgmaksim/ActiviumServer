@@ -386,7 +386,7 @@ class LoginService(BaseService[AppUnitOfWork]):
 
     @classmethod
     async def create_review_information(cls, information_repository: InformationRepository, person_id: int):
-        """Создание информационное оповещения через некоторое время о том, что можно написать отзыв"""
+        """Создание информационного оповещения через некоторое время о том, что можно написать отзыв"""
 
         time = datetime.now(UTC) + timedelta(weeks=1)
         type_ = "review"
@@ -396,7 +396,7 @@ class LoginService(BaseService[AppUnitOfWork]):
 
     @classmethod
     async def create_marks_notifications_information(cls, information_repository: InformationRepository, person_id: int):
-        """Создание информационное оповещения через некоторое время о том, что можно включить функцию уведомлений о новых оценках"""
+        """Создание информационного оповещения через некоторое время о том, что можно включить функцию уведомлений о новых оценках"""
 
         time = datetime.now(UTC) + timedelta(days=1)
         type_ = "marks_notifications"

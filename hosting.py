@@ -5,6 +5,9 @@ from httpx import AsyncClient
 
 from src.config.project_config import settings
 
+from src.services.log_service import LogService
+from src.dependencies.uow import get_log_uow_factory
+
 
 __all__ = ['reload_server']
 
@@ -22,5 +25,14 @@ async def reload_server():
         token = response_token.json()['token']
 
         # С помощью полученного токена перезапускает полностью сервер
-        await client.put(f"{settings.HOSTING_API_URL}/virtualhosts/{settings.VIRTUALHOST_ID}/restart/",
-                         headers={'Authorization': f'Bearer {token}'})
+        response = await client.put(f"{settings.HOSTING_API_URL}/virtualhosts/{settings.VIRTUALHOST_ID}/restart/",
+                                    headers={'Authorization': f'Bearer {token}'})
+
+    service = LogService(get_log_uow_factory())
+    await service.log(
+        ip='127.0.0.1',
+        path='reload',
+        status=response.is_success,
+        method=response.request.method,
+        value=response.json() if not response.is_success else "Reload"
+    )

@@ -1,6 +1,8 @@
 import asyncio
 
-from sqlalchemy import Executable
+from typing import Any
+
+from sqlalchemy import Executable, Result
 from sqlalchemy.ext.asyncio import AsyncSession
 
 
@@ -49,21 +51,21 @@ class AsyncDBQueue:
             finally:
                 self.queue.task_done()  # Задача выполнена и результат возвращен обратно
 
-    async def rollback(self):
+    async def rollback(self) -> None:
         """Помещение в очередь действия отката назад"""
 
         future = asyncio.get_running_loop().create_future()
         await self.queue.put(('rollback', future))
         return await future
 
-    async def commit(self):
+    async def commit(self) -> None:
         """Помещение в очередь commit'а изменений"""
 
         future = asyncio.get_running_loop().create_future()
         await self.queue.put(('commit', future))
         return await future
 
-    async def execute(self, statement: Executable):
+    async def execute(self, statement: Executable) -> Result[Any]:
         """Помещение в очередь выполнения запроса"""
 
         future = asyncio.get_running_loop().create_future()

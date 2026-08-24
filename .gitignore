@@ -21,11 +21,8 @@ __pycache__/
 .pyc
 *.pyc
 
-!*media/.gitkeep
-media/*
-
-!*static/.gitkeep
-static/*
+www/google*.html
+www/yandex_*.html
 
 log/debug.log
 

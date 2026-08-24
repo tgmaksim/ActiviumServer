@@ -7,6 +7,7 @@
     <title>{{ title }}</title>
 
     <link href="/css/post.css?v=12" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/photoswipe/5.4.4/photoswipe.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
@@ -90,8 +91,8 @@
 
                 {% if block.type == 'video' %}
                     <div class="media-block">
-                        <video controls class="media">
-                            <source src="{{ loop.index0 }}.mp4" type="video/mp4">
+                        <video controls class="media" preload="metadata">
+                            <source src="{{ loop.index0 }}.mp4#t=0.001" type="video/mp4">
                         </video>
 
                         {% if block.text %}
@@ -111,8 +112,12 @@
 
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/photoswipe/5.4.4/umd/photoswipe-lightbox.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/photoswipe/5.4.4/umd/photoswipe.umd.min.js"></script>
+
 <script src="/js/blockquote.js?v=1"></script>
 <script src="/js/application.js"></script>
+<script src="/js/image_zoom.js?v=4"></script>
 
 </body>
 </html>
