@@ -412,7 +412,7 @@ class LoginService(BaseService[AppUnitOfWork]):
         time = datetime.now(UTC) + timedelta(days=7)
         type_ = "invite"
         title = "Поделитесь возможностями ⚡"
-        text = f"Приглашайте друзей и знакомых в {settings.PROJECT_NAME_RU}, чтобы поделиться возможностями сервиса"
+        text = f"Приглашайте друзей и знакомых в {settings.PROJECT_NAME_RU}, чтобы поделиться возможностями сервиса (см. настройки)"
         await information_repository.create_information(person_id, type_, time, title, text)
 
     async def secondAuthSchoolAdmin(self, dnevnik_token: str, user_id: int) -> HtmlResponse:

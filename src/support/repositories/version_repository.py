@@ -64,3 +64,13 @@ class VersionRepository(SqlAlchemyRepository[Version]):
         """
 
         return await self.get_first(Version.number > version_number, orders_=Version.status_id.desc())
+
+    async def get_younger_versions(self, version_number: int) -> list[Version]:
+        """
+        Получить все версии, которые новее данной
+
+        :param version_number: номер текущей версии
+        :return: список свежих версий
+        """
+
+        return await self.get_multi(Version.number > version_number, orders_=Version.number.asc())

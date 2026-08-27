@@ -46,6 +46,12 @@ class StatusService(BaseService[AppUnitOfWork]):
                 status = most_important.status
                 info = most_important.info
 
+            if info is None:
+                younger_versions = await uow.version_repository.get_younger_versions(version_number)
+                sum_statuses = sum(version.status_id for version in younger_versions)
+                if sum_statuses >= 1:  # Накопились маленькие версии
+                    info = "Вы пропустили много обновлений с множественными улучшениями. Срочно исправьте!"
+
             logs = latest.logs
             # Если текущая версия меньше последней общей или общая версия - самая последняя
             if version_number < generic_latest.number or not latest_mini_versions:
@@ -126,7 +132,7 @@ class StatusService(BaseService[AppUnitOfWork]):
                         'invite',
                         datetime.now(UTC) + timedelta(days=7),
                         "Поделитесь возможностями ⚡",
-                        f"Приглашайте друзей и знакомых в {settings.PROJECT_NAME_RU}, чтобы поделиться возможностями сервиса"
+                        f"Приглашайте друзей и знакомых в {settings.PROJECT_NAME_RU}, чтобы поделиться возможностями сервиса (см. настройки)"
                     )
 
                 informations.append(info)
