@@ -61,6 +61,8 @@ class StatName(Enum):
     checkInfoNotifications = "Проверка наличия информационных уведомлений (каждый раз при входе)"
     checkVersion = "Проверка версии приложения (каждый рах при входе)"
     checkNewPosts = "Проверка наличия новых постов, которые пользователь еще не видел"
+    checkAccessibleAd = "Проверка наличия и получение доступного рекламного объявления"
+    clickAd = "Запись клика на рекламное объявление"
 
 
 class StatisticRepository(SqlAlchemyRepository[Statistic]):

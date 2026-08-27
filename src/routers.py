@@ -4,6 +4,7 @@ from .config.project_config import settings
 from .dependencies.security import check_api_key
 
 from .support.controllers import (
+    ads_controller,
     site_controller,
     login_controller,
     status_controller,
@@ -34,6 +35,7 @@ def get_api_router() -> APIRouter:
     router.include_router(reviews_controller.router, prefix=settings.API_PREFIX)
     router.include_router(dnevnik_tools_controller.router, prefix=settings.API_PREFIX)
     router.include_router(school_controller.router, prefix=settings.API_PREFIX)
+    router.include_router(ads_controller.router, prefix=settings.API_PREFIX)
 
     return router
 

@@ -2,6 +2,7 @@ from typing import Callable, Optional
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from .ad_repository import AdRepository
 from .hour_repository import HourRepository
 from .child_repository import ChildRepository
 from .cache_repository import CacheRepository
@@ -11,6 +12,7 @@ from .rating_repository import RatingRepository
 from .session_repository import SessionRepository
 from .version_repository import VersionRepository
 from .referral_repository import ReferralRepository
+from .ad_viewing_repository import AdViewingRepository
 from .tgbot_state_repository import TgbotStateRepository
 from .school_post_repository import SchoolPostRepository
 from .lesson_note_repository import LessonNoteRepository
@@ -65,6 +67,8 @@ class AppUnitOfWork(SqlAlchemyUnitOfWork):
         self._school_post_click_repository: Optional[SchoolPostClickRepository] = None
         self._school_post_viewing_repository: Optional[SchoolPostViewingRepository] = None
         self._school_post_like_repository: Optional[SchoolPostLikeRepository] = None
+        self._ad_repository: Optional[AdRepository] = None
+        self._ad_viewing_repository: Optional[AdViewingRepository] = None
 
     @property
     def log_repository(self) -> LogRepository:
@@ -221,3 +225,15 @@ class AppUnitOfWork(SqlAlchemyUnitOfWork):
         if self._school_post_like_repository is None:
             self._school_post_like_repository = SchoolPostLikeRepository(self.queue)
         return self._school_post_like_repository
+
+    @property
+    def ad_repository(self) -> AdRepository:
+        if self._ad_repository is None:
+            self._ad_repository = AdRepository(self.queue)
+        return self._ad_repository
+
+    @property
+    def ad_viewing_repository(self) -> AdViewingRepository:
+        if self._ad_viewing_repository is None:
+            self._ad_viewing_repository = AdViewingRepository(self.queue)
+        return self._ad_viewing_repository

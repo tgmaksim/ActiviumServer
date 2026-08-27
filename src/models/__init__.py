@@ -1,3 +1,5 @@
+from .ad_model import Ad
+from .ad_viewing_model import AdViewingModel
 from .base_model import BaseModel
 from .cache_model import Cache
 from .child_model import Child

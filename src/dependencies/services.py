@@ -8,6 +8,7 @@ from .uow import get_app_uow_factory
 
 from ..support.repositories.app_uow import AppUnitOfWork
 
+from ..support.services.ads_service import AdsService
 from ..support.services.site_service import SiteService
 from ..support.services.login_service import LoginService
 from ..support.services.status_service import StatusService
@@ -20,7 +21,8 @@ from ..support.services.dnevnik_tools_service import DnevnikToolsService
 
 
 __all__ = ['get_status_service', 'get_site_service', 'get_login_service', 'get_dnevnik_service', 'get_settings_service',
-           'get_reviews_service', 'get_dnevnik_tools_service', 'get_school_service', 'get_tg_webapp_service']
+           'get_reviews_service', 'get_dnevnik_tools_service', 'get_school_service', 'get_tg_webapp_service',
+           'get_ads_service']
 
 
 def get_status_service(
@@ -99,3 +101,12 @@ def get_tg_webapp_service(
     """Зависимость FastApi для получения TgWebAppService"""
 
     return TgWebAppService(uow_factory)
+
+
+def get_ads_service(
+        uow_factory: Callable[[], AppUnitOfWork] = Depends(get_app_uow_factory),
+        httpx_client: AsyncClient = Depends(get_httpx_client)
+) -> AdsService:
+    """Зависимость FastApi для получения AdsService"""
+
+    return AdsService(uow_factory, httpx_client)

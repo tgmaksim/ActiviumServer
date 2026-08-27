@@ -113,7 +113,7 @@ class SchoolPost(BaseModel):
 
         CheckConstraint("((count_visions >= 0))", name="check_count_visions"),
         CheckConstraint("((count_clicks >= 0))", name="check_count_clicks"),
-        CheckConstraint("((count_viewings >= 0))", name="check_count_views"),
+        CheckConstraint("((count_viewings >= 0))", name="check_count_viewings"),
         CheckConstraint("((count_likes >= 0))", name="check_count_likes"),
 
         Index("school_posts_school_id_created_at", 'school_id', desc('created_at'))
