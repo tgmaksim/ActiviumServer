@@ -195,3 +195,8 @@ class AioDnevnikruApi(BaseAioDnevnikruApi):
         """Общая информация об учебной группе (классе)"""
 
         return await self.get(f"edu-groups/{edu_group}")
+
+    async def get_me_relatives(self) -> list[dict]:
+        """Список родственных связей пользователя"""
+
+        return await self.get("users/me/relatives")

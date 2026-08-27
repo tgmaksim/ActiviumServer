@@ -36,3 +36,13 @@ class ParentRepository(SqlAlchemyRepository[Parent]):
         return await self.create({
             'parent_id': parent_id
         })
+
+    async def get_parents(self, parents_id: list[int]) -> list[Parent]:
+        """
+        Получение пользователей по идентификаторам
+
+        :param parents_id: идентификаторы пользователей
+        :return: найденные пользователи
+        """
+
+        return await self.get_multi(Parent.parent_id.in_(parents_id))

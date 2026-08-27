@@ -1,5 +1,5 @@
 from asyncio import gather
-from typing import Callable, Optional
+from typing import Callable, Optional, Union
 
 from yarl import URL
 from httpx import AsyncClient
@@ -24,10 +24,12 @@ from ..schemas.settings_schemas import (
     ChildrenResult,
     ChildrenApiResponse,
     ReferralParamsResult,
+    ReferralParamsResult0x45,
     ReferralParamsApiResponse,
     UpdateFirebaseApiResponse,
     StatusEANotificationsResult,
     SwitchActiveChildApiResponse,
+    ReferralParamsApiResponse0x46,
     StatusMarksNotificationsResult,
     StatusEANotificationsApiResponse,
     SwitchEANotificationsApiResponse,
@@ -311,23 +313,48 @@ class SettingsService(BaseService[AppUnitOfWork]):
 
         return True
 
-    async def getReferralParams(self, session_id: str) -> ReferralParamsApiResponse:
+    async def getReferralParams(self, session_id: str, api: int = None) -> Union[ReferralParamsApiResponse0x46, ReferralParamsApiResponse]:
+        if api == 1:
+            answer_type = ReferralParamsApiResponse
+            result_type = ReferralParamsResult
+        else:
+            answer_type = ReferralParamsApiResponse0x46
+            result_type = ReferralParamsResult0x45
+
         async with self.uow_factory() as uow:
             session = await check_session(session_id, uow.session_repository)  # Проверка и получение сессии
             parent: Parent = session.parent
+            child = session.active_child
+
+            dnr = AioDnevnikruApi(self.httpx_client, session.dnevnik_token)
 
             me_referral = await uow.referral_repository.get_me_referral(parent.parent_id)  # Кто пригласил пользователя
             count_referrals = await uow.referral_repository.get_count_my_referrals(parent.parent_id)  # Сколько пригласил пользователь
+
+            is_parent = parent.parent_id != child.child_id
+            if is_parent:
+                children = await dnr.get_children(parent.parent_id)
+                children_id = [my_child['id'] for my_child in children]
+                count_relatives = len(children_id)
+                count_active_relatives = len(await uow.parent_repository.get_parents(children_id))
+            else:
+                parents = await dnr.get_me_relatives()
+                parents_id = [relative['person']['id'] for relative in parents]
+                count_relatives = len(parents_id)
+                count_active_relatives = len(await uow.parent_repository.get_parents(parents_id))
 
             # Ссылка для приглашения
             link = URL(settings.URL).update_query(
                 referral=encode_referral_token(parent.parent_id)
             )
 
-            return ReferralParamsApiResponse(
-                answer=ReferralParamsResult(
+            return answer_type(
+                answer=result_type(
                     meReferralName=me_referral and me_referral.name,
                     referralsCount=count_referrals,
+                    isParent=is_parent,
+                    countActiveRelatives=count_active_relatives,
+                    countRelatives=count_relatives,
                     referralUrl=str(link)
                 )
             )

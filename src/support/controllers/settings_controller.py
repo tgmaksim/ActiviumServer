@@ -7,6 +7,7 @@ from ..schemas.settings_schemas import (
     ReferralParamsApiResponse,
     UpdateFirebaseApiResponse,
     SwitchActiveChildApiResponse,
+    ReferralParamsApiResponse0x46,
     StatusEANotificationsApiResponse,
     SwitchEANotificationsApiResponse,
     SwitchMarksNotificationsApiResponse,
@@ -141,12 +142,28 @@ async def _switchEANotifications0(
     "/getReferralParams/0",
     summary="Получение параметров реферальной программы",
     description="Получение количества приглашенных пользователей, ссылки для приглашения и имени, который пригласил пользователя",
-    response_model=ReferralParamsApiResponse
+    response_model=ReferralParamsApiResponse0x46,
+    deprecated=True  # Устарела с версии API 1.14.0
 )
 async def _getReferralParams0(
         request: Request,
         sessionId: Annotated[str, Header(description="Идентификатор сессии", min_length=1, max_length=32)],
         service: SettingsService = Depends(get_settings_service),
+) -> ReferralParamsApiResponse0x46:
+    request.state.session_id = sessionId
+    return await service.getReferralParams(sessionId, api=0)
+
+
+@router.get(
+    "/getReferralParams/1",  # Начиная с версии API 1.14.0
+    summary="Получение параметров реферальной программы",
+    description="Получение количества приглашенных пользователей, ссылки для приглашения и имени, который пригласил пользователя",
+    response_model=ReferralParamsApiResponse
+)
+async def _getReferralParams1(
+        request: Request,
+        sessionId: Annotated[str, Header(description="Идентификатор сессии", min_length=1, max_length=32)],
+        service: SettingsService = Depends(get_settings_service),
 ) -> ReferralParamsApiResponse:
     request.state.session_id = sessionId
-    return await service.getReferralParams(sessionId)
+    return await service.getReferralParams(sessionId, api=1)

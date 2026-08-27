@@ -195,3 +195,8 @@ class DnevnikruApi(BaseDnevnikruApi):
         """Общая информация об учебной группе (классе)"""
 
         return self.get(f"edu-groups/{edu_group}")
+
+    def get_me_relatives(self) -> list[dict]:
+        """Список родственных связей пользователя"""
+
+        return self.get("users/me/relatives")

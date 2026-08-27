@@ -8,7 +8,7 @@ from ...schemas.response_schema import ApiResponse
 __all__ = ['Child', 'ChildrenResult', 'ChildrenApiResponse', 'SwitchActiveChildApiResponse', 'StatusMarksNotificationsResult',
            'StatusMarksNotificationsApiResponse', 'SwitchMarksNotificationsApiResponse', 'UpdateFirebaseApiResponse',
            'StatusEANotificationsResult', 'StatusEANotificationsApiResponse', 'SwitchEANotificationsApiResponse',
-           'ReferralParamsResult', 'ReferralParamsApiResponse']
+           'ReferralParamsResult0x45', 'ReferralParamsApiResponse0x46', 'ReferralParamsResult', 'ReferralParamsApiResponse']
 
 
 class Child(ApiBase):
@@ -192,7 +192,7 @@ class SwitchEANotificationsApiResponse(ApiResponse):
     )
 
 
-class ReferralParamsResult(ApiBase):
+class ReferralParamsResult0x45(ApiBase):  # До версии API 1.14.0
     """Результат запроса получения параметров реферальной программы для пользователя"""
 
     classId: ClassVar[int] = 0x45
@@ -213,11 +213,57 @@ class ReferralParamsResult(ApiBase):
     )
 
 
-class ReferralParamsApiResponse(ApiResponse):
+class ReferralParamsApiResponse0x46(ApiResponse):  # До версии API 1.14.0
     """Ответ на запрос получения параметров реферальной программы для пользователя"""
 
     classId: ClassVar[int] = 0x46
     class_id: Literal[0x46, 0x2] = Field(
+        default=classId,
+        alias='classId',
+        description="Идентификатор класса"
+    )
+
+    answer: Optional[ReferralParamsResult0x45] = Field(
+        default=None,
+        description="Параметры реферальной программы для пользователя"
+    )
+
+
+class ReferralParamsResult(ApiBase):  # Начиная с версии API 1.14.0
+    """Результат запроса получения параметров реферальной программы для пользователя"""
+
+    classId: ClassVar[int] = 0x5F
+    class_id: Literal[0x5F, 0x2] = Field(
+        default=classId,
+        alias='classId',
+        description="Идентификатор класса"
+    )
+
+    meReferralName: Optional[str] = Field(
+        description="Имя пользователя, который пригласил"
+    )
+    referralsCount: int = Field(
+        description="Количество приглашенных пользователей"
+    )
+    isParent: bool = Field(
+        description="Является ли пользователь родителем"
+    )
+    countActiveRelatives: int = Field(
+        description="Сколько детей/родителей зарегистрированы в сервисе"
+    )
+    countRelatives: int = Field(
+        description="Общее количество связанных детей/родителей в Дневнике.ру"
+    )
+    referralUrl: str = Field(
+        description="Реферальная ссылка для приглашения"
+    )
+
+
+class ReferralParamsApiResponse(ApiResponse):  # Начиная с версии API 1.14.0
+    """Ответ на запрос получения параметров реферальной программы для пользователя"""
+
+    classId: ClassVar[int] = 0x60
+    class_id: Literal[0x60, 0x2] = Field(
         default=classId,
         alias='classId',
         description="Идентификатор класса"
