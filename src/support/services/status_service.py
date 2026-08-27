@@ -103,7 +103,7 @@ class StatusService(BaseService[AppUnitOfWork]):
                         f"Вы уже давно пользуетесь сервисом {settings.PROJECT_NAME_RU}. Оцените приложение в настройках. Мы будет очень рады!"
                     )
 
-                if info.type == 'marks_notifications':
+                elif info.type == 'marks_notifications':
                     status = await uow.marks_notification_repository.get_status(session.session_id, session.active_child_id)
                     if status is not None:
                         continue  # Пользователь уже включил уведомления, оповещение не требуется
@@ -111,9 +111,22 @@ class StatusService(BaseService[AppUnitOfWork]):
                     await uow.information_repository.create_information(
                         session.parent_id,
                         'marks_notifications',
-                        datetime.now(UTC) + timedelta(days=1),
+                        datetime.now(UTC) + timedelta(days=7),
                         "🔔 Не пропустите оценки",
                         "Включите уведомления о новых оценках в настройках, чтобы получать уведомления после выставления учителем"
+                    )
+
+                elif info.type == 'invite':
+                    count = await uow.referral_repository.get_count_my_referrals(session.parent_id)
+                    if count > 0:
+                        continue  # Пользователь уже пригласил кого-то, оповещение не требуется
+                    # В следующий раз, если приглашенных нет, уведомление повторится
+                    await uow.information_repository.create_information(
+                        session.parent_id,
+                        'invite',
+                        datetime.now(UTC) + timedelta(days=7),
+                        "Поделитесь возможностями ⚡",
+                        f"Приглашайте друзей и знакомых в {settings.PROJECT_NAME_RU}, чтобы поделиться возможностями сервиса"
                     )
 
                 informations.append(info)

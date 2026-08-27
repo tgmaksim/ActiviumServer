@@ -383,6 +383,7 @@ class LoginService(BaseService[AppUnitOfWork]):
             # Информирование о написании отзыва и о функции уведомлений о новых оценках через некоторое время
             await cls.create_review_information(uow.information_repository, person_id)
             await cls.create_marks_notifications_information(uow.information_repository, person_id)
+            await cls.create_information_invite(uow.information_repository, person_id)
 
     @classmethod
     async def create_review_information(cls, information_repository: InformationRepository, person_id: int):
@@ -398,10 +399,20 @@ class LoginService(BaseService[AppUnitOfWork]):
     async def create_marks_notifications_information(cls, information_repository: InformationRepository, person_id: int):
         """Создание информационного оповещения через некоторое время о том, что можно включить функцию уведомлений о новых оценках"""
 
-        time = datetime.now(UTC) + timedelta(days=1)
+        time = datetime.now(UTC) + timedelta(days=7)
         type_ = "marks_notifications"
         title = "🔔 Не пропустите оценки"
         text = "Включите уведомления о новых оценках в настройках, чтобы получать уведомления после выставления учителем"
+        await information_repository.create_information(person_id, type_, time, title, text)
+
+    @classmethod
+    async def create_information_invite(cls, information_repository: InformationRepository, person_id: int):
+        """Создание информационного оповещения через некоторое время о том, что можно приглашать знакомых в сервис"""
+
+        time = datetime.now(UTC) + timedelta(days=7)
+        type_ = "invite"
+        title = "Поделитесь возможностями ⚡"
+        text = f"Приглашайте друзей и знакомых в {settings.PROJECT_NAME_RU}, чтобы поделиться возможностями сервиса"
         await information_repository.create_information(person_id, type_, time, title, text)
 
     async def secondAuthSchoolAdmin(self, dnevnik_token: str, user_id: int) -> HtmlResponse:
