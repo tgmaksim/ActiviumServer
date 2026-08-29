@@ -1,3 +1,4 @@
+import json
 import time
 import asyncio
 import traceback
@@ -18,6 +19,7 @@ from firebase.messaging import send_notifications, Notification, AppNotification
 
 from dnevnikru import AioDnevnikruApi, BaseDnevnikruException
 
+from src.utils.zip_int import zip_int
 from src.models.child_model import Child
 from src.config.project_config import settings
 from src.services.log_service import LogService
@@ -252,7 +254,8 @@ class MarksNotificationWorker:
             'mood': mark['mood'].lower() if mark['mood'].lower() in MarkLog.moods else MarkLog.default_mood(),
             'subject': subjects.get(works.get(mark['work'], {}).get('subjectId')),
             'date': date,
-            'work': work_types.get(mark['workType'])
+            'work': work_types.get(mark['workType']),
+            'ratingKey': f"l{zip_int(mark['lesson'])}" if mark.get('lesson') is not None else f"w{zip_int(mark['work'])}"
         } for mark, date in marks_with_date]
 
         return answer, profile['shortName']
@@ -275,7 +278,14 @@ class MarksNotificationWorker:
             data={
                 "from_notification": "new_mark",
                 "good_mark": str(mark['mood'] == 'good').lower(),
-                "profile": str(child_id)
+                "profile": str(child_id),
+                "buttons": json.dumps([{
+                    "text": "Отправить похвалу",
+                    "action": "praise",
+                    "data": {
+                        "ratingKey": mark['ratingKey']
+                    }
+                }] if profile else [])  # Похвала только для родителей
             }
         ) for firebase_token, mark, profile in pushes])
 
