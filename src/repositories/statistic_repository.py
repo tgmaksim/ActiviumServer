@@ -63,6 +63,7 @@ class StatName(Enum):
     checkNewPosts = "Проверка наличия новых постов, которые пользователь еще не видел"
     checkAccessibleAd = "Проверка наличия и получение доступного рекламного объявления"
     clickAd = "Запись клика на рекламное объявление"
+    hideExtracurricularActivity = "Скрытие уведомлений о конкретном внеурочном занятии"
 
 
 class StatisticRepository(SqlAlchemyRepository[Statistic]):

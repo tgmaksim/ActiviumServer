@@ -15,11 +15,11 @@ class HiddenExtracurricularActivityRepository(SqlAlchemyRepository[HiddenExtracu
     def __init__(self, queue: AsyncDBQueue):
         super().__init__(queue, HiddenExtracurricularActivity)
 
-    async def hide_ea(self, parent_id: int, child_id: int, subject: str, place: str) -> HiddenExtracurricularActivity:
+    async def hide_ea(self, session_id: str, child_id: int, subject: str, place: str) -> HiddenExtracurricularActivity:
         """
         Скрытие внеурочного занятия для профиля пользователя
 
-        :param parent_id: идентификатор пользователя
+        :param session_id: идентификатор сессии пользователя
         :param child_id: идентификатор профиля (ребенка)
         :param subject: название предмета внеурочного занятия
         :param place: место проведения (кабинет) внеурочного занятия
@@ -27,20 +27,30 @@ class HiddenExtracurricularActivityRepository(SqlAlchemyRepository[HiddenExtracu
         """
 
         return await self.create({
-            'parent_id': parent_id,
+            'session_id': session_id,
             'child_id': child_id,
             'subject': subject,
             'place': place
-        }, security=['parent_id', 'child_id', 'subject', 'place'], security_nothing=True)
+        }, security=['session_id', 'child_id', 'subject', 'place'], security_nothing=True)
 
-    async def get_hidden_ea(self, profiles: list[tuple[int, int]]) -> list[HiddenExtracurricularActivity]:
+    async def get_hidden_ea(self, profiles: list[tuple[str, int]]) -> list[HiddenExtracurricularActivity]:
         """
         Поучение скрытых внеурочных занятий у профилей пользователей
 
-        :param profiles: пары (parent_id, child_id)
+        :param profiles: пары (session_id, child_id)
         :return: все записи о скрытых внеурочных занятиях данных профилей пользователей
         """
 
         return await self.get_multi(
-            tuple_(HiddenExtracurricularActivity.parent_id, HiddenExtracurricularActivity.child_id).in_(profiles)
+            tuple_(HiddenExtracurricularActivity.session_id, HiddenExtracurricularActivity.child_id).in_(profiles)
         )
+
+    async def unhide_ea(self, session_id: str, child_id: int):
+        """
+        Удаление записей о скрытии внеурочных занятий для профиля пользователя
+
+        :param session_id: идентификатор сессии пользователя
+        :param child_id: идентификатор профиля (ребенка)
+        """
+
+        return await self.delete(HiddenExtracurricularActivity.session_id == session_id, HiddenExtracurricularActivity.child_id == child_id)

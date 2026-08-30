@@ -262,6 +262,7 @@ class SettingsService(BaseService[AppUnitOfWork]):
                 child_id = session.active_child_id
 
             if not status:
+                await uow.hidden_extracurricular_activity_repository.unhide_ea(session_id, child_id)
                 await uow.ea_notification_repository.turn_off(session_id, child_id)
                 await uow.statistic_repository.add_statistic(parent.parent_id, StatName.turnOffEANotifications)
                 return SwitchEANotificationsApiResponse()
@@ -364,6 +365,7 @@ class SettingsService(BaseService[AppUnitOfWork]):
         async with self.uow_factory() as uow:
             session = await check_session(session_id, uow.session_repository)  # Проверка и получение сессии
 
-            await uow.hidden_extracurricular_activity_repository.hide_ea(session.parent_id, child_id, subject, place)
+            await uow.hidden_extracurricular_activity_repository.hide_ea(session_id, child_id, subject, place)
+            await uow.statistic_repository.add_statistic(session.parent_id, StatName.hideExtracurricularActivity)
 
             return HideExtracurricularActivityApiResponse()

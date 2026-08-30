@@ -135,25 +135,23 @@ class ExtracurricularActivityWorker:
         # Сессии детей (и их родителей) в данных классах, у которых включены уведомления
         notifications = await uow.ea_notification_repository.get_notifications(list(groups))
 
-        parents_with_children: dict[int, list[int]] = {}
-        sessions_by_class: dict[tuple[int, int], set[tuple[int, int, str]]] = {}  # Сессии, сгруппированные по классам
+        parents = set()
+        sessions_by_class: dict[tuple[int, int], set[tuple[str, int, str]]] = {}  # Сессии, сгруппированные по классам
+        profiles: set[tuple[str, int]] = set()  # Пары (session_id, child_id)
 
         for notification in notifications:
             if notification.session.life:
                 key = (notification.child.school_id, notification.child.group_id)
                 if sessions_by_class.get(key) is None:
                     sessions_by_class[key] = set()
-                sessions_by_class[key].add((notification.session.parent_id, notification.child_id, notification.session.firebase_token))
+                sessions_by_class[key].add((notification.session_id, notification.child_id, notification.session.firebase_token))
 
-                if parents_with_children.get(notification.session.parent_id) is None:
-                    parents_with_children[notification.session.parent_id] = []
-                parents_with_children[notification.session.parent_id].append(notification.child_id)
+                profiles.add((notification.session_id, notification.child_id))
+                parents.add(notification.session.parent_id)
 
         # Записи о скрытии внеурочных занятий (для них уведомления не нужны)
-        _hidden_ea = await uow.hidden_extracurricular_activity_repository.get_hidden_ea(
-            [(parent_id, child_id) for parent_id, children in parents_with_children.items() for child_id in children],
-        )
-        hidden_ea = {(entry.parent_id, entry.child_id, entry.subject, entry.place) for entry in _hidden_ea}
+        _hidden_ea = await uow.hidden_extracurricular_activity_repository.get_hidden_ea(list(profiles))
+        hidden_ea = {(entry.session_id, entry.child_id, entry.subject, entry.place) for entry in _hidden_ea}
 
         pushes: list[tuple[str, dict]] = []
         processed_ids: list[int] = []
@@ -166,8 +164,8 @@ class ExtracurricularActivityWorker:
             # Все сессии в классе, в котором проводится внеурочное занятие
             sessions = sessions_by_class.get(key, set())
 
-            for parent_id, child_id, firebase_token in sessions:
-                if (parent_id, child_id, activity.subject, activity.place) not in hidden_ea:
+            for session_id, child_id, firebase_token in sessions:
+                if (session_id, child_id, activity.subject, activity.place) not in hidden_ea:
                     pushes.append((firebase_token, {
                         "subject": activity.subject,
                         "place": activity.place,
@@ -180,7 +178,7 @@ class ExtracurricularActivityWorker:
         for ea_id in processed_ids:
             await uow.ea_processing_notification_repository.finish_process(ea_id)
 
-        for parent in parents_with_children:
+        for parent in parents:
             await uow.statistic_repository.add_statistic(parent, StatName.ea_notifications)
 
         return pushes
