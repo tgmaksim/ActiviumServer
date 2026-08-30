@@ -30,6 +30,7 @@ from .school_post_viewing_repository import SchoolPostViewingRepository
 from .highlighting_person_repository import HighlightingPersonRepository
 from .extracurricular_activity_repository import ExtracurricularActivityRepository
 from .ea_processing_notification_repository import EAProcessingNotificationRepository
+from .hidden_extracurricular_activity_repository import HiddenExtracurricularActivityRepository
 
 from ...repositories.sqlalchemy_uow import SqlAlchemyUnitOfWork
 
@@ -69,6 +70,7 @@ class AppUnitOfWork(SqlAlchemyUnitOfWork):
         self._school_post_like_repository: Optional[SchoolPostLikeRepository] = None
         self._ad_repository: Optional[AdRepository] = None
         self._ad_viewing_repository: Optional[AdViewingRepository] = None
+        self._hidden_extracurricular_activity_repository: Optional[HiddenExtracurricularActivityRepository] = None
 
     @property
     def log_repository(self) -> LogRepository:
@@ -237,3 +239,9 @@ class AppUnitOfWork(SqlAlchemyUnitOfWork):
         if self._ad_viewing_repository is None:
             self._ad_viewing_repository = AdViewingRepository(self.queue)
         return self._ad_viewing_repository
+
+    @property
+    def hidden_extracurricular_activity_repository(self) -> HiddenExtracurricularActivityRepository:
+        if self._hidden_extracurricular_activity_repository is None:
+            self._hidden_extracurricular_activity_repository = HiddenExtracurricularActivityRepository(self.queue)
+        return self._hidden_extracurricular_activity_repository

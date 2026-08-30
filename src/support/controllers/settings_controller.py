@@ -12,6 +12,7 @@ from ..schemas.settings_schemas import (
     SwitchEANotificationsApiResponse,
     SwitchMarksNotificationsApiResponse,
     StatusMarksNotificationsApiResponse,
+    HideExtracurricularActivityApiResponse,
 )
 
 from ..services.settings_service import SettingsService
@@ -167,3 +168,21 @@ async def _getReferralParams1(
 ) -> ReferralParamsApiResponse:
     request.state.session_id = sessionId
     return await service.getReferralParams(sessionId, api=1)
+
+
+@router.put(
+    "/hideExtracurricularActivity/0",
+    summary="Скрытие определенного внеурочного занятия",
+    description="Скрытие уведомлений с напоминанием об определенном внеурочном занятии",
+    response_model=HideExtracurricularActivityApiResponse
+)
+async def _hideExtracurricularActivity0(
+        request: Request,
+        subject: Annotated[str, Query(description="Название предмета внеурочного занятия", min_length=1, max_length=32)],
+        place: Annotated[str, Query(description="Место проведения (кабинет) внеурочного занятия", min_length=1, max_length=32)],
+        sessionId: Annotated[str, Header(description="Идентификатор сессии", min_length=1, max_length=32)],
+        childId: Annotated[Optional[int], Query(description="Идентификатор ребенка")] = None,
+        service: SettingsService = Depends(get_settings_service),
+) -> HideExtracurricularActivityApiResponse:
+    request.state.session_id = sessionId
+    return await service.hideExtracurricularActivity(sessionId, childId, subject, place)

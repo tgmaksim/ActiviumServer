@@ -8,7 +8,8 @@ from ...schemas.response_schema import ApiResponse
 __all__ = ['Child', 'ChildrenResult', 'ChildrenApiResponse', 'SwitchActiveChildApiResponse', 'StatusMarksNotificationsResult',
            'StatusMarksNotificationsApiResponse', 'SwitchMarksNotificationsApiResponse', 'UpdateFirebaseApiResponse',
            'StatusEANotificationsResult', 'StatusEANotificationsApiResponse', 'SwitchEANotificationsApiResponse',
-           'ReferralParamsResult0x45', 'ReferralParamsApiResponse0x46', 'ReferralParamsResult', 'ReferralParamsApiResponse']
+           'ReferralParamsResult0x45', 'ReferralParamsApiResponse0x46', 'ReferralParamsResult', 'ReferralParamsApiResponse',
+           'HideExtracurricularActivityApiResponse']
 
 
 class Child(ApiBase):
@@ -272,4 +273,20 @@ class ReferralParamsApiResponse(ApiResponse):  # Начиная с версии 
     answer: Optional[ReferralParamsResult] = Field(
         default=None,
         description="Параметры реферальной программы для пользователя"
+    )
+
+
+class HideExtracurricularActivityApiResponse(ApiResponse):
+    """Ответ на запрос скрытия уведомлений об определенном внеурочном занятии"""
+
+    classId: ClassVar[int] = 0x65
+    class_id: Literal[0x65, 0x2] = Field(
+        default=classId,
+        alias='classId',
+        description="Идентификатор класса"
+    )
+
+    answer: None = Field(
+        default=None,
+        description="Всегда null"
     )

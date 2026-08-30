@@ -35,6 +35,7 @@ from ..schemas.settings_schemas import (
     SwitchEANotificationsApiResponse,
     StatusMarksNotificationsApiResponse,
     SwitchMarksNotificationsApiResponse,
+    HideExtracurricularActivityApiResponse,
 )
 
 
@@ -358,3 +359,11 @@ class SettingsService(BaseService[AppUnitOfWork]):
                     referralUrl=str(link)
                 )
             )
+
+    async def hideExtracurricularActivity(self, session_id: str, child_id: int, subject: str, place: str) -> HideExtracurricularActivityApiResponse:
+        async with self.uow_factory() as uow:
+            session = await check_session(session_id, uow.session_repository)  # Проверка и получение сессии
+
+            await uow.hidden_extracurricular_activity_repository.hide_ea(session.parent_id, child_id, subject, place)
+
+            return HideExtracurricularActivityApiResponse()

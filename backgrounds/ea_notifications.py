@@ -1,3 +1,4 @@
+import json
 import time
 import asyncio
 import traceback
@@ -134,17 +135,25 @@ class ExtracurricularActivityWorker:
         # Сессии детей (и их родителей) в данных классах, у которых включены уведомления
         notifications = await uow.ea_notification_repository.get_notifications(list(groups))
 
-        parents = set()
-        # Сессии, сгруппированные по классам
-        sessions_by_class: dict[tuple[int, int], set[tuple[int, str]]] = {}
+        parents_with_children: dict[int, list[int]] = {}
+        sessions_by_class: dict[tuple[int, int], set[tuple[int, int, str]]] = {}  # Сессии, сгруппированные по классам
+
         for notification in notifications:
             if notification.session.life:
                 key = (notification.child.school_id, notification.child.group_id)
                 if sessions_by_class.get(key) is None:
                     sessions_by_class[key] = set()
-                sessions_by_class[key].add((notification.child_id, notification.session.firebase_token))
+                sessions_by_class[key].add((notification.session.parent_id, notification.child_id, notification.session.firebase_token))
 
-                parents.add(notification.session.parent_id)
+                if parents_with_children.get(notification.session.parent_id) is None:
+                    parents_with_children[notification.session.parent_id] = []
+                parents_with_children[notification.session.parent_id].append(notification.child_id)
+
+        # Записи о скрытии внеурочных занятий (для них уведомления не нужны)
+        _hidden_ea = await uow.hidden_extracurricular_activity_repository.get_hidden_ea(
+            [(parent_id, child_id) for parent_id, children in parents_with_children.items() for child_id in children],
+        )
+        hidden_ea = {(entry.parent_id, entry.child_id, entry.subject, entry.place) for entry in _hidden_ea}
 
         pushes: list[tuple[str, dict]] = []
         processed_ids: list[int] = []
@@ -157,20 +166,21 @@ class ExtracurricularActivityWorker:
             # Все сессии в классе, в котором проводится внеурочное занятие
             sessions = sessions_by_class.get(key, set())
 
-            for child_id, firebase_token in sessions:
-                pushes.append((firebase_token, {
-                    "subject": activity.subject,
-                    "place": activity.place,
-                    "minutes_left": minutes_left,
-                    "profile": child_id
-                }))
+            for parent_id, child_id, firebase_token in sessions:
+                if (parent_id, child_id, activity.subject, activity.place) not in hidden_ea:
+                    pushes.append((firebase_token, {
+                        "subject": activity.subject,
+                        "place": activity.place,
+                        "minutes_left": minutes_left,
+                        "profile": child_id
+                    }))
 
             processed_ids.append(row.ea_id)
 
         for ea_id in processed_ids:
             await uow.ea_processing_notification_repository.finish_process(ea_id)
 
-        for parent in parents:
+        for parent in parents_with_children:
             await uow.statistic_repository.add_statistic(parent, StatName.ea_notifications)
 
         return pushes
@@ -187,7 +197,18 @@ class ExtracurricularActivityWorker:
             title="Скоро внеурочное занятие",
             message=f"Через {activity['minutes_left']} мин начнётся {activity['subject']} в {activity['place']}",
             channel=AppNotificationChannel.extracurricular_activities,
-            data={"from_notification": "ea", "profile": str(activity['profile'])}
+            data={
+                "from_notification": "ea",
+                "profile": str(activity['profile']),
+                "buttons": json.dumps([{
+                    "text": "Скрыть внеурочную",
+                    "action": "hide_extracurricular_activity",
+                    "data": {
+                        "subject": activity['subject'],
+                        "place": activity['place']
+                    }
+                }])
+            }
         ) for firebase_token, activity in pushes])
 
     def stop(self):

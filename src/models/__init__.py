@@ -6,6 +6,7 @@ from .child_model import Child
 from .ea_notification_model import EANotification
 from .ea_processing_notification_model import EAProcessingNotification
 from .extracurricular_activity_model import ExtracurricularActivity
+from .hidden_extracurricular_activity_model import HiddenExtracurricularActivity
 from .highlighting_person_model import HighlightingPerson
 from .hour_model import Hour
 from .information_model import Information
