@@ -136,8 +136,7 @@ class RemindLessonNotesWorker:
 
         for row in rows:
             payload = {
-                "text": row.text,
-                "profile": row.child_id
+                "text": row.text
             }
 
             pushes.extend([(firebase_token, payload) for firebase_token in sessions[row.child_id]])
@@ -164,7 +163,7 @@ class RemindLessonNotesWorker:
             title="Напоминание о заметке",
             message=activity['text'],
             channel=AppNotificationChannel.notes,
-            data={"from_notification": "remind_note", "profile": str(activity['profile'])}
+            data={"from_notification": "remind_note"}
         ) for firebase_token, activity in pushes])
 
     def stop(self):
