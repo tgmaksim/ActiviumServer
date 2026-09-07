@@ -5,6 +5,7 @@ from typing import Callable, Optional
 
 from yarl import URL
 from httpx import AsyncClient
+from starlette.status import HTTP_404_NOT_FOUND
 
 from ...models import Parent
 from ...config.project_config import settings
@@ -110,13 +111,10 @@ class AdsService(BaseService[AppUnitOfWork]):
             ad = await uow.ad_repository.get_ad(ad_id)
 
             if ad is None:
-                return ClickAdApiResponse(
-                    status=False,
-                    error=ApiError(
-                        type="AdNotFoundError",
-                        errorMessage="Рекламное объявление не найдено"
-                    )
-                )
+                raise ApiError(
+                    type="AdNotFoundError",
+                    errorMessage="Рекламное объявление не найдено"
+                ).exception(HTTP_404_NOT_FOUND)
 
             await uow.ad_repository.click_ad(ad_id)
 

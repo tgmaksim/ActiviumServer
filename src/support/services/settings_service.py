@@ -3,6 +3,7 @@ from typing import Callable, Optional, Union
 
 from yarl import URL
 from httpx import AsyncClient
+from starlette.status import HTTP_404_NOT_FOUND
 
 from dnevnikru import AioDnevnikruApi, BaseDnevnikruException
 from ...config.project_config import settings
@@ -121,13 +122,10 @@ class SettingsService(BaseService[AppUnitOfWork]):
                     session_id=session_id,
                     value=f"Ребенок {child_id} не найден"
                 )
-                return SwitchActiveChildApiResponse(
-                    status=False,
-                    error=ApiError(
-                        type="ValueError",
-                        errorMessage="Ребенок не найден"
-                    )
-                )
+                raise ApiError(
+                    type="ValueError",
+                    errorMessage="Ребенок не найден"
+                ).exception(HTTP_404_NOT_FOUND)
 
             child = await uow.child_repository.get_child(child_id)
 
@@ -210,13 +208,10 @@ class SettingsService(BaseService[AppUnitOfWork]):
             # Проверка существования ребенка (профиля)
             if child_id != session.active_child_id:
                 if not await self._check_child(uow, session, child_id):
-                    return SwitchMarksNotificationsApiResponse(
-                        status=False,
-                        error=ApiError(
-                            type="ValueError",
-                            errorMessage="Ребенок не найден"
-                        )
-                    )
+                    raise ApiError(
+                        type="ValueError",
+                        errorMessage="Ребенок не найден"
+                    ).exception(HTTP_404_NOT_FOUND)
 
             await uow.marks_notification_repository.turn_on(session_id, child_id)
             await uow.statistic_repository.add_statistic(parent.parent_id, StatName.turnOnMarksNotifications)
@@ -270,13 +265,10 @@ class SettingsService(BaseService[AppUnitOfWork]):
             # Проверка существования ребенка (профиля)
             if child_id != session.active_child_id:
                 if not await self._check_child(uow, session, child_id):
-                    return SwitchEANotificationsApiResponse(
-                        status=False,
-                        error=ApiError(
-                            type="ValueError",
-                            errorMessage="Ребенок не найден"
-                        )
-                    )
+                    raise ApiError(
+                        type="ValueError",
+                        errorMessage="Ребенок не найден"
+                    ).exception(HTTP_404_NOT_FOUND)
 
             await uow.ea_notification_repository.turn_on(session_id, child_id)
             await uow.statistic_repository.add_statistic(parent.parent_id, StatName.turnOnEANotifications)

@@ -2,7 +2,10 @@ from typing import ClassVar, Literal, Optional
 
 from pydantic import Field
 
+from starlette.status import HTTP_500_INTERNAL_SERVER_ERROR
+
 from ..schemas.base_schema import ApiBase
+from ..api.api_exception import ApiException
 
 
 __all__ = ['ApiError']
@@ -37,3 +40,6 @@ class ApiError(ApiBase):
         description="Сообщение об ошибке для показа пользователю коротким оповещением",
         examples=["Сервер временно не доступен"]
     )
+
+    def exception(self, status_code: int = HTTP_500_INTERNAL_SERVER_ERROR) -> ApiException:
+        return ApiException(error=self, status_code=status_code)

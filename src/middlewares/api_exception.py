@@ -4,6 +4,7 @@ from fastapi import Request, Response
 from fastapi.responses import JSONResponse
 
 from ..api.api_key_error import ApiKeyError
+from ..api.api_exception import ApiException
 from ..api.session_error import SessionError
 from ..dependencies.uow import get_app_uow_factory
 from ..api.base_api_exception import BaseApiException
@@ -30,9 +31,10 @@ async def api_exception_handler(request: Request, exc: BaseApiException) -> Resp
         ).model_dump(by_alias=True), status_code=403)
 
     elif isinstance(exc, SessionError):
-        request.state.error = 'SessionError\n' + '\n'.join(traceback.format_exception(exc))  # Для логирования ошибки
+        # request.state.error = 'SessionError\n' + '\n'.join(traceback.format_exception(exc))  # Для логирования ошибки
 
-        async with get_app_uow_factory()() as uow:
+        uow_factory = get_app_uow_factory()
+        async with uow_factory() as uow:
             await uow.session_repository.kill_session(exc.session_id)  # life=false
 
         return JSONResponse(ApiResponse(
@@ -42,5 +44,11 @@ async def api_exception_handler(request: Request, exc: BaseApiException) -> Resp
                 errorMessage="Требуется повторная авторизация"
             )
         ).model_dump(by_alias=True), status_code=403)
+
+    elif isinstance(exc, ApiException):
+        return JSONResponse(ApiResponse(
+            status=False,
+            error=exc.error
+        ).model_dump(by_alias=True), status_code=exc.status_code)
 
     raise exc from exc  # Продвижение ошибки до middleware

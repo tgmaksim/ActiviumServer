@@ -22,7 +22,7 @@ class SessionRepository(SqlAlchemyRepository[Session]):
     def __init__(self, queue: AsyncDBQueue):
         super().__init__(queue, Session)
 
-    async def create_session(self, session_id: str) -> Session:
+    async def create_session(self, session_id: str) -> Optional[Session]:
         """
         Создать неавторизованную сессию
 
@@ -32,7 +32,7 @@ class SessionRepository(SqlAlchemyRepository[Session]):
 
         return await self.create({
             'session_id': session_id
-        })
+        }, security=['session_id'], security_nothing=True)
 
     async def get_session(self, session_id: str, only_life: bool = True) -> Optional[Session]:
         """

@@ -1,9 +1,11 @@
 import traceback
+
 from asyncio import gather
 from datetime import datetime
 
 from httpx import AsyncClient
 from typing import Callable, Optional, Union
+from starlette.status import HTTP_404_NOT_FOUND, HTTP_403_FORBIDDEN, HTTP_400_BAD_REQUEST, HTTP_500_INTERNAL_SERVER_ERROR
 
 from ...utils.zip_int import unzip_int
 from ...dependencies.auth import check_session
@@ -73,13 +75,10 @@ class DnevnikToolsService(BaseService[AppUnitOfWork]):
                     value=f"lesson_key: {lesson_key}\n"
                           f"{e.__class__.__name__}: {e}"
                 )
-                return answer_type(
-                    status=False,
-                    error=ApiError(
-                        type="ValueError",
-                        errorMessage="Урок не найден"
-                    )
-                )
+                raise ApiError(
+                    type="ValueError",
+                    errorMessage="Урок не найден"
+                ).exception(HTTP_404_NOT_FOUND)
 
             # Если заметка уже создана ребенком (владельцем профиля) и является закрытой
             note = await uow.lesson_note_repository.get_note(child.child_id, lesson_id)
@@ -89,13 +88,10 @@ class DnevnikToolsService(BaseService[AppUnitOfWork]):
                     session_id=session_id,
                     value=f"Попытка изменить закрытую заметку {lesson_key}"
                 )
-                return answer_type(
-                    status=False,
-                    error=ApiError(
-                        type="NoteAccessDeniedError",
-                        errorMessage="Заметка на данный урок уже создана ребенком"
-                    )
-                )
+                raise ApiError(
+                    type="NoteAccessDeniedError",
+                    errorMessage="Заметка на данный урок уже создана ребенком"
+                ).exception(HTTP_403_FORBIDDEN)
 
             dnr = AioDnevnikruApi(self.httpx_client, session.dnevnik_token)
 
@@ -113,13 +109,10 @@ class DnevnikToolsService(BaseService[AppUnitOfWork]):
                         status=False,
                         value=f"Урок {lesson_id} для создания заметки не найден"
                     )
-                    return answer_type(
-                        status=False,
-                        error=ApiError(
-                            type="ValueError",
-                            errorMessage="Урок не найден"
-                        )
-                    )
+                    raise ApiError(
+                        type="ValueError",
+                        errorMessage="Урок не найден"
+                    ).exception(HTTP_404_NOT_FOUND)
                 raise
 
             await uow.lesson_note_repository.create_note(child.child_id, lesson_id, text, public, remind_time)
@@ -162,13 +155,10 @@ class DnevnikToolsService(BaseService[AppUnitOfWork]):
                     value=f"lesson_key: {lesson_key}\n"
                           f"{e.__class__.__name__}: {e}"
                 )
-                return answer_type(
-                    status=False,
-                    error=ApiError(
-                        type="ValueError",
-                        errorMessage="Урок не найден"
-                    )
-                )
+                raise ApiError(
+                    type="ValueError",
+                    errorMessage="Неправильный идентификатор урока"
+                ).exception(HTTP_400_BAD_REQUEST)
 
             note = await uow.lesson_note_repository.get_note(child.child_id, lesson_id)
 
@@ -203,13 +193,10 @@ class DnevnikToolsService(BaseService[AppUnitOfWork]):
                     value=f"lesson_key: {lesson_key}\n"
                           f"{e.__class__.__name__}: {e}"
                 )
-                return DeleteNoteApiResponse(
-                    status=False,
-                    error=ApiError(
-                        type="ValueError",
-                        errorMessage="Урок не найден"
-                    )
-                )
+                raise ApiError(
+                    type="ValueError",
+                    errorMessage="Неправильный идентификатор урока"
+                ).exception(HTTP_400_BAD_REQUEST)
 
             note = await uow.lesson_note_repository.get_note(child.child_id, lesson_id)
 
@@ -218,13 +205,10 @@ class DnevnikToolsService(BaseService[AppUnitOfWork]):
                 note = None
 
             if note is None:
-                return DeleteNoteApiResponse(
-                    status=False,
-                    error=ApiError(
-                        type="NoteNotFoundError",
-                        errorMessage="Заметка к уроку не найдена"
-                    )
-                )
+                raise ApiError(
+                    type="NoteNotFoundError",
+                    errorMessage="Заметка к уроку не найдена"
+                ).exception(HTTP_404_NOT_FOUND)
 
             await uow.lesson_note_repository.delete_note(child.child_id, lesson_id)
 
@@ -251,13 +235,10 @@ class DnevnikToolsService(BaseService[AppUnitOfWork]):
                     status=False,
                     value=f"{lesson_key} {rating_key}"
                 )
-                return answer_type(
-                    status=False,
-                    error=ApiError(
-                        type="ValueError",
-                        errorMessage="Неизвестный идентификатор оценки"
-                    )
-                )
+                raise ApiError(
+                    type="ValueError",
+                    errorMessage="Неизвестный идентификатор оценки"
+                ).exception(HTTP_400_BAD_REQUEST)
 
             try:
                 lesson_id = lesson_key and unzip_int(lesson_key)
@@ -274,13 +255,10 @@ class DnevnikToolsService(BaseService[AppUnitOfWork]):
                           f"lesson_key: {lesson_key}\n"
                           f"{e.__class__.__name__}: {e}"
                 )
-                return answer_type(
-                    status=False,
-                    error=ApiError(
-                        type="ValueError",
-                        errorMessage="Урок или работа не найдены"
-                    )
-                )
+                raise ApiError(
+                    type="ValueError",
+                    errorMessage="Неправильный идентификатор урока или работы"
+                ).exception(HTTP_400_BAD_REQUEST)
 
             dnr = AioDnevnikruApi(self.httpx_client, session.dnevnik_token)
 
@@ -307,13 +285,10 @@ class DnevnikToolsService(BaseService[AppUnitOfWork]):
                         status=False,
                         value='\n'.join(traceback.format_exception(e))
                     )
-                    return answer_type(
-                        status=False,
-                        error=ApiError(
-                            type="ValueError",
-                            errorMessage="Урок не найден"
-                        )
-                    )
+                    raise ApiError(
+                        type="ValueError",
+                        errorMessage="Урок не найден"
+                    ).exception(HTTP_404_NOT_FOUND)
                 raise
 
             if lesson_id is not None:
@@ -331,13 +306,10 @@ class DnevnikToolsService(BaseService[AppUnitOfWork]):
                     status=False,
                     value=f"Не найдены оценки для похвалы на уроке {lesson_id}"
                 )
-                return answer_type(
-                    status=False,
-                    error=ApiError(
-                        type="NoMarksError",
-                        errorMessage="Нет оценок для похвалы"
-                    )
-                )
+                raise ApiError(
+                    type="NoMarksError",
+                    errorMessage="Нет оценок для похвалы"
+                ).exception(HTTP_400_BAD_REQUEST)
 
             if parent.parent_id == child.child_id:
                 await uow.log_repository.add_log(
@@ -346,13 +318,10 @@ class DnevnikToolsService(BaseService[AppUnitOfWork]):
                     status=False,
                     value="Попытка отправить похвалу ребенком"
                 )
-                return answer_type(
-                    status=False,
-                    error=ApiError(
-                        type="ChildCanNotSendPraiseError",
-                        errorMessage="Ребенок не может отправить себе похвалу"
-                    )
-                )
+                raise ApiError(
+                    type="ChildCanNotSendPraiseError",
+                    errorMessage="Ребенок не может отправить себе похвалу"
+                ).exception(HTTP_403_FORBIDDEN)
 
             child_sessions = await uow.session_repository.get_sessions(child.child_id)  # Все сессии ребенка
             firebase_tokens = {
@@ -367,13 +336,10 @@ class DnevnikToolsService(BaseService[AppUnitOfWork]):
                     session_id=session_id,
                     value=f"Ребенок {child.child_id} не имеет активных сессий"
                 )
-                return answer_type(
-                    status=False,
-                    error=ApiError(
-                        type="NoSessionsError",
-                        errorMessage="Ребенок не имеет активных сессий в приложений"
-                    )
-                )
+                raise ApiError(
+                    type="NoSessionsError",
+                    errorMessage="Ребенок не имеет активных сессий в приложений"
+                ).exception(HTTP_400_BAD_REQUEST)
 
             message = self._build_praise_text(
                 child, parent, info, text, marks, subject, children_relatives
@@ -399,13 +365,10 @@ class DnevnikToolsService(BaseService[AppUnitOfWork]):
                 )
 
             if response.success_count == 0:
-                return answer_type(
-                    status=False,
-                    error=ApiError(
-                        type="SendPraiseError",
-                        errorMessage="Произошла ошибка. Попробуйте еще раз или повторите позднее"
-                    )
-                )
+                raise ApiError(
+                    type="SendPraiseError",
+                    errorMessage="Произошла ошибка. Попробуйте еще раз или повторите позднее"
+                ).exception(HTTP_500_INTERNAL_SERVER_ERROR)
 
             await uow.statistic_repository.add_statistic(parent.parent_id, StatName.sendPraise)
 
@@ -479,13 +442,10 @@ class DnevnikToolsService(BaseService[AppUnitOfWork]):
                     value=f"person_key: {person_key}\n"
                           f"{e.__class__.__name__}: {e}"
                 )
-                return HighlightPersonApiResponse(
-                    status=False,
-                    error=ApiError(
-                        type="ValueError",
-                        errorMessage="Одноклассник не найден"
-                    )
-                )
+                raise ApiError(
+                    type="ValueError",
+                    errorMessage="Неправильный идентификатор одноклассника"
+                ).exception(HTTP_400_BAD_REQUEST)
 
             dnr = AioDnevnikruApi(self.httpx_client, session.dnevnik_token)
 
@@ -503,13 +463,10 @@ class DnevnikToolsService(BaseService[AppUnitOfWork]):
                         status=False,
                         value='\n'.join(traceback.format_exception(e))
                     )
-                    return HighlightPersonApiResponse(
-                        status=False,
-                        error=ApiError(
-                            type="ValueError",
-                            errorMessage="Одноклассник не найден"
-                        )
-                    )
+                    raise ApiError(
+                        type="ValueError",
+                        errorMessage="Одноклассник не найден"
+                    ).exception(HTTP_404_NOT_FOUND)
                 raise
 
             await uow.highlighting_person_repository.highlight_person(parent.parent_id, person_id)
@@ -532,13 +489,10 @@ class DnevnikToolsService(BaseService[AppUnitOfWork]):
                     status=False,
                     value=f"person_key: {person_key}\n"
                           f"{e.__class__.__name__}: {e}")
-                return UnhighlightPersonApiResponse(
-                    status=False,
-                    error=ApiError(
-                        type="ValueError",
-                        errorMessage="Одноклассник не найден"
-                    )
-                )
+                raise ApiError(
+                    type="ValueError",
+                    errorMessage="Неправильный идентификатор одноклассника"
+                ).exception(HTTP_400_BAD_REQUEST)
 
             highlighting_person = await uow.highlighting_person_repository.get_highlighting_person(parent.parent_id, person_id)
             if highlighting_person is None:
@@ -548,13 +502,10 @@ class DnevnikToolsService(BaseService[AppUnitOfWork]):
                     status=False,
                     value=f"Одноклассник {person_id} не выделен"
                 )
-                return UnhighlightPersonApiResponse(
-                    status=False,
-                    error=ApiError(
-                        type="ValueError",
-                        errorMessage="Одноклассник не выделен"
-                    )
-                )
+                raise ApiError(
+                    type="ValueError",
+                    errorMessage="Одноклассник не выделен"
+                ).exception(HTTP_400_BAD_REQUEST)
 
             await uow.highlighting_person_repository.unhighlight_person(parent.parent_id, person_id)
 

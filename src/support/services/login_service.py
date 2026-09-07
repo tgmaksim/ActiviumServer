@@ -8,8 +8,6 @@ from typing import Callable, Optional, Union, Literal, TypedDict
 from yarl import URL
 from httpx import AsyncClient
 
-from sqlalchemy.exc import IntegrityError
-
 from ...config.project_config import settings
 
 from ..repositories.app_uow import AppUnitOfWork
@@ -97,11 +95,10 @@ class LoginService(BaseService[AppUnitOfWork]):
 
         for i in range(10):
             session_id = secrets.token_hex(16)
-            try:
-                await session_repository.create_session(session_id)
+
+            session = await session_repository.create_session(session_id)
+            if session is not None:
                 return session_id
-            except IntegrityError:
-                continue
 
         raise RuntimeError('session creation failed')
 

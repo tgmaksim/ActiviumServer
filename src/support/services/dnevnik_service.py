@@ -7,6 +7,7 @@ from typing import Callable, Optional, Literal, Union
 
 from yarl import URL
 from httpx import AsyncClient
+from starlette.status import HTTP_400_BAD_REQUEST
 from datetime import datetime, timedelta, time, date, UTC
 
 from dnevnikru.exceptions import BaseDnevnikruException
@@ -115,13 +116,10 @@ class DnevnikService(BaseService[AppUnitOfWork]):
                     status=False,
                     value=f"IntervalTooLong: {after} + {before} = {after + before}"
                 )
-                return answer_type(
-                    status=False,
-                    error=ApiError(
-                        type="IntervalTooLong",
-                        errorMessage=f"Максимальный размер интервала равен 30 дням ({after + before} дней запрошено)"
-                    )
-                )
+                raise ApiError(
+                    type="IntervalTooLong",
+                    errorMessage=f"Максимальный размер интервала равен 30 дням ({after + before} дней запрошено)"
+                ).exception(HTTP_400_BAD_REQUEST)
 
             session = await check_session(session_id, uow.session_repository)  # Проверка и получение сессии
             parent: Parent = session.parent
@@ -862,13 +860,10 @@ class DnevnikService(BaseService[AppUnitOfWork]):
                     value=f"rating_key: {rating_key}\n"
                           f"{e.__class__.__name__}: {e}"
                 )
-                return LessonRatingStatsApiResponse(
-                    status=False,
-                    error=ApiError(
-                        type="ValueError",
-                        errorMessage="Неверный ratingKey"
-                    )
-                )
+                raise ApiError(
+                    type="ValueError",
+                    errorMessage="Неверный ratingKey"
+                ).exception(HTTP_400_BAD_REQUEST)
 
             session = await check_session(session_id, uow.session_repository)  # Проверка и получение сессии
             parent: Parent = session.parent
@@ -1274,13 +1269,10 @@ class DnevnikService(BaseService[AppUnitOfWork]):
                     value=f"rating_key: {rating_key}\n"
                           f"{e.__class__.__name__}: {e}"
                 )
-                return answer_type(
-                    status=False,
-                    error=ApiError(
-                        type="ValueError",
-                        errorMessage="Неверный ratingKey"
-                    )
-                )
+                raise ApiError(
+                    type="ValueError",
+                    errorMessage="Неверный ratingKey"
+                ).exception(HTTP_400_BAD_REQUEST)
 
             session = await check_session(session_id, uow.session_repository)  # Проверка и получение сессии
             parent: Parent = session.parent
@@ -1432,13 +1424,10 @@ class DnevnikService(BaseService[AppUnitOfWork]):
                     value=f"rating_key: {rating_key}\n"
                           f"{e.__class__.__name__}: {e}"
                 )
-                return MarksSubjectRatingApiResponse(
-                    status=False,
-                    error=ApiError(
-                        type="ValueError",
-                        errorMessage="Неверный ratingKey"
-                    )
-                )
+                raise ApiError(
+                    type="ValueError",
+                    errorMessage="Неверный ratingKey"
+                ).exception(HTTP_400_BAD_REQUEST)
 
             session = await check_session(session_id, uow.session_repository)  # Проверка и получение сессии
             parent: Parent = session.parent
@@ -1458,13 +1447,10 @@ class DnevnikService(BaseService[AppUnitOfWork]):
                     value=f"rating_key: {rating_key}\n"
                           f"{e.__class__.__name__}: {e}"
                 )
-                return MarksSubjectRatingApiResponse(
-                    status=False,
-                    error=ApiError(
-                        type="ValueError",
-                        errorMessage="Неверный ratingKey"
-                    )
-                )
+                raise ApiError(
+                    type="ValueError",
+                    errorMessage="Неверный ratingKey"
+                ).exception(HTTP_400_BAD_REQUEST)
 
             start = datetime.fromisoformat(period['start']).date()
             finish = datetime.fromisoformat(period['finish']).date()

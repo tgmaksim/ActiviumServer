@@ -2,6 +2,7 @@ from typing import Annotated, Optional, Literal
 
 from fastapi import status
 from fastapi import APIRouter, Query, Depends, Body, Request, Header
+from starlette.status import HTTP_500_INTERNAL_SERVER_ERROR, HTTP_401_UNAUTHORIZED
 
 from ..schemas.reviews_schemas import (
     ReviewsApiResponse,
@@ -121,20 +122,17 @@ async def _public_likeReview0(
     session_id = request.cookies.get('session_id')
     request.state.session_id = session_id
     if csrf_token != csrfToken:
-        return LikeReviewApiResponse(
-            status=False,
-            error=ApiError(
-                type="CSRFInvalid"
-            )
-        )
+        raise ApiError(
+            type="CSRFInvalid",
+            errorMessage="Перезагрузите страницу и повторите запрос"
+        ).exception(HTTP_500_INTERNAL_SERVER_ERROR)
+
     if not isinstance(session_id, str):
-        return LikeReviewApiResponse(
-            status=False,
-            error=ApiError(
-                type="UnauthorizedError",
-                errorMessage="Требуется авторизация. Откройте сайт через приложение"
-            )
-        )
+        raise ApiError(
+            type="UnauthorizedError",
+            errorMessage="Требуется авторизация. Откройте сайт через приложение"
+        ).exception(HTTP_401_UNAUTHORIZED)
+
     return await service.like_review(session_id, reviewId)
 
 
@@ -172,21 +170,15 @@ async def _public_deleteReviewLike0(
     request.state.session_id = session_id
 
     if csrf_token != csrfToken:
-        return DeleteReviewLikeApiResponse(
-            status=False,
-            error=ApiError(
-                type="CSRFInvalid",
-                errorMessage="Перезагрузите страницу и повторите запрос"
-            )
-        )
+        raise ApiError(
+            type="CSRFInvalid",
+            errorMessage="Перезагрузите страницу и повторите запрос"
+        ).exception(HTTP_500_INTERNAL_SERVER_ERROR)
 
     if not isinstance(session_id, str):
-        return DeleteReviewLikeApiResponse(
-            status=False,
-            error=ApiError(
-                type="UnauthorizedError",
-                errorMessage="Требуется авторизация. Откройте сайт через приложение (в настройках)"
-            )
-        )
+        raise ApiError(
+            type="UnauthorizedError",
+            errorMessage="Требуется авторизация. Откройте сайт через приложение (в настройках)"
+        ).exception(HTTP_401_UNAUTHORIZED)
 
     return await service.delete_review_like(session_id, reviewId)

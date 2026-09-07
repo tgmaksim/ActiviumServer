@@ -4,6 +4,7 @@ from typing import Callable, Optional, Literal
 
 from html import escape
 from httpx import AsyncClient
+from starlette.status import HTTP_404_NOT_FOUND, HTTP_400_BAD_REQUEST, HTTP_409_CONFLICT
 
 from tgbot.notifier import send_admin_message
 from aiogram.utils.formatting import Text, CustomEmoji, BlockQuote
@@ -202,13 +203,10 @@ class ReviewsService(BaseService[AppUnitOfWork]):
                     session_id=session_id,
                     value="Попытка удалить отзыв при его отсутствии"
                 )
-                return DeleteReviewApiResponse(
-                    status=False,
-                    error=ApiError(
-                        type="ReviewNotFoundError",
-                        errorMessage="Вы еще не написали отзыв, чтобы его удалить"
-                    )
-                )
+                raise ApiError(
+                    type="ReviewNotFoundError",
+                    errorMessage="Вы еще не написали отзыв, чтобы его удалить"
+                ).exception(HTTP_404_NOT_FOUND)
 
             await uow.review_repository.delete_review(parent.parent_id)
 
@@ -286,13 +284,10 @@ class ReviewsService(BaseService[AppUnitOfWork]):
                     session_id=session_id,
                     value=f"Отзыв {review_id} не найден"
                 )
-                return LikeReviewApiResponse(
-                    status=False,
-                    error=ApiError(
-                        type="ReviewNotFoundError",
-                        errorMessage="Отзыв не найден"
-                    )
-                )
+                raise ApiError(
+                    type="ReviewNotFoundError",
+                    errorMessage="Отзыв не найден"
+                ).exception(HTTP_404_NOT_FOUND)
 
             if review_id == parent.parent_id:
                 await uow.log_repository.add_log(
@@ -300,13 +295,10 @@ class ReviewsService(BaseService[AppUnitOfWork]):
                     session_id=session_id,
                     value="Попытка поставить реакцию на свой отзыв"
                 )
-                return LikeReviewApiResponse(
-                    status=False,
-                    error=ApiError(
-                        type="SelfReviewError",
-                        errorMessage="Нельзя поставить реакцию на свой отзыв"
-                    )
-                )
+                raise ApiError(
+                    type="SelfReviewError",
+                    errorMessage="Нельзя поставить реакцию на свой отзыв"
+                ).exception(HTTP_400_BAD_REQUEST)
 
             like = await uow.review_like_repository.get_like(session.parent_id, review_id)
             if like is None:
@@ -317,13 +309,10 @@ class ReviewsService(BaseService[AppUnitOfWork]):
                     session_id=session_id,
                     value=f"Повторная попытка поставить реакцию на отзыв {review_id}"
                 )
-                return LikeReviewApiResponse(
-                    status=False,
-                    error=ApiError(
-                        type="ReviewLikeAlreadyExistsError",
-                        errorMessage="Реакция на данный отзыв уже поставлена"
-                    )
-                )
+                raise ApiError(
+                    type="ReviewLikeAlreadyExistsError",
+                    errorMessage="Реакция на данный отзыв уже поставлена"
+                ).exception(HTTP_409_CONFLICT)
 
             # Увеличение числа реакций на отзыве
             review = await uow.review_repository.like_review(review_id)
@@ -358,13 +347,10 @@ class ReviewsService(BaseService[AppUnitOfWork]):
                     status=False,
                     value=f"Отзыв {review_id} не найден"
                 )
-                return DeleteReviewLikeApiResponse(
-                    status=False,
-                    error=ApiError(
-                        type="ReviewNotFoundError",
-                        errorMessage="Отзыв не найден"
-                    )
-                )
+                raise ApiError(
+                    type="ReviewNotFoundError",
+                    errorMessage="Отзыв не найден"
+                ).exception(HTTP_404_NOT_FOUND)
 
             review_like = await uow.review_like_repository.get_like(parent.parent_id, review_id)
             if review_like is not None:
@@ -376,13 +362,10 @@ class ReviewsService(BaseService[AppUnitOfWork]):
                     status=False,
                     value=f"Реакция на отзыв {review_id} не найдена"
                 )
-                return DeleteReviewLikeApiResponse(
-                    status=False,
-                    error=ApiError(
-                        type="ReviewLikeNotFoundError",
-                        errorMessage="Реакция на отзыв не найдена"
-                    )
-                )
+                raise ApiError(
+                    type="ReviewLikeNotFoundError",
+                    errorMessage="Реакция на отзыв не найдена"
+                ).exception(HTTP_404_NOT_FOUND)
 
             # Уменьшение числа реакций на отзыве
             review = await uow.review_repository.delete_like(review_id)

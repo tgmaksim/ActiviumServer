@@ -38,6 +38,10 @@
 ## 📱 Мобильное приложение
 Полная реализация возможностей сервера доступна в мобильном приложении [«Активиум»](https://github.com/tgmaksim/Activium)
 
+## 📸 Скриншоты _клиента_
+<img src="www/assets/screenshots/screen31.jpg" width="11%"> <img src="www/assets/screenshots/screen43.jpg" width="11%"> <img src="www/assets/screenshots/screen50.jpg" width="11%"> <img src="www/assets/screenshots/screen33.jpg"  width="11%"> <img src="www/assets/screenshots/screen34.jpg" width="11%"> <img src="www/assets/screenshots/screen35.jpg" width="11%"> <img src="www/assets/screenshots/screen54.jpg" width="11%"> <img src="www/assets/screenshots/screen52.jpg" width="11%"> <br>
+Темная тема имеется, можно посмотреть на сайте
+
 ## 🌐 Сайт
 Официальный сайт доступен по адресу [activium.tgmaksim.ru](https://activium.tgmaksim.ru)
 

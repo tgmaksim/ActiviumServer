@@ -5,6 +5,7 @@ from typing import Callable, Optional
 from yarl import URL
 from httpx import AsyncClient
 from fastapi import HTTPException
+from starlette.status import HTTP_404_NOT_FOUND
 
 from ...utils.datetime import astimezone
 from ...models.session_model import Session
@@ -293,13 +294,10 @@ class SchoolService(BaseService[AppUnitOfWork]):
                     status=False,
                     value=f"Пост {post_id} не найден"
                 )
-                return SeeSchoolPostApiResponse(
-                    status=False,
-                    error=ApiError(
-                        type="SchoolPostNotFoundError",
-                        errorMessage="Пост не найден"
-                    )
-                )
+                raise ApiError(
+                    type="SchoolPostNotFoundError",
+                    errorMessage="Пост не найден"
+                ).exception(HTTP_404_NOT_FOUND)
 
             await self._see_post(post_id, uow, session)
 
@@ -333,13 +331,10 @@ class SchoolService(BaseService[AppUnitOfWork]):
                     status=False,
                     value=f"Пост {post_id} не найден"
                 )
-                return ClickSchoolPostApiResponse(
-                    status=False,
-                    error=ApiError(
-                        type="SchoolPostNotFoundError",
-                        errorMessage="Пост не найден"
-                    )
-                )
+                raise ApiError(
+                    type="SchoolPostNotFoundError",
+                    errorMessage="Пост не найден"
+                ).exception(HTTP_404_NOT_FOUND)
 
             # Если пользователь открыл пост, значит он его увидел
             await self._see_post(post_id, uow, session)
@@ -375,13 +370,10 @@ class SchoolService(BaseService[AppUnitOfWork]):
                     status=False,
                     value=f"Пост {post_id} не найден"
                 )
-                return ViewSchoolPostApiResponse(
-                    status=False,
-                    error=ApiError(
-                        type="SchoolPostNotFoundError",
-                        errorMessage="Пост не найден"
-                    )
-                )
+                raise ApiError(
+                    type="SchoolPostNotFoundError",
+                    errorMessage="Пост не найден"
+                ).exception(HTTP_404_NOT_FOUND)
 
             # Если пост прочитан, то он был увиден и открыт
             await self._see_post(post_id, uow, session)
@@ -418,13 +410,10 @@ class SchoolService(BaseService[AppUnitOfWork]):
                     status=False,
                     value=f"Пост {post_id} не найден"
                 )
-                return LikeSchoolPostApiResponse(
-                    status=False,
-                    error=ApiError(
-                        type="SchoolPostNotFoundError",
-                        errorMessage="Пост не найден"
-                    )
-                )
+                raise ApiError(
+                    type="SchoolPostNotFoundError",
+                    errorMessage="Пост не найден"
+                ).exception(HTTP_404_NOT_FOUND)
 
             # Если на пост поставлена реакция, то он был увиден, открыт и прочитан
             await self._see_post(post_id, uow, session)
@@ -462,13 +451,10 @@ class SchoolService(BaseService[AppUnitOfWork]):
                     status=False,
                     value=f"Пост {post_id} не найден"
                 )
-                return UnlikeSchoolPostApiResponse(
-                    status=False,
-                    error=ApiError(
-                        type="SchoolPostNotFoundError",
-                        errorMessage="Пост не найден"
-                    )
-                )
+                raise ApiError(
+                    type="SchoolPostNotFoundError",
+                    errorMessage="Пост не найден"
+                ).exception(HTTP_404_NOT_FOUND)
 
             # Если удалена реакция с поста, то пост был увиден, открыт и прочитан
             await self._see_post(post_id, uow, session)
