@@ -230,7 +230,7 @@ class LoginService(BaseService[AppUnitOfWork]):
             timezone = (hours * 60 + minutes) * 60
 
             schools_id: list[int] = context['schoolIds']
-            school: dict = next(filter(lambda s: s['type'] == 'Regular' and s['id'] in schools_id, schools))
+            school: dict = next(filter(lambda s: s['type'] in ('Regular', 'Professional') and s['id'] in schools_id, schools))
             school_id = int(school['id'])
 
             groups_id: list[int] = school['groupIds']
