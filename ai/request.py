@@ -1,4 +1,4 @@
-from typing import Literal
+from typing import Literal, Optional
 
 from pydantic import BaseModel
 
@@ -24,7 +24,7 @@ class Message(BaseModel):
     """Текст сообщения"""
 
 
-async def request(messages: list[Message]) -> str:
+async def request(messages: list[Message]) -> Optional[str]:
     """
     Запрос к ИИ с входными данными в виде чата
 

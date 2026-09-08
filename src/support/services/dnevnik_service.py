@@ -27,10 +27,11 @@ from ...dependencies.httpx import get_httpx_client
 from ...utils.datetime import datetime_now, astimezone
 from ...repositories.statistic_repository import StatName
 
-from ...models import LessonNote
 from ...models.hour_model import Hour
 from ...services.base_service import BaseService
 from ..repositories.app_uow import AppUnitOfWork
+from ...models.lesson_note_model import LessonNote
+from ...models.school_post_model import SchoolPost as SchoolPostModel
 from ..repositories.cache_repository import CacheRepository
 from ..repositories.highlighting_person_repository import HighlightingPersonRepository
 from ..repositories.extracurricular_activity_repository import ExtracurricularActivityRepository
@@ -147,7 +148,7 @@ class DnevnikService(BaseService[AppUnitOfWork]):
             active_period: dict  # Текущий отчетный период
             ea: dict[date, list[ScheduleExtracurricularActivity]]  # Внеурочные занятия по дням
             school_hours: list[Hour]  # Дополнительное звонковое расписание, отличное от Дневника.ру
-            posts: dict[date, list[SchoolPost]]  # Посты с мероприятиями по дате
+            posts: dict[date, list[SchoolPostModel]]  # Посты с мероприятиями по дате
             my_likes: list[int]  # Посты с реакцией пользователя
             my_visions: list[int]  # Посты, которые были увидены
 
@@ -225,7 +226,7 @@ class DnevnikService(BaseService[AppUnitOfWork]):
             api: Optional[int],
             person_schedule: dict, school_hours: list[Hour], notes: dict[int, LessonNote], active_period: dict,
             files: dict[int, list[ScheduleHomeworkDocument]], ea: dict[date, list[ScheduleExtracurricularActivity]],
-            posts: dict[date, list[SchoolPost]], my_likes: list[int], my_visions: list[int],
+            posts: dict[date, list[SchoolPostModel]], my_likes: list[int], my_visions: list[int],
             marks: dict[int, list[MarkLog]], others_marks: dict[int, list[MarksOther]]
     ) -> list[Union[ScheduleDay, ScheduleDay0x11]]:
         """Обработка полученных данных для создания расписания"""
@@ -1170,10 +1171,11 @@ class DnevnikService(BaseService[AppUnitOfWork]):
         finish = datetime.fromisoformat(active_period['finish']).date()
 
         # Оценки за отчетный период, средние баллы и оценки за отчетный период
-        _marks, _avg_marks, final_marks = await gather(
+        _marks, _avg_marks, final_marks, _subjects = await gather(
             dnr.get_person_marks(child.child_id, child.group_id, start, finish),
             dnr.get_group_avg_marks(child.group_id, start, finish),
-            dnr.get_person_final_marks(child.child_id, child.group_id)
+            dnr.get_person_final_marks(child.child_id, child.group_id),
+            dnr.get_subjects(child.group_id)
         )
 
         avg_marks: dict[int, dict] = {}  # Средние баллы ребенка (профиля)
@@ -1193,6 +1195,7 @@ class DnevnikService(BaseService[AppUnitOfWork]):
         )
 
         lessons = {lesson['id']: lesson for lesson in _lessons}
+        subjects = {subject['id']: subject['name'] for subject in _subjects}
 
         # Все оценки по предметам за отчетный период
         marks: dict[int, list[dict]] = {}
@@ -1202,7 +1205,6 @@ class DnevnikService(BaseService[AppUnitOfWork]):
                 marks[subject_id] = []
             marks[subject_id].append(mark)
 
-        subjects = {subject['id']: subject['name'] for subject in final_marks['subjects']}
         works = {work['id']: work for work in final_marks['works'] if work['periodNumber'] == active_period['number']}
         period_marks = {work['subjectId']: mark for mark in final_marks['marks'] if (work := works.get(mark['work']))}
 
