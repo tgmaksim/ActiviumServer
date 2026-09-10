@@ -396,7 +396,7 @@ class LoginService(BaseService[AppUnitOfWork]):
     async def create_marks_notifications_information(cls, information_repository: InformationRepository, person_id: int):
         """Создание информационного оповещения через некоторое время о том, что можно включить функцию уведомлений о новых оценках"""
 
-        time = datetime.now(UTC) + timedelta(days=7)
+        time = datetime.now(UTC) + timedelta(days=3)
         type_ = "marks_notifications"
         title = "🔔 Не пропустите оценки"
         text = "Включите уведомления о новых оценках в настройках, чтобы получать уведомления после выставления учителем"
@@ -406,7 +406,7 @@ class LoginService(BaseService[AppUnitOfWork]):
     async def create_information_invite(cls, information_repository: InformationRepository, person_id: int):
         """Создание информационного оповещения через некоторое время о том, что можно приглашать знакомых в сервис"""
 
-        time = datetime.now(UTC) + timedelta(days=7)
+        time = datetime.now(UTC) + timedelta(days=5)
         type_ = "invite"
         title = "Поделитесь возможностями ⚡"
         text = f"Приглашайте друзей и знакомых в {settings.PROJECT_NAME_RU}, чтобы поделиться возможностями сервиса (см. настройки)"
