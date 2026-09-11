@@ -363,7 +363,7 @@ class DnevnikService(BaseService[AppUnitOfWork]):
                     lessonKey=lesson_key,
                     number=lesson['number'] - 1,  # Начало с 0, а не с 1, как в Дневнике.ру
                     subject=subjects.get(lesson['subjectId'], "Неизвестный предмет"),
-                    place=lesson['place'],
+                    place=lesson['place'] or "",
                     works=list(lesson_works.union(log_works)),  # Объединение множеств с типами работ
                     hours=lesson_hours,
                     logs=lesson_marks + logs.get(lesson['id'], []),
