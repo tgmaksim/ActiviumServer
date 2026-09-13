@@ -2,7 +2,7 @@ from datetime import datetime
 
 from sqlalchemy import select, func
 
-from tgbot.notifier import send_admin_message
+from ..integration.telegram import admin_notifier
 
 from .db_queue import AsyncDBQueue
 from .sqlalchemy_repository import SqlAlchemyRepository
@@ -19,25 +19,29 @@ class NotificationRepository(SqlAlchemyRepository[Notification]):
     def __init__(self, queue: AsyncDBQueue):
         super().__init__(queue, Notification)
 
-    async def get_count(self) -> tuple[int, datetime, datetime, int]:
+    async def get_count(self) -> tuple[int, datetime, datetime, int, int]:
         """
         Получение статистики необработанных логов
 
         :return: общее количество всех необработанных собранных логов,
         max_crated_at и min_created_at (максимальное и минимальное время создания лога),
-        count_errors (количество логово со статусом ошибки)
+        count_errors (количество логово со статусом ошибки),
+        count_real_errors (количество логов со статусом ошибки кроме 404 Not Found)
         """
+
+        e404 = "404: Not Found"
 
         statement = select(
             func.count(Notification.log_id).label('count_all'),
             func.max(Notification.created_at).label('max_created_at'),
             func.min(Notification.created_at).label('min_created_at'),
-            func.count(Notification.log_id).filter(Notification.status.is_(False)).label('count_errors')
+            func.count(Notification.log_id).filter(Notification.status.is_(False)).label('count_errors'),
+            func.count(Notification.log_id).filter(Notification.status.is_(False), Notification.value != e404).label('count_real_errors')
         )
 
         res = await self.queue.execute(statement)
         row = res.mappings().one()
-        return row['count_all'], row['max_created_at'], row['min_created_at'], row['count_errors']
+        return row['count_all'], row['max_created_at'], row['min_created_at'], row['count_errors'], row['count_real_errors']
 
     async def delete_notifications(self, max_created_at: datetime) -> int:
         """Удаление всех необработанных логов до max_created_at"""
@@ -48,4 +52,4 @@ class NotificationRepository(SqlAlchemyRepository[Notification]):
     async def notify(message: str, parse_mode: str = None):
         """Отправка отчета администраторам"""
 
-        return await send_admin_message(message, parse_mode=parse_mode)
+        return await admin_notifier.send_to_admin(message, parse_mode=parse_mode)

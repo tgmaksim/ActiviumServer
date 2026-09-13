@@ -255,7 +255,7 @@ class LoginService(BaseService[AppUnitOfWork]):
             # Возвращается информация о каждом ребенке
             for child in children:
                 schools_id: list[int] = child['schoolIds']
-                school: dict = next(filter(lambda s: s['type'] == 'Regular' and s['id'] in schools_id, schools))
+                school: dict = next(filter(lambda s: s['type'] in ('Regular', 'Professional') and s['id'] in schools_id, schools))
                 school_id = int(school['id'])
 
                 groups_id: list[int] = child['groupIds']

@@ -58,8 +58,8 @@ class SettingsService(BaseService[AppUnitOfWork]):
             dnr = AioDnevnikruApi(self.httpx_client, session.dnevnik_token)
 
             try:
-                children, info = await gather(
-                    dnr.get_children(parent.parent_id),
+                context, info = await gather(
+                    dnr.get_context(),
                     dnr.get_info()
                 )
             except BaseDnevnikruException as e:  # Если возникла ошибка, проверяется авторизация сессии
@@ -67,18 +67,26 @@ class SettingsService(BaseService[AppUnitOfWork]):
                     raise SessionError(session_id=session.session_id) from e
                 raise
 
+            if len(context['children']) == 0:  # Пользователь является ребенком
+                children = [Child(
+                    childId=info['personId'],
+                    name=info['shortName']
+                )]
+            else:
+                children = [
+                    Child(
+                        childId=child['personId'],
+                        name=child['shortName']
+                    )
+                    for child in context['children']
+                ]
+
             await uow.statistic_repository.add_statistic(parent.parent_id, StatName.getChildren)
 
             # Для родителя возвращаются дети, а для ребенка — собственный профиль
             return ChildrenApiResponse(
                 answer=ChildrenResult(
-                    children=[Child(
-                        childId=int(child['id']),
-                        name=child['shortName']
-                    ) for child in children] or [Child(
-                        childId=int(info['personId']),
-                        name=info['shortName']
-                    )],
+                    children=children,
                     activeChildId=session.active_child_id
                 )
             )
@@ -91,8 +99,8 @@ class SettingsService(BaseService[AppUnitOfWork]):
             dnr = AioDnevnikruApi(self.httpx_client, session.dnevnik_token)
 
             try:
-                children, info = await gather(
-                    dnr.get_children(parent.parent_id),
+                context, info = await gather(
+                    dnr.get_context(),
                     dnr.get_info()
                 )
             except BaseDnevnikruException as e:  # Если возникла ошибка, проверяется авторизация сессии
@@ -101,7 +109,7 @@ class SettingsService(BaseService[AppUnitOfWork]):
                 raise
 
             # Если запрос от ребенка (владельца профиля)
-            if parent.parent_id == child_id and len(children) == 0:
+            if parent.parent_id == child_id and len(context['children']) == 0:
                 return SwitchActiveChildApiResponse(
                     answer=ChildrenResult(
                         children=[Child(
@@ -114,7 +122,7 @@ class SettingsService(BaseService[AppUnitOfWork]):
 
             # Проверка существования ребенка (профиля), которого требуется установить
             try:
-                next(filter(lambda c: c['id'] == child_id, children))
+                next(filter(lambda c: c['personId'] == child_id, context['children']))
             except StopIteration:
                 await uow.log_repository.add_log(
                     path='setActiveChild',
@@ -131,7 +139,7 @@ class SettingsService(BaseService[AppUnitOfWork]):
 
             # Если ребенок (профиль) еще не добавлен
             if child is None:
-                context = await dnr.get_context()
+                children = await dnr.get_children(parent.parent_id)
                 schools = context['schools']
 
                 for context_child in context['children']:
@@ -139,7 +147,7 @@ class SettingsService(BaseService[AppUnitOfWork]):
                         continue
 
                     schools_id: list[int] = context_child['schoolIds']
-                    school: dict = next(filter(lambda s: s['type'] == 'Regular' and s['id'] in schools_id, schools))
+                    school: dict = next(filter(lambda s: s['type'] in ('Regular', 'Professional') and s['id'] in schools_id, schools))
                     school_id = int(school['id'])
 
                     groups_id: list[int] = school['groupIds']
@@ -168,9 +176,9 @@ class SettingsService(BaseService[AppUnitOfWork]):
             return SwitchActiveChildApiResponse(
                 answer=ChildrenResult(
                     children=[Child(
-                        childId=int(child['id']),
+                        childId=int(child['personId']),
                         name=child['shortName']
-                    ) for child in children],
+                    ) for child in context['children']],
                     activeChildId=child_id
                 )
             )
