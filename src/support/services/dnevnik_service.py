@@ -1621,7 +1621,8 @@ class DnevnikService(BaseService[AppUnitOfWork]):
 
             work_types = await self._get_work_types(uow.cache_repository, dnr, session, child, work_types_id)
 
-            final_marks: dict[int, dict[int, MarkLog]] = {}
+            # Итоговые оценки заполняются предметами, чтобы показать даже пустые данные (до выставления оценок)
+            final_marks: dict[int, dict[int, MarkLog]] = {subject_id: {} for subject_id in subjects}
 
             for mark in marks['marks']:
                 work = works.get(mark['work'])
