@@ -52,6 +52,8 @@ class LogService(BaseService[LogUnitOfWork]):
                 min_created_at=quote(str(min_created_at)), max_created_at=quote(str(max_created_at)))
             error_logs_open_url = settings.ERROR_LOGS_PGADMIN_OPEN.format(
                 min_created_at=quote(str(min_created_at)), max_created_at=quote(str(max_created_at)))
+            error_real_logs_open_url = settings.ERROR_REAL_LOGS_PGADMIN_OPEN.format(
+                min_created_at=quote(str(min_created_at)), max_created_at=quote(str(max_created_at)))
 
             from_date = min_created_at.astimezone(ADMIN_TIMEZONE).strftime('%e %b. %H:%M:%S')
             ru_logs = 'лога' if 2 <= count_all % 10 <= 4 else ('лог' if count_all % 10 == 1 else 'логов')
@@ -95,8 +97,9 @@ class LogService(BaseService[LogUnitOfWork]):
                 await uow.notification_repository.notify(text[i:i + 4096])
 
             await uow.notification_repository.notify(
-                f"<a href=\"{html.quote(logs_open_url)}\">Открыть логи</a>\n"
-                f"<a href=\"{html.quote(error_logs_open_url)}\">Открыть логи с ошибками</a>",
+                f"<a href=\"{html.quote(logs_open_url)}\">Все логи</a>\n"
+                f"<a href=\"{html.quote(error_logs_open_url)}\">Логи с ошибками</a>"
+                f"<a href=\"{html.quote(error_real_logs_open_url)}\">Логи с реальными ошибками</a>",
                 parse_mode='html'
             )
 

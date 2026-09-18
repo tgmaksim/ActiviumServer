@@ -482,8 +482,8 @@ class LoginService(BaseService[AppUnitOfWork]):
         schools: list[dict] = context['schools']
         roles = list(map(str, context['roles']))
 
-        # Необходимые роли
-        if 'EduStaff' not in roles and 'EduSchoolAdministrator' not in roles and not settings.DEBUG:
+        # Необходимые роли (для DEBUG проверка пропускается)
+        if not settings.DEBUG and 'EduStaff' not in roles and 'EduSchoolAdministrator' not in roles:
             return "no_admin"
 
         schools_id: list[int] = context['schoolIds']

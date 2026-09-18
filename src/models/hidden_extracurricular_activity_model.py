@@ -16,7 +16,7 @@ class HiddenExtracurricularActivity(BaseModel):
 
     session_id: Mapped[str] = mapped_column(
         String(32),
-        comment="Идентификатор пользователя"
+        comment="Идентификатор сессии пользователя"
     )
     child_id: Mapped[int] = mapped_column(
         BigInteger,

@@ -118,6 +118,15 @@ class SessionRepository(SqlAlchemyRepository[Session]):
 
         return await self.update({'life': False}, Session.session_id == session_id)
 
+    async def kill_sessions_by_firebase_token(self, firebase_token: str):
+        """
+        Пометить все сессии с данным firebase_token как неработающие с флагом life=false
+
+        :param firebase_token:
+        """
+
+        return await self.delete(Session.firebase_token == firebase_token)
+
     async def check_session_auth(self, session_id: str, dnr: AioDnevnikruApi = None) -> bool:
         """
         Проверить авторизацию сессии пользователя в Дневнике.ру

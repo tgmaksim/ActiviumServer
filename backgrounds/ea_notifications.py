@@ -10,6 +10,8 @@ from datetime import datetime, timedelta, UTC
 from httpx import AsyncClient
 from asyncio import AbstractEventLoop, Task
 
+from backgrounds.base_background import BaseBackground
+
 from firebase.messaging import send_notifications, Notification, AppNotificationChannel, FCMResult
 
 from src.services.log_service import LogService
@@ -26,7 +28,7 @@ WINDOW_END_MINUTES = 15
 __all__ = ['EAProcessingNotification', 'add_work']
 
 
-class ExtracurricularActivityWorker:
+class ExtracurricularActivityWorker(BaseBackground):
     """
     Класс для работы уведомлений с напоминаниями о внеурочных занятиях
 
@@ -37,23 +39,12 @@ class ExtracurricularActivityWorker:
     Так происходит пока ближайших внеурочных занятий не останется. После процесс приостанавливается на 8 минут
     """
 
-    def __init__(self, uow_factory: Callable[[], AppUnitOfWork], httpx_client: AsyncClient):
-        self._running = False
-        self.uow_factory = uow_factory
-        self.httpx_client = httpx_client
+    @classmethod
+    def name(cls) -> str:
+        return 'ea_notifications'
 
     async def run(self):
-        self._running = True
-
-        service = LogService(get_log_uow_factory())
-        await service.log(
-            ip='ea_notifications',
-            path='ea_notifications',
-            value="Worker запущен"
-        )
-        print("ea_notifications запущен")
-
-        try:
+        async with self.run_context():
             while self._running:
                 start = time.monotonic()
 
@@ -74,22 +65,16 @@ class ExtracurricularActivityWorker:
                             # Уведомления, которые нужно отправить
                             pushes = await self._process_batch(uow, rows)
 
-                            # Результат отправки каждого уведомления
-                            response = await self._dispatch_pushes(pushes)
+                        # Результат отправки каждого уведомления
+                        response = await self._dispatch_pushes(pushes)
 
-                            for firebase_token, result in (response.results if response else []):
-                                status = result.exception is None
-                                await uow.log_repository.add_log(
-                                    ip='ea_notifications',
-                                    path=firebase_token,
-                                    status=status,
-                                    value=f"{result.exception}: {result.exception.http_response} {result.exception.cause} "
-                                          f"{result.exception.http_response.__dict__}" if not status else str(result))
+                        # Обработка результатов отправки уведомлений
+                        await self.process_pushes(response)
                 except Exception as e:
                     service = LogService(get_log_uow_factory())
                     await service.log(
-                        ip='ea_notifications',
-                        path='ea_notifications',
+                        ip=self.name(),
+                        path=self.name(),
                         status=False,
                         value='\n'.join(traceback.format_exception(e))
                     )
@@ -97,22 +82,6 @@ class ExtracurricularActivityWorker:
                 elapsed = time.monotonic() - start
 
                 await asyncio.sleep(CYCLE_SECONDS - elapsed)
-        except Exception as e:
-            service = LogService(get_log_uow_factory())
-            await service.log(
-                ip='ea_notifications',
-                path='ea_notifications',
-                status=False,
-                value='\n'.join(traceback.format_exception(e))
-            )
-        finally:
-            print("ea_notifications остановлен")
-            service = LogService(get_log_uow_factory())
-            await service.log(
-                ip='ea_notifications',
-                path='ea_notifications',
-                value="Worker остановлен"
-            )
 
     @classmethod
     async def _process_batch(cls, uow: AppUnitOfWork, rows: list[EAProcessingNotification]) -> list[tuple[str, dict]]:
@@ -208,9 +177,6 @@ class ExtracurricularActivityWorker:
                 }])
             }
         ) for firebase_token, activity in pushes])
-
-    def stop(self):
-        self._running = False
 
 
 def add_work(loop: AbstractEventLoop, uow_factory: Callable[[], AppUnitOfWork], httpx_client: AsyncClient) -> Task:

@@ -15,6 +15,8 @@ from asyncio import AbstractEventLoop, gather, Task
 from PIL.ImageDraw import Draw
 from PIL import Image, ImageFont
 
+from backgrounds.base_background import BaseBackground
+
 from firebase.messaging import send_notifications, Notification, AppNotificationChannel, FCMResult
 
 from dnevnikru import AioDnevnikruApi, BaseDnevnikruException
@@ -35,7 +37,7 @@ CYCLE_SECONDS = 10 * 60
 __all__ = ['MarksNotificationWorker', 'add_work']
 
 
-class MarksNotificationWorker:
+class MarksNotificationWorker(BaseBackground):
     """
     Класс для работы уведомлений о новых оценках
 
@@ -48,60 +50,43 @@ class MarksNotificationWorker:
     count_workers - количество запущенных worker'ов уведомлений. Это позволяет равномерно распределить нагрузку
     """
 
-    def __init__(self, uow_factory: Callable[[], AppUnitOfWork], httpx_client: AsyncClient):
-        self._running = False
-        self.uow_factory = uow_factory
-        self.httpx_client = httpx_client
+    @classmethod
+    def name(cls) -> str:
+        return 'marks_notifications'
 
     async def run(self):
-        self._running = True
-
-        service = LogService(get_log_uow_factory())
-        await service.log(
-            ip='marks_notifications',
-            path='marks_notifications',
-            value="Worker запущен"
-        )
-        print("marks_notifications запущен")
-
-        try:
+        async with self.run_context():
             while self._running:
                 start = time.monotonic()
 
                 children_count = 0
 
+                rows: list[MarksNotification] = []
                 try:
                     async with self.uow_factory() as uow:
                         children_count = await self._children_count(uow)
                         # Сессии одного ребенка с включенными уведомлениями для следующей обработки
                         rows = await self._acquire_child(uow)
 
-                        try:
-                            # Уведомления, которые нужно отправить
-                            pushes, child_id = await self._process_child(uow, rows)
+                        # Уведомления, которые нужно отправить
+                        pushes, child_id = await self._process_child(uow, rows)
 
-                            # Результат отправки каждого уведомления
-                            response = await self._dispatch_pushes(pushes, child_id)
+                    # Результат отправки каждого уведомления
+                    response = await self._dispatch_pushes(pushes, child_id)
 
-                            for firebase_token, result in (response.results if response else []):
-                                status = result.exception is None
-                                await uow.log_repository.add_log(
-                                    ip='marks_notifications',
-                                    path=firebase_token,
-                                    status=status,
-                                    value=f"{result.exception}: {result.exception.http_response} {result.exception.cause} "
-                                          f"{result.exception.http_response.__dict__}" if not status else str(result)
-                                )
-                        except Exception:
-                            # Если произошла ошибка при обработке одного ребенка, то он пропускается:
-                            # его дата последне оценки не меняется, но обновляется updated_at
-                            await uow.marks_notification_repository.update_date(rows[0].child_id, None)
-                            raise
+                    # Обработка результатов отправленных уведомлений
+                    await self.process_pushes(response)
                 except Exception as e:
+                    if len(rows) > 0:
+                        # Если произошла ошибка при обработке одного ребенка, то он пропускается:
+                        # его дата последней оценки не меняется, но обновляется updated_at
+                        async with self.uow_factory() as uow:
+                            await uow.marks_notification_repository.update_date(rows[0].child_id, None)
+
                     service = LogService(get_log_uow_factory())
                     await service.log(
-                        ip='marks_notifications',
-                        path='marks_notifications',
+                        ip=self.name(),
+                        path=self.name(),
                         status=False,
                         value='\n'.join(traceback.format_exception(e))
                     )
@@ -110,22 +95,6 @@ class MarksNotificationWorker:
                 sleep_time = self._compute_sleep(children_count, elapsed)
 
                 await asyncio.sleep(sleep_time)
-        except Exception as e:
-            service = LogService(get_log_uow_factory())
-            await service.log(
-                ip='marks_notifications',
-                path='marks_notifications',
-                status=False,
-                value='\n'.join(traceback.format_exception(e))
-            )
-        finally:
-            print("marks_notifications остановлен")
-            service = LogService(get_log_uow_factory())
-            await service.log(
-                ip='marks_notifications',
-                path='marks_notifications',
-                value="Worker остановлен"
-            )
 
     @classmethod
     async def _children_count(cls, uow: AppUnitOfWork) -> int:
@@ -182,8 +151,8 @@ class MarksNotificationWorker:
                         await uow.session_repository.kill_session(session.session_id)
                     else:  # Логирование ошибки
                         await uow.log_repository.add_log(
-                            ip='marks_notifications',
-                            path='marks_notifications',
+                            ip=self.name(),
+                            path=self.name(),
                             session_id=session.session_id,
                             status=False,
                             value='\n'.join(traceback.format_exception(e))
@@ -203,10 +172,11 @@ class MarksNotificationWorker:
             newest_date = max(m['date'] for m in marks)
 
             for row in rows:
-                # Если этот firebase-токен еще не добавлен
-                if row.session.firebase_token not in firebase_tokens:
+                # Если сессия рабочая и этот firebase-токен еще не добавлен
+                if row.session.life and row.session.firebase_token not in firebase_tokens:
                     firebase_tokens.add(row.session.firebase_token)
                     parents.add(row.session.parent_id)
+
                     _profile = profile if row.session.parent_id != child.child_id else None
 
                     for mark in marks:
@@ -334,9 +304,6 @@ class MarksNotificationWorker:
     def _compute_sleep(cls, children_count: int, elapsed: float) -> float:
         interval = CYCLE_SECONDS / max(children_count / settings.COUNT_MARKS_NOTIFICATIONS_WORKERS, 1)
         return max(interval - elapsed, 0)
-
-    def stop(self):
-        self._running = False
 
 
 def add_work(loop: AbstractEventLoop, uow_factory: Callable[[], AppUnitOfWork], httpx_client: AsyncClient) -> Task:
