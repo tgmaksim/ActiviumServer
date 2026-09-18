@@ -14,6 +14,7 @@ from src.config.database.db_helper import db_helper
 from background import add_backgrounds
 from src.config.openapi import setup_openapi
 from src.dependencies.httpx import get_httpx_client
+from src.integration.telegram import admin_notifier
 from src.middlewares import setup_exception_handlers
 from src.routers import get_api_router, get_site_router, get_public_api_router
 
@@ -53,6 +54,7 @@ async def lifespan(_: FastAPI) -> AsyncIterator:
         # Закрытие соединений
         await get_httpx_client().aclose()
         await db_helper.dispose()
+        await admin_notifier.close()
 
 
 def get_application() -> FastAPI:

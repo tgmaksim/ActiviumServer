@@ -1,5 +1,3 @@
-import traceback
-
 from asyncio import gather
 from datetime import datetime
 
@@ -9,6 +7,7 @@ from starlette.status import HTTP_404_NOT_FOUND, HTTP_403_FORBIDDEN, HTTP_400_BA
 
 from ...utils.zip_int import unzip_int
 from ...dependencies.auth import check_session
+from ...utils.exception import format_exception
 
 from dnevnikru.aiodnevnikru.dnevnikru import AioDnevnikruApi
 from dnevnikru.exceptions import BaseDnevnikruException, InvalidResponseException
@@ -283,7 +282,7 @@ class DnevnikToolsService(BaseService[AppUnitOfWork]):
                         path='sendPraise',
                         session_id=session_id,
                         status=False,
-                        value='\n'.join(traceback.format_exception(e))
+                        value=format_exception(e)
                     )
                     raise ApiError(
                         type="ValueError",
@@ -461,7 +460,7 @@ class DnevnikToolsService(BaseService[AppUnitOfWork]):
                         path='highlightPerson',
                         session_id=session_id,
                         status=False,
-                        value='\n'.join(traceback.format_exception(e))
+                        value=format_exception(e)
                     )
                     raise ApiError(
                         type="ValueError",

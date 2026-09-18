@@ -1,5 +1,4 @@
 import secrets
-import traceback
 
 from asyncio import gather
 from datetime import datetime, timedelta, UTC
@@ -9,6 +8,8 @@ from yarl import URL
 from httpx import AsyncClient
 
 from ...config.project_config import settings
+
+from ...utils.exception import format_exception
 
 from ..repositories.app_uow import AppUnitOfWork
 from ...repositories.statistic_repository import StatName
@@ -147,7 +148,7 @@ class LoginService(BaseService[AppUnitOfWork]):
                 dnevnik_data, parent_name = await self._dnevnik_auth(dnevnik_token)
                 assert dnevnik_data is not None, "Данные авторизации пустые"
             except Exception as e:
-                await log_exception('\n'.join(traceback.format_exception(e)))
+                await log_exception(format_exception(e))
                 return HtmlResponse(
                     name='error.html',
                     status_code=500,
@@ -428,7 +429,7 @@ class LoginService(BaseService[AppUnitOfWork]):
                 assert dnevnik_data != 'no_admin', "Попытка авторизовать админа профилем не администратора"
                 name, person_id, school_id, timezone = dnevnik_data
             except AssertionError as e:  # Необходимые права администратора образовательной организации не найдены
-                await log_exception('\n'.join(traceback.format_exception(e)))
+                await log_exception(format_exception(e))
                 return HtmlResponse(
                     name='auth_session_error.html',
                     status_code=403,
@@ -439,7 +440,7 @@ class LoginService(BaseService[AppUnitOfWork]):
                     }
                 )
             except Exception as e:
-                await log_exception('\n'.join(traceback.format_exception(e)))
+                await log_exception(format_exception(e))
                 return HtmlResponse(
                     name='error.html',
                     status_code=500,

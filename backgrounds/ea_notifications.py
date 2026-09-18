@@ -1,7 +1,6 @@
 import json
 import time
 import asyncio
-import traceback
 
 from math import ceil
 from typing import Callable, Optional
@@ -14,12 +13,13 @@ from backgrounds.base_background import BaseBackground
 
 from firebase.messaging import send_notifications, Notification, AppNotificationChannel, FCMResult
 
+from src.utils.exception import format_exception
+
 from src.services.log_service import LogService
 from src.dependencies.uow import get_log_uow_factory
 from src.repositories.statistic_repository import StatName
 from src.support.repositories.app_uow import AppUnitOfWork
 from src.models.ea_processing_notification_model import EAProcessingNotification
-
 
 CYCLE_SECONDS = 8 * 60
 WINDOW_START_MINUTES = 5
@@ -76,7 +76,7 @@ class ExtracurricularActivityWorker(BaseBackground):
                         ip=self.name(),
                         path=self.name(),
                         status=False,
-                        value='\n'.join(traceback.format_exception(e))
+                        value=format_exception(e)
                     )
 
                 elapsed = time.monotonic() - start

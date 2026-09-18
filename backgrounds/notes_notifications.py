@@ -1,6 +1,5 @@
 import time
 import asyncio
-import traceback
 
 from typing import Callable, Optional
 from datetime import datetime, timedelta, UTC
@@ -12,12 +11,13 @@ from backgrounds.base_background import BaseBackground
 
 from firebase.messaging import send_notifications, Notification, AppNotificationChannel, FCMResult
 
+from src.utils.exception import format_exception
+
 from src.services.log_service import LogService
 from src.models.lesson_note_model import LessonNote
 from src.dependencies.uow import get_log_uow_factory
 from src.repositories.statistic_repository import StatName
 from src.support.repositories.app_uow import AppUnitOfWork
-
 
 CYCLE_SECONDS = 4 * 60
 WINDOW_START_MINUTES = 0
@@ -70,7 +70,7 @@ class RemindLessonNotesWorker(BaseBackground):
                         ip=self.name(),
                         path=self.name(),
                         status=False,
-                        value='\n'.join(traceback.format_exception(e))
+                        value=format_exception(e)
                     )
 
                 elapsed = time.monotonic() - start

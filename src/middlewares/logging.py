@@ -1,10 +1,10 @@
-import traceback
-
 from typing import Optional
 
 from http import HTTPStatus
 from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
+
+from ..utils.exception import format_exception
 
 from ..services.log_service import LogService
 from ..dependencies.uow import get_log_uow_factory
@@ -25,7 +25,7 @@ class LoggingMiddleware(BaseHTTPMiddleware):
             error = getattr(request.state, 'error', None)
             return response
         except Exception as e:
-            error = '\n'.join(traceback.format_exception(e))
+            error = format_exception(e)
 
             raise  # Ошибка доходит до последнего Middleware, который возвращает API-ответ
         finally:

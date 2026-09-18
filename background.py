@@ -31,19 +31,19 @@ def add_backgrounds(
 
     if tgbot:
         from tgbot.main import add_polling_task
-        add_polling_task(loop)
+        tasks.append(add_polling_task(loop))
 
     if marks_notifications:
         from backgrounds.marks_notifications import add_work as add_marks_work
-        add_marks_work(loop, get_app_uow_factory(), get_httpx_client())
+        tasks.append(add_marks_work(loop, get_app_uow_factory(), get_httpx_client()))
 
     if ea_notifications:
         from backgrounds.ea_notifications import add_work as add_ea_work
-        add_ea_work(loop, get_app_uow_factory(), get_httpx_client())
+        tasks.append(add_ea_work(loop, get_app_uow_factory(), get_httpx_client()))
 
     if notes_notifications:
         from backgrounds.notes_notifications import add_work as add_notes_work
-        add_notes_work(loop, get_app_uow_factory(), get_httpx_client())
+        tasks.append(add_notes_work(loop, get_app_uow_factory(), get_httpx_client()))
 
     return tasks
 

@@ -2,13 +2,15 @@ from asyncio import gather
 
 from typing import Callable, Optional, Literal
 
-from html import escape
 from httpx import AsyncClient
 from starlette.status import HTTP_404_NOT_FOUND, HTTP_400_BAD_REQUEST, HTTP_409_CONFLICT
 
-from tgbot.notifier import send_admin_message
-from aiogram.utils.formatting import Text, CustomEmoji, BlockQuote
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from tgbot.enums.emoji import EmojiList
+from ...integration.telegram import admin_notifier
+from aiogram.utils.formatting import Text, BlockQuote
+from tgbot.modules.reviews.buttons import admin_choice
+
+from ...models.review_model import Review as ReviewModel
 
 from dnevnikru import AioDnevnikruApi, BaseDnevnikruException
 from firebase.messaging import send_notifications, Notification, AppNotificationChannel
@@ -95,30 +97,25 @@ class ReviewsService(BaseService[AppUnitOfWork]):
             )
 
     @classmethod
-    async def check_review(cls, review: Review):
+    async def check_review(cls, review: ReviewModel):
         """
         Отправка отзыва на модерацию
 
         :param review: отзыв для проверки
         """
 
+        stars = (EmojiList.star.value, ) * review.stars
+        outline_stars = (EmojiList.outline_star.value, ) * (5 - review.stars)
+
         text = Text(
             f"Новый отзыв от {review.name}!\n",
-            f"Оценка: ", *((CustomEmoji("⭐️", custom_emoji_id="5435957248314579621"),) * review.stars),
-            *((CustomEmoji("⭐️", custom_emoji_id="5994495149336434048"),) * (5 - review.stars)), "\n",
-            (BlockQuote(escape(review.text)) if review.text else "")
+            f"Оценка: ", *stars, *outline_stars, "\n",
+            (BlockQuote(review.text) if review.text else "")
         )
 
-        await send_admin_message(
-            **text.as_kwargs(),
-            reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-                [InlineKeyboardButton(
-                    text="Опубликовать", icon_custom_emoji_id="5206607081334906820", style='success',
-                    callback_data=f"open_review|{review.parent_id}")],
-                [InlineKeyboardButton(
-                    text="Уведомить о нарушении", icon_custom_emoji_id="5420323339723881652", style='danger',
-                    callback_data=f"block_review|{review.parent_id}")]
-            ]))
+        reply_markup = admin_choice(review.parent_id)
+
+        await admin_notifier.send_to_admin(text, reply_markup=reply_markup)
 
     async def resolve_review(self, review_id: int, publish: bool) -> bool:
         """
@@ -162,8 +159,8 @@ class ReviewsService(BaseService[AppUnitOfWork]):
                     ip='review_notification',
                     path=firebase_token,
                     status=status,
-                    value=f"{result.exception}: {result.exception.http_response} {result.exception.cause} "
-                          f"{result.exception.http_response.__dict__}" if not status else str(result)
+                    value=f"{result.exception}: {result.exception.http_response} "
+                          f"{result.exception.cause} " if not status else str(result)
                 )
 
             return publish

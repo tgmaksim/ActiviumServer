@@ -29,5 +29,6 @@ from .school_post_vision_model import SchoolPostVision
 from .session_model import Session
 from .statistic_message_model import StatisticMessage
 from .statistic_model import Statistic
+from .tgbot_callback_data_model import TgbotCallbackData
 from .tgbot_state_model import TgbotState
 from .version_model import Version

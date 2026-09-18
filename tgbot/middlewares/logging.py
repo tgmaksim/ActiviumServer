@@ -1,9 +1,9 @@
-import traceback
-
 from typing import Any, Dict, Callable, Awaitable, Optional
 
 from aiogram.types import Update
 from aiogram import BaseMiddleware
+
+from src.utils.exception import format_exception
 
 from src.services.log_service import LogService
 from src.dependencies.uow import get_log_uow_factory
@@ -28,7 +28,7 @@ class LoggingMiddleware(BaseMiddleware):
             return result
 
         except Exception as e:
-            error = '\n'.join(traceback.format_exception(e))
+            error = format_exception(e)
             print(error)
 
             raise

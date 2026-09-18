@@ -1,6 +1,6 @@
 import pytest
 
-from src.support.repositories.tgbot_state_repository import TgbotStateRepository
+from tgbot.repositories.tgbot_state_repository import TgbotStateRepository
 
 
 def tgbot_state_factory(

@@ -1,7 +1,6 @@
 import json
 import time
 import asyncio
-import traceback
 
 from yarl import URL
 from pathlib import Path
@@ -18,6 +17,8 @@ from PIL import Image, ImageFont
 from backgrounds.base_background import BaseBackground
 
 from firebase.messaging import send_notifications, Notification, AppNotificationChannel, FCMResult
+
+from src.utils.exception import format_exception
 
 from dnevnikru import AioDnevnikruApi, BaseDnevnikruException
 
@@ -88,7 +89,7 @@ class MarksNotificationWorker(BaseBackground):
                         ip=self.name(),
                         path=self.name(),
                         status=False,
-                        value='\n'.join(traceback.format_exception(e))
+                        value=format_exception(e)
                     )
 
                 elapsed = time.monotonic() - start
@@ -155,7 +156,7 @@ class MarksNotificationWorker(BaseBackground):
                             path=self.name(),
                             session_id=session.session_id,
                             status=False,
-                            value='\n'.join(traceback.format_exception(e))
+                            value=format_exception(e)
                         )
 
             # Уведомления остаются включенными. После повторной авторизации сессии продолжают работать

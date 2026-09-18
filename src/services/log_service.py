@@ -1,4 +1,3 @@
-import traceback
 import ai.request
 
 from aiogram import html
@@ -7,11 +6,12 @@ from urllib.parse import quote
 from typing import Optional
 from datetime import timezone, timedelta
 
+from ..utils.exception import format_exception
+
 from .base_service import BaseService
 from ..config.project_config import settings
 from ..repositories.log_uow import LogUnitOfWork
 from ..repositories.statistic_repository import StatName
-
 
 ADMIN_TIMEZONE = timezone(timedelta(hours=settings.ADMIN_TIMEZONE))
 
@@ -117,7 +117,7 @@ class LogService(BaseService[LogUnitOfWork]):
             try:
                 ai_message = await ai.request.request(ai_chat)
             except Exception as e:
-                ai_message = '\n'.join(traceback.format_exception(e))
+                ai_message = format_exception(e)
             ai_message = f"Обзор ИИ\n{ai_message}"
 
             for i in range(0, len(ai_message), 4096):
