@@ -98,7 +98,7 @@ class LogService(BaseService[LogUnitOfWork]):
 
             await uow.notification_repository.notify(
                 f"<a href=\"{html.quote(logs_open_url)}\">Все логи</a>\n"
-                f"<a href=\"{html.quote(error_logs_open_url)}\">Логи с ошибками</a>"
+                f"<a href=\"{html.quote(error_logs_open_url)}\">Логи с ошибками</a>\n"
                 f"<a href=\"{html.quote(error_real_logs_open_url)}\">Логи с реальными ошибками</a>",
                 parse_mode='html'
             )
