@@ -406,25 +406,24 @@ class DnevnikService(BaseService[AppUnitOfWork]):
 
         schedule = await dnr.get_person_schedule(child.child_id, child.group_id, start_date, end_date)
 
-        # Идентификаторы всех уроков и домашних заданий
-        lessons_id = []
-        homeworks_id = []
+        homeworks_id: dict[int, int] = {}  # Идентификаторы домашних заданий с привязкой к уроку
+        lessons_id: list[int] = []  # Идентификаторы всех уроков
         for day in schedule['days']:
             for homework in day['homeworks']:
-                homeworks_id.append(homework['id'])
+                homeworks_id[homework['id']] = homework['lesson']
             for lesson in day['lessons']:
                 lessons_id.append(lesson['id'])
 
         # Получение полной информации о домашних заданиях и заметок к урокам по их идентификаторам
-        homeworks, notes = await gather(
-            cls._get_homeworks_files(dnr, homeworks_id=homeworks_id),
+        homeworks_files, notes = await gather(
+            cls._get_homeworks_files(dnr, homeworks_id=list(homeworks_id.keys())),
             lesson_note_repository.get_notes(child.child_id, lessons_id, only_public=only_public_notes)
         )
 
         homework_documents = {
-            lessons_id[i]: files
-            for i, homework_id in enumerate(homeworks_id)
-            if (files := homeworks.get(homework_id)) is not None
+            lesson_id: files
+            for homework_id, lesson_id in homeworks_id.items()
+            if (files := homeworks_files.get(homework_id)) is not None
         }
 
         return schedule, homework_documents, notes
