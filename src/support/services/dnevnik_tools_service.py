@@ -6,6 +6,7 @@ from typing import Callable, Optional, Union
 from starlette.status import HTTP_404_NOT_FOUND, HTTP_403_FORBIDDEN, HTTP_400_BAD_REQUEST, HTTP_500_INTERNAL_SERVER_ERROR
 
 from ...utils.zip_int import unzip_int
+from ...utils.cache import CacheService
 from ...dependencies.auth import check_session
 from ...utils.exception import format_exception
 
@@ -270,7 +271,7 @@ class DnevnikToolsService(BaseService[AppUnitOfWork]):
                         dnr.get_person_marks_by_lesson(child.child_id, lesson_id) if lesson_id is not None
                         else dnr.get_person_marks_by_work(child.child_id, work_id)
                     ),
-                    dnr.get_subjects(child.group_id)
+                    CacheService.get_subjects(uow.cache_repository, dnr, session, child)
                 )
             except BaseDnevnikruException as e:
                 if not await uow.session_repository.check_session_auth(session.session_id, dnr):

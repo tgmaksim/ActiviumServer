@@ -200,3 +200,8 @@ class AioDnevnikruApi(BaseAioDnevnikruApi):
         """Список родственных связей пользователя"""
 
         return await self.get("users/me/relatives")
+
+    async def get_works(self, works_ids: list[int]) -> list[dict]:
+        """Работы по идентификаторам"""
+
+        return await self.post("works/many", data=works_ids)

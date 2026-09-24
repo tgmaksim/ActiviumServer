@@ -5,8 +5,8 @@ import asyncio
 from yarl import URL
 from pathlib import Path
 from random import shuffle
-from datetime import datetime, UTC
 from typing import Callable, Optional
+from datetime import datetime, UTC, date
 
 from httpx import AsyncClient
 from asyncio import AbstractEventLoop, gather, Task
@@ -17,6 +17,9 @@ from PIL import Image, ImageFont
 from backgrounds.base_background import BaseBackground
 
 from firebase.messaging import send_notifications, Notification, AppNotificationChannel, FCMResult
+
+from src.models import Session
+from src.utils.cache import CacheService
 
 from src.utils.exception import format_exception
 
@@ -70,19 +73,21 @@ class MarksNotificationWorker(BaseBackground):
                         rows = await self._acquire_child(uow)
 
                         # Уведомления, которые нужно отправить
-                        pushes, child_id = await self._process_child(uow, rows)
+                        pushes_for_new_marks, pushes_for_deleted_marks, pushes_for_updated_marks, child_id = \
+                            await self._process_child(uow, rows)
 
                     # Результат отправки каждого уведомления
-                    response = await self._dispatch_pushes(pushes, child_id)
+                    response = await self._dispatch_pushes(
+                        pushes_for_new_marks, pushes_for_deleted_marks, pushes_for_updated_marks, child_id)
 
                     # Обработка результатов отправленных уведомлений
                     await self.process_pushes(response)
                 except Exception as e:
                     if len(rows) > 0:
                         # Если произошла ошибка при обработке одного ребенка, то он пропускается:
-                        # его дата последней оценки не меняется, но обновляется updated_at
+                        # обновляется его updated_at
                         async with self.uow_factory() as uow:
-                            await uow.marks_notification_repository.update_date(rows[0].child_id, None)
+                            await uow.marks_notification_repository.update_date(rows[0].child_id)
 
                     service = LogService(get_log_uow_factory())
                     await service.log(
@@ -109,11 +114,12 @@ class MarksNotificationWorker(BaseBackground):
 
         return await uow.marks_notification_repository.get_next_child()
 
-    async def _process_child(
-            self,
-            uow: AppUnitOfWork,
-            rows: list[MarksNotification]
-    ) -> tuple[list[tuple[str, dict, Optional[str]]], Optional[int]]:
+    async def _process_child(self, uow: AppUnitOfWork, rows: list[MarksNotification]) -> tuple[
+        list[tuple[str, dict, Optional[str]]],
+        list[tuple[str, dict, Optional[str]]],
+        list[tuple[str, dict, Optional[str]]],
+        Optional[int]
+    ]:
         """
         Проверка новых оценок и возвращение необходимых уведомлений
 
@@ -123,14 +129,25 @@ class MarksNotificationWorker(BaseBackground):
         """
 
         if not rows:
-            return [], None
+            return [], [], [], None
 
-        # Вся работа для одного ребенка
-        child = rows[0].child
-        last_mark = rows[0].last_mark
+        # Чаще всего updated_at у всех одинаковый, но для избежания ошибок
+        # для получения обработанных оценок используется самый обновленный
+        main_row = max(rows, key=lambda r: r.updated_at)
+
+        child = main_row.child  # Вся работа для одного ребенка
+
+        current_marks = main_row.marks
+        current_marks_hash = main_row.marks_hash
+        current_period_id = main_row.active_period_id
 
         marks: list[dict] = []
+        new_marks: list[dict] = []
+        deleted_marks: list[dict] = []
+        updated_marks: list[dict] = []
+
         profile: str = ""  # Имя профиля (ребенка)
+        period: Optional[dict] = None
 
         shuffle(rows)  # Перемешивание для предотвращения частого использования одного dnevnik_token
 
@@ -140,10 +157,18 @@ class MarksNotificationWorker(BaseBackground):
             turn_off = not session.life  # Сессия больше не работает
 
             if not turn_off:
+                dnr = AioDnevnikruApi(self.httpx_client, session.dnevnik_token)
+
                 try:
-                    # Запрашиваются последние оценки и имя ребенка
-                    marks, profile = await self.fetch_marks(session.dnevnik_token, child, last_mark)
-                    break
+                    if period is None:
+                        # Запрашивается текущий отчетный период (из кэша или от Дневника.ру)
+                        period = await CacheService.get_period(uow.cache_repository, dnr, main_row.session, child, datetime.now(UTC).date())
+
+                    # Запрашиваются все оценки и имя ребенка
+                    marks, new_marks, deleted_marks, updated_marks, profile = await self.fetch_marks(
+                        uow, dnr, session, child, period['start'], period['finish'], period['id'],
+                        current_marks, current_marks_hash, current_period_id
+                    )
                 except BaseDnevnikruException as e:
                     # Проверка авторизации сессии в Дневнике.ру
                     turn_off = not await uow.session_repository.check_session_auth(session.session_id)
@@ -158,107 +183,221 @@ class MarksNotificationWorker(BaseBackground):
                             status=False,
                             value=format_exception(e)
                         )
+                else:
+                    break
 
             # Уведомления остаются включенными. После повторной авторизации сессии продолжают работать
             # if turn_off:
             #     # Выключение уведомлений для нерабочей сессии
             #     await uow.marks_notification_repository.turn_off(session.session_id, child.child_id)
 
-        pushes = []
+        pushes_for_new_marks: list[tuple[str, dict, Optional[str]]] = []
+        pushes_for_deleted_marks: list[tuple[str, dict, Optional[str]]] = []
+        pushes_for_updated_marks: list[tuple[str, dict, Optional[str]]] = []
+
         parents = set()
         firebase_tokens = set()
 
-        newest_date = None
-        if marks:
-            newest_date = max(m['date'] for m in marks)
+        for row in rows:
+            # Если сессия рабочая и этот firebase-токен еще не добавлен
+            if row.session.life and row.session.firebase_token not in firebase_tokens:
+                firebase_tokens.add(row.session.firebase_token)
+                parents.add(row.session.parent_id)
 
-            for row in rows:
-                # Если сессия рабочая и этот firebase-токен еще не добавлен
-                if row.session.life and row.session.firebase_token not in firebase_tokens:
-                    firebase_tokens.add(row.session.firebase_token)
-                    parents.add(row.session.parent_id)
+                _profile = profile if row.session.parent_id != child.child_id else None
 
-                    _profile = profile if row.session.parent_id != child.child_id else None
-
-                    for mark in marks:
-                        # то добавляются уведомления о каждой оценке для этого устройства
-                        pushes.append((row.session.firebase_token, mark, _profile))
+                # то добавляются уведомления о каждой оценке для этого устройства
+                for mark in new_marks:
+                    pushes_for_new_marks.append((row.session.firebase_token, mark, _profile))
+                for mark in deleted_marks:
+                    pushes_for_deleted_marks.append((row.session.firebase_token, mark, _profile))
+                for mark in updated_marks:
+                    pushes_for_updated_marks.append((row.session.firebase_token, mark, _profile))
 
         # Дата последней оценки обновляется для учета предыдущих оценок в следующий раз
-        await uow.marks_notification_repository.update_date(child.child_id, newest_date)
+        await uow.marks_notification_repository.update_marks(child.child_id, period['id'], marks)
 
         for parent in parents:
             await uow.statistic_repository.add_statistic(parent, StatName.marks_notifications)
 
-        return pushes, child.child_id
+        return pushes_for_new_marks, pushes_for_deleted_marks, pushes_for_updated_marks, child.child_id
 
-    async def fetch_marks(self, dnevnik_token: str, child: Child, last_mark: datetime) -> tuple[list[dict], str]:
+    @classmethod
+    async def fetch_marks(
+            cls,
+            uow: AppUnitOfWork, dnr: AioDnevnikruApi, session: Session, child: Child,
+            from_date: date, to_date: date, period_id: int,
+            current_marks: list[dict], current_marks_hash: str, current_period_id: int
+    ) -> tuple[list[dict], list[dict], list[dict], list[dict], str]:
         """
-        Получение новых оценок ребенка
+        Получение всех, новых, удаленных и измененных оценок ребенка за период
 
-        :param dnevnik_token: токен для запросов к Дневнику.ру
+        :param uow: AppUnitOfWork для взаимодействия с БД
+        :param dnr: объект AioDnevnikruApi для взаимодействия с Дневником.ру
+        :param session: сессия пользователя
         :param child: параметры ребенка
-        :param last_mark: время выставления последней обработанной оценки
-        :return: список новых оценок и имя ребенка
+        :param from_date: начало периода
+        :param to_date: конец периода
+        :param period_id: идентификатор текущего отчетного периода
+        :param current_marks: обработанные оценки
+        :param current_marks_hash: хэш обработанных оценок
+        :param current_period_id: идентификатор отчетного периода, в котором были обработаны оценки
+        :return: список оценок и имя ребенка
         """
 
-        dnr = AioDnevnikruApi(self.httpx_client, dnevnik_token)
+        # Если идентификаторы текущего периода и обработанного различаются, то прошлые оценки не учитываются
+        if period_id != current_period_id:
+            current_marks = []
+            current_marks_hash = uow.marks_notification_repository.hash_marks(current_marks)
 
-        # Запрашиваются последние оценки, которые выставлены не ранее прошлой обработанной оценки.
-        # В ответе вернутся в том числе последняя обработанная оценка и другие оценки,
-        # которые выставлены ровно в это же время
-        result, profile = await gather(
-            dnr.get_person_recent_marks(child.child_id, child.group_id, from_date=last_mark),
+        # Запрашиваются все оценки ребенка за период
+        result, _subjects, profile = await gather(
+            dnr.get_person_marks(child.child_id, child.group_id, from_date, to_date),
+            CacheService.get_subjects(uow.cache_repository, dnr, session, child),
             dnr.get_person(child.child_id)
         )
 
-        works = {work['id']: work for work in result['works']}
-        subjects = {subject['id']: subject['name'] for subject in result['subjects']}
-        work_types = {work_type['id']: work_type['name'] for work_type in result['workTypes']}
+        subjects = {subject['id']: subject['name'] for subject in _subjects}
 
-        # Игнорируются последняя обработанная в прошлый раз оценка и все оценки, выставленные ровно в это же время
-        marks_with_date = [(mark, date) for mark in result['marks']
-                           if (date := datetime.fromisoformat(mark['date']).replace(tzinfo=UTC)) > last_mark]
+        # После миграции БД, но до первой проверки оценок active_period_id = null.
+        # Нужно обновить текущие оценки и пропустить
+        if current_period_id is None:
+            return result, [], [], [], profile['shortName']
 
-        answer = [{
-            'value': mark['textValue'],
-            'mood': mark['mood'].lower() if mark['mood'].lower() in MarkLog.moods else MarkLog.default_mood(),
-            'subject': subjects.get(works.get(mark['work'], {}).get('subjectId')),
-            'date': date,
-            'work': work_types.get(mark['workType']),
-            'ratingKey': f"l{zip_int(mark['lesson'])}" if mark.get('lesson') is not None else f"w{zip_int(mark['work'])}"
-        } for mark, date in marks_with_date]
+        # Если хэш совпадает, то изменений в оценках нет
+        if uow.marks_notification_repository.hash_marks(result) == current_marks_hash:
+            return result, [], [], [], profile['shortName']
 
-        return answer, profile['shortName']
+        result_by_id = {mark['id']: mark for mark in result}
+        set_result = set(result_by_id.keys())
+        current_marks_by_id = {mark['id']: mark for mark in current_marks}
+        set_current_marks = set(current_marks_by_id.keys())
 
-    async def _dispatch_pushes(self, pushes: list[tuple[str, dict, Optional[str]]], child_id: Optional[int]) -> Optional[FCMResult]:
+        new_marks: list[dict] = []
+        deleted_marks: list[dict] = []
+        updated_marks: list[dict] = []
+
+        # Новые оценки
+        if difference := set_result.difference(set_current_marks):
+            new_marks = await cls.create_mark_list(uow, dnr, session, child, result, subjects, difference, result_by_id)
+
+        # Удаленные оценки
+        if difference := set_current_marks.difference(set_result):
+            deleted_marks = await cls.create_mark_list(uow, dnr, session, child, result, subjects, difference, current_marks_by_id)
+
+        # Измененные оценки
+        difference = {
+            mark_id
+            for mark_id in set_result & set_current_marks
+            if result_by_id[mark_id]['value'] != current_marks_by_id[mark_id]['value']
+        }
+        if difference:
+            updated_marks = await cls.create_mark_list(
+                uow, dnr, session, child, result, subjects, difference, result_by_id, current_marks_by_id)
+
+        return result, new_marks, deleted_marks, updated_marks, profile['shortName']
+
+    @classmethod
+    async def create_mark_list(cls,
+            uow: AppUnitOfWork, dnr: AioDnevnikruApi,
+            session: Session, child: Child,
+            result: list[dict], subjects: dict[int, str],
+            ids: set[int], marks_by_id: dict[int, dict], old_marks: dict[int, dict] = None
+    ) -> list[dict]:
+        if old_marks is None:
+            old_marks = {}
+
+        work_types, works = await cls._get_works(uow, dnr, session, child, result)
+
+        return [
+            {
+                'value': mark['textValue'],
+                'oldValue': old_marks.get(mark_id, {}).get('textValue'),
+                'mood': mark['mood'].lower() if mark['mood'].lower() in MarkLog.moods else MarkLog.default_mood(),
+                'subject': subjects.get(works.get(mark['work'], {}).get('subjectId')),
+                'date': datetime.fromisoformat(mark['date']).replace(tzinfo=UTC),
+                'work': work_types.get(mark['workType']),
+                'ratingKey': f"l{zip_int(mark['lesson'])}" if mark.get('lesson') is not None else f"w{zip_int(mark['work'])}"
+            }
+            for mark_id in ids if (mark := marks_by_id.get(mark_id))
+        ]
+
+    @classmethod
+    async def _get_works(
+            cls,
+            uow: AppUnitOfWork, dnr: AioDnevnikruApi,
+            session: Session, child: Child,
+            result: list[dict]
+    ) -> tuple[dict[int, str], dict[int, dict]]:
+        work_types_ids: set[int] = {mark['workType'] for mark in result}
+        works_ids: list[int] = [mark['work'] for mark in result]
+
+        _work_types, _works = await gather(
+            CacheService.get_work_types(uow.cache_repository, dnr, session, child, work_types_ids),
+            dnr.get_works(works_ids)
+        )
+
+        works = {work['id']: work for work in _works}
+        work_types = {work_type_id: work_type.title for work_type_id, work_type in _work_types.items()}
+
+        return work_types, works
+
+    async def _dispatch_pushes(
+            self,
+            pushes_for_new_marks: list[tuple[str, dict, Optional[str]]],
+            pushes_for_deleted_marks: list[tuple[str, dict, Optional[str]]],
+            pushes_for_updated_marks: list[tuple[str, dict, Optional[str]]],
+            child_id: Optional[int]
+    ) -> Optional[FCMResult]:
         """Отправка уведомлений"""
 
-        if not pushes:
-            return None
+        notifications: list[Notification] = []
 
-        return await send_notifications([Notification(
-            firebase_token=firebase_token,
-            image=self._get_mark_url(mark['value'], mark['mood']),
-            title=f"{'🥳 Ура! ' * (mark['mood'] == 'good')}Новая оценка",
-            message=(f"{profile}: " if profile else '') +
-                    f"Получена оценка «{mark['value']}»" +
-                    (f" по предмету {mark['subject']}" if mark['subject'] is not None else '') +
-                    (f" ({mark['work']})" if mark['work'] else ''),
-            channel=AppNotificationChannel.marks,
-            data={
-                "from_notification": "new_mark",
-                "good_mark": str(mark['mood'] == 'good').lower(),
-                "profile": str(child_id),
-                "buttons": json.dumps([{
-                    "text": "Отправить похвалу",
-                    "action": "praise",
-                    "data": {
-                        "ratingKey": mark['ratingKey']
+        notifications.extend(
+            [
+                Notification(
+                    firebase_token=firebase_token,
+                    image=self._get_mark_url(mark['value'], mark['mood']),
+                    title=f"{'🥳 Ура! ' * (mark['mood'] == 'good')}Новая оценка" if mark['oldValue'] is None else "✏️ Оценка изменена",
+                    message=(f"{profile}: " * (profile is not None)) +
+                            (f"Получена оценка «{mark['value']}»" if mark['oldValue'] is None
+                             else f"Изменена оценка с «{mark['oldValue']}» на «{mark['value']}»") +
+                            (f" по предмету {mark['subject']}" * (mark['subject'] is not None)) +
+                            (f" ({mark['work']})" * (mark['work'] is not None)),
+                    channel=AppNotificationChannel.marks,
+                    data={
+                        "from_notification": "new_mark",
+                        "good_mark": str(mark['mood'] == 'good').lower(),
+                        "profile": str(child_id),
+                        "buttons": json.dumps([{
+                            "text": "Отправить похвалу",
+                            "action": "praise",
+                            "data": {
+                                "ratingKey": mark['ratingKey']
+                            }
+                        }] if profile else [])  # Похвала только для родителей
                     }
-                }] if profile else [])  # Похвала только для родителей
-            }
-        ) for firebase_token, mark, profile in pushes])
+                )
+                for firebase_token, mark, profile in pushes_for_new_marks + pushes_for_updated_marks
+            ]
+        )
+
+        notifications.extend(
+            [
+                Notification(
+                    firebase_token=firebase_token,
+                    title="🗑 Удалена оценка",
+                    message=(f"{profile}: " * (profile is not None)) +
+                            f"Удалена оценка «{mark['value']}»" +
+                            (f" по предмету {mark['subject']}" * (mark['subject'] is not None)) +
+                            (f" ({mark['work']})" * (mark['work'] is not None)),
+                    channel=AppNotificationChannel.marks
+                )
+                for firebase_token, mark, profile in pushes_for_deleted_marks
+            ]
+        )
+
+        return await send_notifications(notifications)
 
     def _get_mark_url(self, mark: str, mark_type: str) -> Optional[str]:
         """Ссылка на статический ресурс с картинкой оценки"""

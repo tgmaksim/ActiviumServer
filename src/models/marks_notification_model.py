@@ -3,11 +3,11 @@ if TYPE_CHECKING:
     from ..models.child_model import Child
     from ..models.session_model import Session
 
-from datetime import datetime
+from typing import Optional
 
-from sqlalchemy.sql.functions import current_timestamp
+from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.sql.sqltypes import BigInteger, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy.sql.sqltypes import BigInteger, TIMESTAMP, String
 from sqlalchemy.sql.schema import PrimaryKeyConstraint, ForeignKeyConstraint
 
 from .base_model import BaseModel
@@ -29,10 +29,18 @@ class MarksNotification(BaseModel):
         BigInteger,
         comment="Идентификатор ребенка"
     )
-    last_mark: Mapped[datetime] = mapped_column(
-        TIMESTAMP(timezone=True),
-        server_default=current_timestamp(),
-        comment="Точное время постановки последней оценки от Дневника.ру"
+    active_period_id: Mapped[Optional[int]] = mapped_column(
+        BigInteger,
+        nullable=True,  # Только для работы миграции на новую версию
+        comment="Идентификатор текущего отчетного периода"
+    )
+    marks: Mapped[list[dict]] = mapped_column(
+        JSONB,
+        comment="Все оценки за текущий отчетный период"
+    )
+    marks_hash: Mapped[str] = mapped_column(
+        String(64),
+        comment="Хэш списка оценок алгоритмом SHA-256"
     )
 
     session: Mapped['Session'] = relationship('Session', foreign_keys=[session_id], lazy="selectin")

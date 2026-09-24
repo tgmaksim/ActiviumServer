@@ -1,4 +1,5 @@
 from asyncio import gather
+from datetime import datetime, UTC
 from typing import Callable, Optional, Union
 
 from yarl import URL
@@ -8,6 +9,7 @@ from starlette.status import HTTP_404_NOT_FOUND
 from dnevnikru import AioDnevnikruApi, BaseDnevnikruException
 from ...config.project_config import settings
 
+from ...utils.cache import CacheService
 from ...dependencies.auth import check_session
 from ...services.base_service import BaseService
 from ..repositories.app_uow import AppUnitOfWork
@@ -203,6 +205,7 @@ class SettingsService(BaseService[AppUnitOfWork]):
         async with self.uow_factory() as uow:
             session = await check_session(session_id, uow.session_repository)  # Проверка и получение сессии
             parent: Parent = session.parent
+            child = session.active_child
 
             # По умолчанию используется активный ребенок (профиль)
             if child_id is None:
@@ -221,7 +224,17 @@ class SettingsService(BaseService[AppUnitOfWork]):
                         errorMessage="Ребенок не найден"
                     ).exception(HTTP_404_NOT_FOUND)
 
-            await uow.marks_notification_repository.turn_on(session_id, child_id)
+            dnr = AioDnevnikruApi(self.httpx_client, session.dnevnik_token)
+
+            try:
+                active_period = await CacheService.get_period(uow.cache_repository, dnr, session, child, datetime.now(UTC).date())
+                marks = await dnr.get_person_marks(session.parent_id, child.group_id, active_period['start'], active_period['finish'])
+            except BaseDnevnikruException as e:
+                if not await uow.session_repository.check_session_auth(session.session_id, dnr):
+                    raise SessionError(session_id=session.session_id) from e
+                raise
+
+            await uow.marks_notification_repository.turn_on(session_id, child_id, active_period['id'], marks)
             await uow.statistic_repository.add_statistic(parent.parent_id, StatName.turnOnMarksNotifications)
 
             return SwitchMarksNotificationsApiResponse()

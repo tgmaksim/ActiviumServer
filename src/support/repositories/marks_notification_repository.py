@@ -1,5 +1,7 @@
+import json
+import hashlib
+
 from typing import Optional
-from datetime import datetime
 
 from sqlalchemy import select, func, distinct
 
@@ -41,19 +43,24 @@ class MarksNotificationRepository(SqlAlchemyRepository[MarksNotification]):
 
         return await self.delete(MarksNotification.session_id == session_id, MarksNotification.child_id == child_id)
 
-    async def turn_on(self, session_id: str, child_id: int) -> MarksNotification:
+    async def turn_on(self, session_id: str, child_id: int, active_period_id: int, marks: list[dict]) -> MarksNotification:
         """
         Включение функции уведомлений о новых оценках для ребенка (профиля) у сессии
 
         :param session_id: идентификатор сессии, у которой включается функция
         :param child_id: идентификатор ребенка (профиля), для которой включается функция
+        :param active_period_id: идентификатор текущего отчетного периода
+        :param marks: оценки ребенка (профиля)
         :return: параметры включенной функции
         """
 
         return await self.create({
             'session_id': session_id,
-            'child_id': child_id
-        }, security=['session_id', 'child_id'], security_nothing=True)
+            'child_id': child_id,
+            'active_period_id': active_period_id,
+            'marks': marks,
+            'marks_hash': self.hash_marks(marks)
+        }, security=['session_id', 'child_id'])
 
     async def get_count(self) -> int:
         """
@@ -93,16 +100,43 @@ class MarksNotificationRepository(SqlAlchemyRepository[MarksNotification]):
         res = await self.queue.execute(statement)
         return res.scalars().all()
 
-    async def update_date(self, child_id: int, last_mark: Optional[datetime]) -> list[MarksNotification]:
+    async def update_date(self, child_id: int) -> list[MarksNotification]:
         """
-        Обновление времени последней обработки ребенка (профиля) у всех сессий для проверки новых оценок
+        Обновление времени обработки оценок ребенка
 
         :param child_id: идентификатор ребенка (профиля)
-        :param last_mark: время выставления последней оценки, если выставлена новая
         :return: обновленные параметры функции всех сессий
         """
 
-        # Если last_mark = None, то обновится только created_at
+        # Ради триггера, который обновит updated_at
         return await self.update_many({
-            'last_mark': last_mark or MarksNotification.last_mark
+            'active_period_id': MarksNotification.active_period_id
         }, MarksNotification.child_id == child_id)
+
+    async def update_marks(self, child_id: int, active_period_id: int, marks: list[dict]) -> list[MarksNotification]:
+        """
+        Обновление данных об оценках у всех сессий для проверки новых оценок
+
+        :param child_id: идентификатор ребенка (профиля)
+        :param active_period_id: идентификатор текущего отчетного периода
+        :param marks: все оценки за текущий отчетный период
+        :return: обновленные параметры функции всех сессий
+        """
+
+        return await self.update_many({
+            'active_period_id': active_period_id,
+            'marks': marks,
+            'marks_hash': self.hash_marks(marks)
+        }, MarksNotification.child_id == child_id)
+
+    @staticmethod
+    def hash_marks(marks: list[dict]) -> str:
+        if len(marks) == 0:
+            return ""
+
+        return hashlib.sha256(
+            json.dumps(
+                sorted(marks, key=lambda m: m['id']),
+                sort_keys=True
+            ).encode()
+        ).hexdigest()

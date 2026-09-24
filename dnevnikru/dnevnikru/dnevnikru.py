@@ -200,3 +200,8 @@ class DnevnikruApi(BaseDnevnikruApi):
         """Список родственных связей пользователя"""
 
         return self.get("users/me/relatives")
+
+    def get_works(self, works_ids: list[int]) -> list[dict]:
+        """Работы по идентификаторам"""
+
+        return self.post("works/many", data=works_ids)

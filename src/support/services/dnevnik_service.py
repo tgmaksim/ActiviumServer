@@ -20,6 +20,7 @@ from ..repositories.school_post_vision_repository import SchoolPostVisionReposit
 from ..schemas.school_schemas import SchoolPost
 from ..schemas.dnevnik_tools_schemas import Note
 
+from ...utils.cache import CacheService
 from ...config.project_config import settings
 from ...dependencies.auth import check_session
 from ...utils.zip_int import zip_int, unzip_int
@@ -31,8 +32,8 @@ from ...models.hour_model import Hour
 from ...services.base_service import BaseService
 from ..repositories.app_uow import AppUnitOfWork
 from ...models.lesson_note_model import LessonNote
-from ...models.school_post_model import SchoolPost as SchoolPostModel
 from ..repositories.cache_repository import CacheRepository
+from ...models.school_post_model import SchoolPost as SchoolPostModel
 from ..repositories.highlighting_person_repository import HighlightingPersonRepository
 from ..repositories.extracurricular_activity_repository import ExtracurricularActivityRepository
 
@@ -172,7 +173,7 @@ class DnevnikService(BaseService[AppUnitOfWork]):
                         start_date,
                         end_date
                     ),
-                    self._get_period(
+                    CacheService.get_period(
                         uow.cache_repository,
                         dnr,
                         session,
@@ -496,8 +497,8 @@ class DnevnikService(BaseService[AppUnitOfWork]):
 
         # Одновременное получение названий типов работ, имен одноклассников, выделенных одноклассников
         work_types, persons, _highlighting_persons = await gather(
-            cls._get_work_types(cache_repository, dnr, session, child, work_types_id),
-            cls._get_persons_name(cache_repository, dnr, session, child, persons_id),
+            CacheService.get_work_types(cache_repository, dnr, session, child, work_types_id),
+            CacheService.get_persons_name(cache_repository, dnr, session, child, persons_id),
             highlighting_person_repository.get_highlighting_persons(session.parent_id)
         )
 
@@ -580,119 +581,6 @@ class DnevnikService(BaseService[AppUnitOfWork]):
         if len(marks) == 0:
             return other_marks.isHighlighting, 0, [], other_marks.name
         return other_marks.isHighlighting, sum(marks) / len(marks), marks, other_marks.name
-
-    @classmethod
-    async def _get_work_types(
-            cls, cache_repository: CacheRepository, dnr: AioDnevnikruApi,
-            session: Session, child: Child,
-            work_types_id: set[int]
-    ) -> dict[int, WorkType]:
-        """
-        Получение типов работ по идентификаторам
-
-        :param cache_repository: CacheRepository для получения типов работ из кэша, если записаны
-        :param dnr: объект AioDnevnikruApi для взаимодействия с Дневником.ру
-        :param session: сессия пользователя
-        :param child: ребенок (профиль), для которого требуется получить типы работ
-        :param work_types_id: идентификаторы необходимых типов работ на уроке
-        :return: типы работ по идентификаторам
-        """
-
-        if not work_types_id:
-            return {}
-
-        # Получение типов работ из кэша
-        work_types_key = [f"workType|{work_type_id}" for work_type_id in work_types_id]
-        caches = await cache_repository.get_caches(session.session_id, child.child_id, work_types_key)
-        results = {
-            int(cache.key.split("|")[1]): WorkType(
-                title=cache.value['title'],
-                abbr=cache.value['abbr']
-            )
-            for cache in caches
-        }
-
-        # Если из кэша все необходимые типы работ получены
-        if work_types_id == results.keys():
-            return results
-
-        # Иначе запрос к Дневнику.ру
-        work_types = await dnr.get_work_types(child.school_id)
-
-        new_caches = []
-
-        for work_type in work_types:
-            new_caches.append((
-                f"workType|{work_type['id']}",
-                {
-                    'title': work_type['title'],
-                    'abbr': work_type['abbr']
-                }
-            ))
-
-            if work_type['id'] in work_types_id:
-                results[work_type['id']] = WorkType(
-                    title=work_type['title'],
-                    abbr=work_type['abbr']
-                )
-
-        # Запись в кэш для последующих запросов
-        await cache_repository.put_caches(session.session_id, child.child_id, new_caches)
-
-        return results
-
-    @classmethod
-    async def _get_persons_name(
-            cls, cache_repository: CacheRepository, dnr: AioDnevnikruApi,
-            session: Session, child: Child,
-            persons_id: set[int]
-    ) -> dict[int, str]:
-        """
-        Получение имен одноклассников
-
-        :param cache_repository: CacheRepository для получения имен из кэша
-        :param dnr: объект AioDnevnikruApi для взаимодействия с Дневником.ру
-        :param session: сессия пользователя
-        :param child: ребенок (профиль), для которого требуются имена одноклассников
-        :param persons_id: идентификаторы одноклассников
-        :return: имена одноклассников по идентификаторам
-        """
-
-        if not persons_id:
-            return {}
-
-        # Получение имен одноклассников из кэша
-        persons_id_key = [f"person|{person_id}" for person_id in persons_id]
-        caches = await cache_repository.get_caches(session.session_id, child.child_id, persons_id_key)
-        results = {
-            int(cache.key.split("|")[1]): cache.value['name']
-            for cache in caches
-        }
-
-        # Если из кэша все необходимые имена одноклассников получены
-        if persons_id == results.keys():
-            return results
-
-        # Иначе запрос к Дневнику.ру
-        persons = await dnr.get_group_persons(child.group_id)
-
-        new_caches = []
-
-        for person in persons:
-            new_caches.append((
-                f"person|{person['id']}",
-                {
-                    'name': person['shortName']
-                }
-            ))
-
-            if person['id'] in persons_id:
-                results[person['id']] = person['shortName']
-
-        # Запись в кэш для последующих запросов
-        await cache_repository.put_caches(session.session_id, child.child_id, new_caches)
-
-        return results
 
     @classmethod
     async def _get_extracurricular_activities(
@@ -957,83 +845,6 @@ class DnevnikService(BaseService[AppUnitOfWork]):
 
         return old, new
 
-
-    @classmethod
-    async def _get_periods(
-            cls, cache_repository: CacheRepository, dnr: AioDnevnikruApi,
-            session: Session, child: Child
-    ) -> list[dict]:
-        """
-        Получение отчетных периодов в текущем году
-
-        :param cache_repository: CacheRepository для получения отчетных периодов из кэша
-        :param dnr: объект AioDnevnikruApi для взаимодействия с Дневником.ру
-        :param session: сессия пользователя
-        :param child: ребенок (профиль), для которого требуются отчетные периоды
-        :return: список отчетных периодов
-        """
-
-        cache_key = "periods"
-
-        # Получение из кэша
-        if cache := await cache_repository.get_cache(session.session_id, child.child_id, cache_key):
-            return cache.value
-        else:
-            # Запрос из Дневника.ру
-            periods = await dnr.get_reporting_periods(child.group_id)
-
-            # Сохранение в кэш для последующих запросов
-            await cache_repository.put_cache(session.session_id, child.child_id, cache_key, periods)
-
-            return periods
-
-    @classmethod
-    async def _get_period(
-            cls, cache_repository: CacheRepository, dnr: AioDnevnikruApi,
-            session: Session, child: Child,
-            day: date
-    ) -> dict:
-        """
-        Получение отчетного периода, в который входит день
-
-        :param cache_repository: CacheRepository для получения отчетных периодов из кэша
-        :param dnr: объект AioDnevnikruApi для взаимодействия с Дневником.ру
-        :param session: сессия пользователя
-        :param child: ребенок (профиль), для которого требуется отчетный период
-        :param day: дата дня
-        :return: отчетный период
-        """
-
-        periods = await cls._get_periods(cache_repository, dnr, session, child)
-        periods = sorted(periods, key=lambda p: datetime.fromisoformat(p['start']))
-
-        return cls._get_active_period(periods, day)
-
-    @classmethod
-    def _get_active_period(cls, periods: list[dict], day: date) -> dict:
-        """
-        Получение отчетного периода, в который входит день
-
-        :param periods: отчетные периоды, отсортированные по возрастанию
-        :param day: дата дня
-        :return: отчетный период
-        """
-
-        active_period = None
-        for number, period in enumerate(periods):
-            start = datetime.fromisoformat(period['start']).date()
-
-            # Если следующий отчетный период уже после дня, то день входит в прошлый
-            if start > day:
-                active_period = periods[max(0, number - 1)]  # Если день до первого отчетного периода, то первый
-                break
-
-        # Если нет такого отчетного периода, который начинается после дня, то это последний отчетный период
-        if active_period is None:
-            active_period = periods[-1]
-
-        return active_period
-
     async def getMarks(self, session_id: str, last: int) -> MarksApiResponse:
         async with self.uow_factory() as uow:
             session = await check_session(session_id, uow.session_repository)  # Проверка и получение сессии
@@ -1099,12 +910,12 @@ class DnevnikService(BaseService[AppUnitOfWork]):
         # Если есть оценки за экзамен или отчетный период
         if period_works:
             work_types, _periods = await gather(
-                cls._get_work_types(cache_repository, dnr, session, child, work_types_id),
-                cls._get_periods(cache_repository, dnr, session, child)
+                CacheService.get_work_types(cache_repository, dnr, session, child, work_types_id),
+                CacheService.get_periods(cache_repository, dnr, session, child)
             )
             periods = {_period['number']: _period for _period in _periods}
         else:
-            work_types = await cls._get_work_types(cache_repository, dnr, session, child, work_types_id)
+            work_types = await CacheService.get_work_types(cache_repository, dnr, session, child, work_types_id)
 
         marks: list[MarkLast] = []
 
@@ -1164,7 +975,7 @@ class DnevnikService(BaseService[AppUnitOfWork]):
         """
 
         now = datetime_now(child.timezone).date()
-        active_period = await cls._get_period(cache_repository, dnr, session, child, now)
+        active_period = await CacheService.get_period(cache_repository, dnr, session, child, now)
 
         start = datetime.fromisoformat(active_period['start']).date()
         finish = datetime.fromisoformat(active_period['finish']).date()
@@ -1174,7 +985,7 @@ class DnevnikService(BaseService[AppUnitOfWork]):
             dnr.get_person_marks(child.child_id, child.group_id, start, finish),
             dnr.get_group_avg_marks(child.group_id, start, finish),
             dnr.get_person_final_marks(child.child_id, child.group_id),
-            dnr.get_subjects(child.group_id)
+            CacheService.get_subjects(cache_repository, dnr, session, child)
         )
 
         avg_marks: dict[int, dict] = {}  # Средние баллы ребенка (профиля)
@@ -1190,7 +1001,7 @@ class DnevnikService(BaseService[AppUnitOfWork]):
 
         _lessons, work_types = await gather(
             dnr.get_many_lessons([mark['lesson'] for mark in _marks]),
-            cls._get_work_types(cache_repository, dnr, session, child, work_types_id)
+            CacheService.get_work_types(cache_repository, dnr, session, child, work_types_id)
         )
 
         lessons = {lesson['id']: lesson for lesson in _lessons}
@@ -1295,7 +1106,7 @@ class DnevnikService(BaseService[AppUnitOfWork]):
                     raise
 
                 persons_id: set[int] = {mark['person'] for mark in _marks}
-                persons = await self._get_persons_name(uow.cache_repository, dnr, session, child, persons_id)
+                persons = await CacheService.get_persons_name(uow.cache_repository, dnr, session, child, persons_id)
 
                 marks = []
                 others_marks = []
@@ -1342,7 +1153,7 @@ class DnevnikService(BaseService[AppUnitOfWork]):
             try:
                 lesson, periods = await gather(
                     dnr.get_lesson(entity_id),
-                    self._get_periods(uow.cache_repository, dnr, session, child)
+                    CacheService.get_periods(uow.cache_repository, dnr, session, child)
                 )
             except BaseDnevnikruException as e:
                 if not await uow.session_repository.check_session_auth(session.session_id, dnr):
@@ -1350,13 +1161,13 @@ class DnevnikService(BaseService[AppUnitOfWork]):
                 raise
 
             lesson_date = datetime.fromisoformat(lesson['date']).date()
-            period_id = self._get_active_period(periods, lesson_date)['id']
+            period_id = CacheService.get_active_period(periods, lesson_date)['id']
             subject_id = lesson['subject']['id']
 
             async def get_marks_and_persons():
                 __marks = await dnr.get_marks_by_lesson(entity_id)
                 __persons_id: set[int] = {__mark['person'] for __mark in __marks}
-                __persons = await self._get_persons_name(uow.cache_repository, dnr, session, child, __persons_id)
+                __persons = await CacheService.get_persons_name(uow.cache_repository, dnr, session, child, __persons_id)
                 return __marks, __persons
 
             (old, new), (_marks, persons) = await gather(
@@ -1436,7 +1247,7 @@ class DnevnikService(BaseService[AppUnitOfWork]):
 
             dnr = AioDnevnikruApi(self.httpx_client, session.dnevnik_token)
 
-            periods = await self._get_periods(uow.cache_repository, dnr, session, child)
+            periods = await CacheService.get_periods(uow.cache_repository, dnr, session, child)
 
             try:
                 period = next(filter(lambda p: p['id'] == period_id, periods))
@@ -1464,7 +1275,7 @@ class DnevnikService(BaseService[AppUnitOfWork]):
                 raise
 
             persons_id: set[int] = {person['person'] for person in avg_marks}
-            persons_name = await self._get_persons_name(uow.cache_repository, dnr, session, child, persons_id)
+            persons_name = await CacheService.get_persons_name(uow.cache_repository, dnr, session, child, persons_id)
 
             _highlighting_person = await uow.highlighting_person_repository.get_highlighting_persons(parent.parent_id)
             highlighting_person = {person.person_id for person in _highlighting_person}
@@ -1607,7 +1418,7 @@ class DnevnikService(BaseService[AppUnitOfWork]):
             try:
                 marks, periods = await gather(
                     dnr.get_person_final_marks(child.child_id, child.group_id),
-                    self._get_periods(uow.cache_repository, dnr, session, child)
+                    CacheService.get_periods(uow.cache_repository, dnr, session, child)
                 )
             except BaseDnevnikruException as e:
                 if not await uow.session_repository.check_session_auth(session.session_id, dnr):
@@ -1618,7 +1429,7 @@ class DnevnikService(BaseService[AppUnitOfWork]):
             work_types_id = {work['workType'] for work in marks['works']}
             subjects = {subject['id']: subject['name'] for subject in marks['subjects']}
 
-            work_types = await self._get_work_types(uow.cache_repository, dnr, session, child, work_types_id)
+            work_types = await CacheService.get_work_types(uow.cache_repository, dnr, session, child, work_types_id)
 
             # Итоговые оценки заполняются предметами, чтобы показать даже пустые данные (до выставления оценок)
             final_marks: dict[int, dict[int, MarkLog]] = {subject_id: {} for subject_id in subjects}
