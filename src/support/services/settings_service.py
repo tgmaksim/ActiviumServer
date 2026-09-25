@@ -6,13 +6,16 @@ from yarl import URL
 from httpx import AsyncClient
 from starlette.status import HTTP_404_NOT_FOUND
 
-from dnevnikru import AioDnevnikruApi, BaseDnevnikruException
 from ...config.project_config import settings
+
+from dnevnikru import AioDnevnikruApi, BaseDnevnikruException
 
 from ...utils.cache import CacheService
 from ...dependencies.auth import check_session
+from ...services.log_service import LogService
 from ...services.base_service import BaseService
 from ..repositories.app_uow import AppUnitOfWork
+from ...dependencies.uow import get_log_uow_factory
 from ...repositories.statistic_repository import StatName
 from ...utils.referral_token import encode_referral_token
 
@@ -51,6 +54,7 @@ class SettingsService(BaseService[AppUnitOfWork]):
     def __init__(self, uow_factory: Callable[[], AppUnitOfWork], httpx_client: AsyncClient):
         super().__init__(uow_factory)
         self.httpx_client = httpx_client
+        self.log_service = LogService(get_log_uow_factory())
 
     async def getChildren(self, session_id: str) -> ChildrenApiResponse:
         async with self.uow_factory() as uow:
@@ -126,7 +130,7 @@ class SettingsService(BaseService[AppUnitOfWork]):
             try:
                 next(filter(lambda c: c['personId'] == child_id, context['children']))
             except StopIteration:
-                await uow.log_repository.add_log(
+                await self.log_service.log(
                     path='setActiveChild',
                     status=False,
                     session_id=session_id,
@@ -318,7 +322,7 @@ class SettingsService(BaseService[AppUnitOfWork]):
         try:
             next(filter(lambda c: c['id'] == child_id, children))
         except StopIteration:
-            await uow.log_repository.add_log(
+            await self.log_service.log(
                 path='switchMarksNotifications',
                 status=False,
                 session_id=session.session_id,

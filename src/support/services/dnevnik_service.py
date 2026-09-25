@@ -12,6 +12,7 @@ from datetime import datetime, timedelta, time, date, UTC
 
 from dnevnikru.exceptions import BaseDnevnikruException
 from dnevnikru.aiodnevnikru.dnevnikru import AioDnevnikruApi
+
 from ..repositories.lesson_note_repository import LessonNoteRepository
 from ..repositories.school_post_like_repository import SchoolPostLikeRepository
 from ..repositories.school_post_repository import SchoolPostRepository
@@ -25,10 +26,12 @@ from ...config.project_config import settings
 from ...dependencies.auth import check_session
 from ...utils.zip_int import zip_int, unzip_int
 from ...dependencies.httpx import get_httpx_client
+from ...dependencies.uow import get_log_uow_factory
 from ...utils.datetime import datetime_now, astimezone
 from ...repositories.statistic_repository import StatName
 
 from ...models.hour_model import Hour
+from ...services.log_service import LogService
 from ...services.base_service import BaseService
 from ..repositories.app_uow import AppUnitOfWork
 from ...models.lesson_note_model import LessonNote
@@ -101,6 +104,7 @@ class DnevnikService(BaseService[AppUnitOfWork]):
     def __init__(self, uow_factory: Callable[[], AppUnitOfWork], httpx_client: AsyncClient):
         super().__init__(uow_factory)
         self.httpx_client = httpx_client
+        self.log_service = LogService(get_log_uow_factory())
 
     async def getSchedule(self, session_id: str, before: int, after: int, api: int = None) -> Union[ScheduleApiResponse0x13, ScheduleApiResponse]:
         if api == 1:
@@ -112,7 +116,7 @@ class DnevnikService(BaseService[AppUnitOfWork]):
 
         async with self.uow_factory() as uow:
             if after + before > 30:
-                await uow.log_repository.add_log(
+                await self.log_service.log(
                     path='getSchedule',
                     session_id=session_id,
                     status=False,
@@ -741,7 +745,7 @@ class DnevnikService(BaseService[AppUnitOfWork]):
 
                 lesson_date = datetime.fromisoformat(params[2]).date()
             except (ValueError, IndexError, TypeError) as e:
-                await uow.log_repository.add_log(
+                await self.log_service.log(
                     path='getLessonRatingStats',
                     session_id=session_id,
                     status=False,
@@ -1074,7 +1078,7 @@ class DnevnikService(BaseService[AppUnitOfWork]):
 
                 entity_id = unzip_int(rating_key[1:])
             except (ValueError, IndexError, TypeError) as e:
-                await uow.log_repository.add_log(
+                await self.log_service.log(
                     path='getMarksRatingStats',
                     session_id=session_id,
                     status=False,
@@ -1229,7 +1233,7 @@ class DnevnikService(BaseService[AppUnitOfWork]):
 
                 period_id = unzip_int(key.group('period_id'))
             except (ValueError, TypeError) as e:
-                await uow.log_repository.add_log(
+                await self.log_service.log(
                     path='getMarksSubjectRating',
                     session_id=session_id,
                     status=False,
@@ -1252,7 +1256,7 @@ class DnevnikService(BaseService[AppUnitOfWork]):
             try:
                 period = next(filter(lambda p: p['id'] == period_id, periods))
             except StopIteration as e:
-                await uow.log_repository.add_log(
+                await self.log_service.log(
                     path='getMarksSubjectRating',
                     session_id=session_id,
                     status=False,

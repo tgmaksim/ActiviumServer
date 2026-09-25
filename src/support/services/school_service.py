@@ -30,8 +30,10 @@ from ..schemas.school_schemas import (
     SchoolPostsWithoutVisionApiResponse,
 )
 
+from ...services.log_service import LogService
 from ...services.base_service import BaseService
 from ..repositories.app_uow import AppUnitOfWork
+from ...dependencies.uow import get_log_uow_factory
 
 
 __all__ = ['SchoolService']
@@ -43,6 +45,7 @@ class SchoolService(BaseService[AppUnitOfWork]):
     def __init__(self, uow_factory: Callable[[], AppUnitOfWork], httpx_client: AsyncClient):
         super().__init__(uow_factory)
         self.httpx_client = httpx_client
+        self.log_service = LogService(get_log_uow_factory())
 
     async def get_post(self, post_id: int, is_dark_theme: bool) -> HtmlResponse:
         async with self.uow_factory() as uow:
@@ -288,7 +291,7 @@ class SchoolService(BaseService[AppUnitOfWork]):
 
             post = await uow.school_post_repository.get_post(post_id)
             if post is None:
-                await uow.log_repository.add_log(
+                await self.log_service.log(
                     path='seePost',
                     session_id=session_id,
                     status=False,
@@ -325,7 +328,7 @@ class SchoolService(BaseService[AppUnitOfWork]):
 
             post = await uow.school_post_repository.get_post(post_id)
             if post is None:
-                await uow.log_repository.add_log(
+                await self.log_service.log(
                     path='clickPost',
                     session_id=session_id,
                     status=False,
@@ -364,7 +367,7 @@ class SchoolService(BaseService[AppUnitOfWork]):
 
             post = await uow.school_post_repository.get_post(post_id)
             if post is None:
-                await uow.log_repository.add_log(
+                await self.log_service.log(
                     path='viewPost',
                     session_id=session_id,
                     status=False,
@@ -404,7 +407,7 @@ class SchoolService(BaseService[AppUnitOfWork]):
 
             post = await uow.school_post_repository.get_post(post_id)
             if post is None:
-                await uow.log_repository.add_log(
+                await self.log_service.log(
                     path='likePost',
                     session_id=session_id,
                     status=False,
@@ -445,7 +448,7 @@ class SchoolService(BaseService[AppUnitOfWork]):
 
             post = await uow.school_post_repository.get_post(post_id)
             if post is None:
-                await uow.log_repository.add_log(
+                await self.log_service.log(
                     path='unlikePost',
                     session_id=session_id,
                     status=False,

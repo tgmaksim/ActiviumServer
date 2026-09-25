@@ -68,7 +68,7 @@ class DnevnikToolsService(BaseService[AppUnitOfWork]):
             try:
                 lesson_id = unzip_int(lesson_key)
             except (ValueError, TypeError) as e:
-                await uow.log_repository.add_log(
+                await self.log_service.log(
                     path='createNote',
                     status=False,
                     session_id=session_id,
@@ -83,7 +83,7 @@ class DnevnikToolsService(BaseService[AppUnitOfWork]):
             # Если заметка уже создана ребенком (владельцем профиля) и является закрытой
             note = await uow.lesson_note_repository.get_note(child.child_id, lesson_id)
             if note is not None and not note.public and parent.parent_id != child.child_id:
-                await uow.log_repository.add_log(
+                await self.log_service.log(
                     path='createNote',
                     session_id=session_id,
                     value=f"Попытка изменить закрытую заметку {lesson_key}"
@@ -103,7 +103,7 @@ class DnevnikToolsService(BaseService[AppUnitOfWork]):
 
                 # Если ошибка связана с отсутствием урока в Дневнике.ру
                 if not isinstance(e, InvalidResponseException):
-                    await uow.log_repository.add_log(
+                    await self.log_service.log(
                         path='createNote',
                         session_id=session_id,
                         status=False,
@@ -148,7 +148,7 @@ class DnevnikToolsService(BaseService[AppUnitOfWork]):
             try:
                 lesson_id = unzip_int(lesson_key)
             except (ValueError, TypeError) as e:
-                await uow.log_repository.add_log(
+                await self.log_service.log(
                     path='getNote',
                     session_id=session_id,
                     status=False,
@@ -186,7 +186,7 @@ class DnevnikToolsService(BaseService[AppUnitOfWork]):
             try:
                 lesson_id = unzip_int(lesson_key)
             except (ValueError, TypeError) as e:
-                await uow.log_repository.add_log(
+                await self.log_service.log(
                     path='deleteNote',
                     session_id=session_id,
                     status=False,
@@ -229,7 +229,7 @@ class DnevnikToolsService(BaseService[AppUnitOfWork]):
 
             # Только по одному идентификатору можно отправить похвалу
             if not (lesson_key is None).__xor__(rating_key is None):
-                await uow.log_repository.add_log(
+                await self.log_service.log(
                     path='sendPraise',
                     session_id=session_id,
                     status=False,
@@ -247,7 +247,7 @@ class DnevnikToolsService(BaseService[AppUnitOfWork]):
                 lesson_id = unzip_int(rating_key[1:]) if rating_type == 'l' else lesson_id
                 work_id = unzip_int(rating_key[1:]) if rating_type == 'w' else None
             except (ValueError, IndexError, TypeError) as e:
-                await uow.log_repository.add_log(
+                await self.log_service.log(
                     path='sendPraise',
                     session_id=session_id,
                     status=False,
@@ -279,7 +279,7 @@ class DnevnikToolsService(BaseService[AppUnitOfWork]):
 
                 # Если ошибка связана с отсутствием урока в Дневнике.ру
                 if not isinstance(e, InvalidResponseException):
-                    await uow.log_repository.add_log(
+                    await self.log_service.log(
                         path='sendPraise',
                         session_id=session_id,
                         status=False,
@@ -300,7 +300,7 @@ class DnevnikToolsService(BaseService[AppUnitOfWork]):
                         subject = _subject['name']
 
             if not marks:
-                await uow.log_repository.add_log(
+                await self.log_service.log(
                     path='sendPraise',
                     session_id=session_id,
                     status=False,
@@ -312,7 +312,7 @@ class DnevnikToolsService(BaseService[AppUnitOfWork]):
                 ).exception(HTTP_400_BAD_REQUEST)
 
             if parent.parent_id == child.child_id:
-                await uow.log_repository.add_log(
+                await self.log_service.log(
                     path='sendPraise',
                     session_id=session_id,
                     status=False,
@@ -331,7 +331,7 @@ class DnevnikToolsService(BaseService[AppUnitOfWork]):
             }
 
             if not firebase_tokens:
-                await uow.log_repository.add_log(
+                await self.log_service.log(
                     path='sendPraise',
                     session_id=session_id,
                     value=f"Ребенок {child.child_id} не имеет активных сессий"
@@ -356,7 +356,7 @@ class DnevnikToolsService(BaseService[AppUnitOfWork]):
             # Логирование firebase
             for firebase_token, result in (response.results if response else []):
                 status = result.exception is None
-                await uow.log_repository.add_log(
+                await self.log_service.log(
                     ip='praise_notifications',
                     path=firebase_token,
                     status=status,
@@ -435,7 +435,7 @@ class DnevnikToolsService(BaseService[AppUnitOfWork]):
             try:
                 person_id = unzip_int(person_key)
             except (ValueError, TypeError) as e:
-                await uow.log_repository.add_log(
+                await self.log_service.log(
                     path='highlightPerson',
                     session_id=session_id,
                     status=False,
@@ -457,7 +457,7 @@ class DnevnikToolsService(BaseService[AppUnitOfWork]):
 
                 # Если ошибка связана с отсутствием персоны в Дневнике.ру
                 if not isinstance(e, InvalidResponseException):
-                    await uow.log_repository.add_log(
+                    await self.log_service.log(
                         path='highlightPerson',
                         session_id=session_id,
                         status=False,
@@ -483,7 +483,7 @@ class DnevnikToolsService(BaseService[AppUnitOfWork]):
             try:
                 person_id = unzip_int(person_key)
             except (ValueError, TypeError) as e:
-                await uow.log_repository.add_log(
+                await self.log_service.log(
                     path='unhighlightPerson',
                     session_id=session_id,
                     status=False,
@@ -496,7 +496,7 @@ class DnevnikToolsService(BaseService[AppUnitOfWork]):
 
             highlighting_person = await uow.highlighting_person_repository.get_highlighting_person(parent.parent_id, person_id)
             if highlighting_person is None:
-                await uow.log_repository.add_log(
+                await self.log_service.log(
                     path='unhighlightPerson',
                     session_id=session_id,
                     status=False,

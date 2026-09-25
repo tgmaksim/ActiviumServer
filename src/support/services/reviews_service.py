@@ -37,8 +37,10 @@ from ...models.session_model import Session
 from ...repositories.statistic_repository import StatName
 from ...schemas.error_schema import ApiError
 
+from ...services.log_service import LogService
 from ...services.base_service import BaseService
 from ..repositories.app_uow import AppUnitOfWork
+from ...dependencies.uow import get_log_uow_factory
 
 
 __all__ = ['ReviewsService']
@@ -50,6 +52,7 @@ class ReviewsService(BaseService[AppUnitOfWork]):
     def __init__(self, uow_factory: Callable[[], AppUnitOfWork], httpx_client: AsyncClient):
         super().__init__(uow_factory)
         self.httpx_client = httpx_client
+        self.log_service = LogService(get_log_uow_factory())
 
     async def create_review(self, session_id: str, stars: int, text: Optional[str]) -> CreateReviewApiResponse:
         async with self.uow_factory() as uow:
@@ -155,7 +158,7 @@ class ReviewsService(BaseService[AppUnitOfWork]):
             # Логирование firebase
             for firebase_token, result in (response.results if response else []):
                 status = result.exception is None
-                await uow.log_repository.add_log(
+                await self.log_service.log(
                     ip='review_notification',
                     path=firebase_token,
                     status=status,
@@ -195,7 +198,7 @@ class ReviewsService(BaseService[AppUnitOfWork]):
 
             review = await uow.review_repository.get_review(parent.parent_id)
             if review is None:
-                await uow.log_repository.add_log(
+                await self.log_service.log(
                     path='delete_review',
                     session_id=session_id,
                     value="Попытка удалить отзыв при его отсутствии"
@@ -275,7 +278,7 @@ class ReviewsService(BaseService[AppUnitOfWork]):
 
             review = await uow.review_repository.get_review(review_id)
             if review is None:
-                await uow.log_repository.add_log(
+                await self.log_service.log(
                     path='like_review',
                     status=False,
                     session_id=session_id,
@@ -287,7 +290,7 @@ class ReviewsService(BaseService[AppUnitOfWork]):
                 ).exception(HTTP_404_NOT_FOUND)
 
             if review_id == parent.parent_id:
-                await uow.log_repository.add_log(
+                await self.log_service.log(
                     path='like_review',
                     session_id=session_id,
                     value="Попытка поставить реакцию на свой отзыв"
@@ -301,7 +304,7 @@ class ReviewsService(BaseService[AppUnitOfWork]):
             if like is None:
                 await uow.review_like_repository.like_review(parent.parent_id, review_id)
             else:
-                await uow.log_repository.add_log(
+                await self.log_service.log(
                     path='like_review',
                     session_id=session_id,
                     value=f"Повторная попытка поставить реакцию на отзыв {review_id}"
@@ -338,7 +341,7 @@ class ReviewsService(BaseService[AppUnitOfWork]):
 
             review = await uow.review_repository.get_review(review_id)
             if review is None:
-                await uow.log_repository.add_log(
+                await self.log_service.log(
                     path='delete_review_like',
                     session_id=session_id,
                     status=False,
@@ -353,7 +356,7 @@ class ReviewsService(BaseService[AppUnitOfWork]):
             if review_like is not None:
                 await uow.review_like_repository.delete_like(parent.parent_id, review_id)
             else:
-                await uow.log_repository.add_log(
+                await self.log_service.log(
                     path='delete_review_like',
                     session_id=session_id,
                     status=False,

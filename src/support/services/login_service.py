@@ -19,8 +19,10 @@ from ..repositories.information_repository import InformationRepository
 
 from dnevnikru.aiodnevnikru.dnevnikru import AioDnevnikruApi
 
+from ...services.log_service import LogService
 from ...services.base_service import BaseService
 from ...services.html_response import HtmlResponse
+from ...dependencies.uow import get_log_uow_factory
 
 from ..schemas.login_schemas import LoginApiResponse, LoginResult
 from ..schemas.status_schemas import CheckSessionApiResponse, CheckSessionResult
@@ -59,6 +61,7 @@ class LoginService(BaseService[AppUnitOfWork]):
     def __init__(self, uow_factory: Callable[[], AppUnitOfWork], httpx_client: AsyncClient):
         super().__init__(uow_factory)
         self.httpx_client = httpx_client
+        self.log_service = LogService(get_log_uow_factory())
 
     async def login(self, session_id: Optional[str], firebase_token: str) -> LoginApiResponse:
         async with self.uow_factory() as uow:
@@ -123,7 +126,7 @@ class LoginService(BaseService[AppUnitOfWork]):
 
     async def secondAuthSession(self, dnevnik_token: str, session_id: str, referral_token: Optional[str]) -> HtmlResponse:
         # Функция для логирования
-        log_exception = lambda error: uow.log_repository.add_log(
+        log_exception = lambda error: self.log_service.log(
             path='secondAuthSession',
             status=False,
             session_id=session_id,
@@ -160,7 +163,7 @@ class LoginService(BaseService[AppUnitOfWork]):
 
             # Учитель, не являющийся родителем не может пользовать приложением
             if dnevnik_data == 'teacher':
-                await uow.log_repository.add_log(
+                await self.log_service.log(
                     path='secondAuthSession',
                     session_id=session_id,
                     value="Попытка регистрации учителя"
@@ -251,7 +254,7 @@ class LoginService(BaseService[AppUnitOfWork]):
             children: list[dict] = context['children']
 
             users_children = await dnr.get_children(person_id)
-            infos: list[dict] = await gather(*[dnr.get_user_info(child['userId']) for child in users_children])
+            infos: tuple[dict] = await gather(*[dnr.get_user_info(child['userId']) for child in users_children])
 
             # Возвращается информация о каждом ребенке
             for child in children:
@@ -415,7 +418,7 @@ class LoginService(BaseService[AppUnitOfWork]):
 
     async def secondAuthSchoolAdmin(self, dnevnik_token: str, user_id: int) -> HtmlResponse:
         # Функция для логирования
-        log_exception = lambda error: uow.log_repository.add_log(
+        log_exception = lambda error: self.log_service.log(
             path='secondAuthSchoolAdmin',
             status=False,
             session_id=str(user_id),

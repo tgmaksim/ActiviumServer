@@ -1,11 +1,10 @@
-import traceback
-
 from fastapi import Request, Response
 from fastapi.responses import JSONResponse
 
 from ..api.api_key_error import ApiKeyError
 from ..api.api_exception import ApiException
 from ..api.session_error import SessionError
+from ..utils.exception import format_exception
 from ..dependencies.uow import get_app_uow_factory
 from ..api.base_api_exception import BaseApiException
 
@@ -20,7 +19,7 @@ async def api_exception_handler(request: Request, exc: BaseApiException) -> Resp
     """Обработчик API-ошибок базового класса BaseApiException"""
 
     if isinstance(exc, ApiKeyError):
-        request.state.error = 'ApiKeyError\n' + '\n'.join(traceback.format_exception(exc))  # Для логирования ошибки
+        request.state.error = 'ApiKeyError\n' + format_exception(exc)  # Для логирования ошибки
 
         return JSONResponse(ApiResponse(
             status=False,
@@ -31,7 +30,7 @@ async def api_exception_handler(request: Request, exc: BaseApiException) -> Resp
         ).model_dump(by_alias=True), status_code=403)
 
     elif isinstance(exc, SessionError):
-        # request.state.error = 'SessionError\n' + '\n'.join(traceback.format_exception(exc))  # Для логирования ошибки
+        # request.state.error = 'SessionError\n' + '\n'.join(traceback.format_exception(exc)  # Для логирования ошибки
 
         uow_factory = get_app_uow_factory()
         async with uow_factory() as uow:
@@ -46,6 +45,8 @@ async def api_exception_handler(request: Request, exc: BaseApiException) -> Resp
         ).model_dump(by_alias=True), status_code=403)
 
     elif isinstance(exc, ApiException):
+        request.state.error = f"ApiError\n{format_exception(exc)}"  # Для логирования ошибки
+
         return JSONResponse(ApiResponse(
             status=False,
             error=exc.error

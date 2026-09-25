@@ -54,6 +54,10 @@ class MarksNotificationWorker(BaseBackground):
     count_workers - количество запущенных worker'ов уведомлений. Это позволяет равномерно распределить нагрузку
     """
 
+    def __init__(self, uow_factory: Callable[[], AppUnitOfWork], httpx_client: AsyncClient):
+        super().__init__(uow_factory, httpx_client)
+        self.log_service = LogService(get_log_uow_factory())
+
     @classmethod
     def name(cls) -> str:
         return 'marks_notifications'
@@ -89,8 +93,7 @@ class MarksNotificationWorker(BaseBackground):
                         async with self.uow_factory() as uow:
                             await uow.marks_notification_repository.update_date(rows[0].child_id)
 
-                    service = LogService(get_log_uow_factory())
-                    await service.log(
+                    await self.log_service.log(
                         ip=self.name(),
                         path=self.name(),
                         status=False,
@@ -176,7 +179,7 @@ class MarksNotificationWorker(BaseBackground):
                         # Выключение сессии
                         await uow.session_repository.kill_session(session.session_id)
                     else:  # Логирование ошибки
-                        await uow.log_repository.add_log(
+                        await self.log_service.log(
                             ip=self.name(),
                             path=self.name(),
                             session_id=session.session_id,
@@ -198,21 +201,22 @@ class MarksNotificationWorker(BaseBackground):
         parents = set()
         firebase_tokens = set()
 
-        for row in rows:
-            # Если сессия рабочая и этот firebase-токен еще не добавлен
-            if row.session.life and row.session.firebase_token not in firebase_tokens:
-                firebase_tokens.add(row.session.firebase_token)
-                parents.add(row.session.parent_id)
+        if pushes_for_new_marks or pushes_for_deleted_marks or pushes_for_updated_marks:
+            for row in rows:
+                # Если сессия рабочая и этот firebase-токен еще не добавлен
+                if row.session.life and row.session.firebase_token not in firebase_tokens:
+                    firebase_tokens.add(row.session.firebase_token)
+                    parents.add(row.session.parent_id)
 
-                _profile = profile if row.session.parent_id != child.child_id else None
+                    _profile = profile if row.session.parent_id != child.child_id else None
 
-                # то добавляются уведомления о каждой оценке для этого устройства
-                for mark in new_marks:
-                    pushes_for_new_marks.append((row.session.firebase_token, mark, _profile))
-                for mark in deleted_marks:
-                    pushes_for_deleted_marks.append((row.session.firebase_token, mark, _profile))
-                for mark in updated_marks:
-                    pushes_for_updated_marks.append((row.session.firebase_token, mark, _profile))
+                    # то добавляются уведомления о каждой оценке для этого устройства
+                    for mark in new_marks:
+                        pushes_for_new_marks.append((row.session.firebase_token, mark, _profile))
+                    for mark in deleted_marks:
+                        pushes_for_deleted_marks.append((row.session.firebase_token, mark, _profile))
+                    for mark in updated_marks:
+                        pushes_for_updated_marks.append((row.session.firebase_token, mark, _profile))
 
         # Дата последней оценки обновляется для учета предыдущих оценок в следующий раз
         await uow.marks_notification_repository.update_marks(child.child_id, period['id'], marks)
