@@ -17,12 +17,13 @@ from ..support.services.dnevnik_service import DnevnikService
 from ..support.services.reviews_service import ReviewsService
 from ..support.services.settings_service import SettingsService
 from ..support.services.tg_webapp_service import TgWebAppService
+from ..support.services.web_session_service import WebSessionService
 from ..support.services.dnevnik_tools_service import DnevnikToolsService
 
 
 __all__ = ['get_status_service', 'get_site_service', 'get_login_service', 'get_dnevnik_service', 'get_settings_service',
            'get_reviews_service', 'get_dnevnik_tools_service', 'get_school_service', 'get_tg_webapp_service',
-           'get_ads_service']
+           'get_ads_service', 'get_web_session_service']
 
 
 def get_status_service(
@@ -110,3 +111,11 @@ def get_ads_service(
     """Зависимость FastApi для получения AdsService"""
 
     return AdsService(uow_factory, httpx_client)
+
+
+def get_web_session_service(
+        uow_factory: Callable[[], AppUnitOfWork] = Depends(get_app_uow_factory)
+) -> WebSessionService:
+    """Зависимость FastApi для получения WebService"""
+
+    return WebSessionService(uow_factory)

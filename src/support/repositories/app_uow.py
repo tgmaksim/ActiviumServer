@@ -15,6 +15,7 @@ from .referral_repository import ReferralRepository
 from .ad_viewing_repository import AdViewingRepository
 from .school_post_repository import SchoolPostRepository
 from .lesson_note_repository import LessonNoteRepository
+from .web_session_repository import WebSessionRepository
 from ...repositories.log_repository import LogRepository
 from .review_likes_repository import ReviewLikeRepository
 from .information_repository import InformationRepository
@@ -69,6 +70,7 @@ class AppUnitOfWork(SqlAlchemyUnitOfWork):
         self._ad_repository: Optional[AdRepository] = None
         self._ad_viewing_repository: Optional[AdViewingRepository] = None
         self._hidden_extracurricular_activity_repository: Optional[HiddenExtracurricularActivityRepository] = None
+        self._web_session_repository: Optional[WebSessionRepository] = None
 
     @property
     def log_repository(self) -> LogRepository:
@@ -237,3 +239,9 @@ class AppUnitOfWork(SqlAlchemyUnitOfWork):
         if self._hidden_extracurricular_activity_repository is None:
             self._hidden_extracurricular_activity_repository = HiddenExtracurricularActivityRepository(self.queue)
         return self._hidden_extracurricular_activity_repository
+
+    @property
+    def web_session_repository(self) -> WebSessionRepository:
+        if self._web_session_repository is None:
+            self._web_session_repository = WebSessionRepository(self.queue)
+        return self._web_session_repository
