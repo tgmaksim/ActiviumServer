@@ -110,3 +110,12 @@ class CacheRepository(SqlAlchemyRepository[Cache]):
         """Удаление старого кэша"""
 
         return await self.delete((func.now() - Cache.created_at) > lifetime)
+
+    async def delete_session_cache(self, session_id: str):
+        """
+        Удаление кэша сессии
+
+        :param session_id: идентификатор сессии
+        """
+
+        return await self.delete(Cache.session_id == session_id)

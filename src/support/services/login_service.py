@@ -374,6 +374,9 @@ class LoginService(BaseService[AppUnitOfWork]):
         await uow.session_repository.auth_session(session_id, dnevnik_token, person_id, active_child_id)
         await uow.statistic_repository.add_statistic(person_id, StatName.authorization)
 
+        # При повторной авторизации нужно удалить, возможно, поврежденный кэш
+        await uow.cache_repository.delete_session_cache(session_id)
+
         if registration:
             await uow.statistic_repository.add_statistic(person_id, StatName.registration)
 
