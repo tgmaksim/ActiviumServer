@@ -12,6 +12,7 @@ from ...config.project_config import settings
 from ...utils.exception import format_exception
 
 from ..repositories.app_uow import AppUnitOfWork
+from ...repositories.log_uow import LogUnitOfWork
 from ...repositories.statistic_repository import StatName
 from ...utils.referral_token import decode_referral_token
 from ..repositories.session_repository import SessionRepository
@@ -22,7 +23,6 @@ from dnevnikru.aiodnevnikru.dnevnikru import AioDnevnikruApi
 from ...services.log_service import LogService
 from ...services.base_service import BaseService
 from ...services.html_response import HtmlResponse
-from ...dependencies.uow import get_log_uow_factory
 
 from ..schemas.login_schemas import LoginApiResponse, LoginResult
 from ..schemas.status_schemas import CheckSessionApiResponse, CheckSessionResult
@@ -58,10 +58,10 @@ class ResultAuth(TypedDict):
 class LoginService(BaseService[AppUnitOfWork]):
     """Сервис для регистрации и авторизации"""
 
-    def __init__(self, uow_factory: Callable[[], AppUnitOfWork], httpx_client: AsyncClient):
+    def __init__(self, uow_factory: Callable[[], AppUnitOfWork], log_uow_factory: Callable[[], LogUnitOfWork], httpx_client: AsyncClient):
         super().__init__(uow_factory)
         self.httpx_client = httpx_client
-        self.log_service = LogService(get_log_uow_factory())
+        self.log_service = LogService(log_uow_factory)
 
     async def login(self, session_id: Optional[str], firebase_token: str) -> LoginApiResponse:
         async with self.uow_factory() as uow:

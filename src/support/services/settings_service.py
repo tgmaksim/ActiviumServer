@@ -15,7 +15,7 @@ from ...dependencies.auth import check_session
 from ...services.log_service import LogService
 from ...services.base_service import BaseService
 from ..repositories.app_uow import AppUnitOfWork
-from ...dependencies.uow import get_log_uow_factory
+from ...repositories.log_uow import LogUnitOfWork
 from ...repositories.statistic_repository import StatName
 from ...utils.referral_token import encode_referral_token
 
@@ -50,11 +50,11 @@ __all__ = ['SettingsService']
 
 class SettingsService(BaseService[AppUnitOfWork]):
     """Сервис для управления настройками"""
-    
-    def __init__(self, uow_factory: Callable[[], AppUnitOfWork], httpx_client: AsyncClient):
+
+    def __init__(self, uow_factory: Callable[[], AppUnitOfWork], log_uow_factory: Callable[[], LogUnitOfWork], httpx_client: AsyncClient):
         super().__init__(uow_factory)
         self.httpx_client = httpx_client
-        self.log_service = LogService(get_log_uow_factory())
+        self.log_service = LogService(log_uow_factory)
 
     async def getChildren(self, session_id: str) -> ChildrenApiResponse:
         async with self.uow_factory() as uow:
