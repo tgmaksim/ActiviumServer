@@ -2,7 +2,7 @@ from typing import Annotated, Optional, Literal
 
 from fastapi import status
 from fastapi import APIRouter, Query, Depends, Body, Request, Header
-from starlette.status import HTTP_500_INTERNAL_SERVER_ERROR, HTTP_401_UNAUTHORIZED
+from starlette.status import HTTP_403_FORBIDDEN, HTTP_401_UNAUTHORIZED
 
 from ..schemas.reviews_schemas import (
     ReviewsApiResponse,
@@ -13,6 +13,7 @@ from ..schemas.reviews_schemas import (
     DeleteReviewLikeApiResponse
 )
 
+from ...dependencies.auth import get_session_id
 from ..services.reviews_service import ReviewsService
 from ...dependencies.services import get_reviews_service
 
@@ -35,13 +36,11 @@ public_router = APIRouter(prefix='/reviews', tags=["Reviews"])
     status_code=status.HTTP_201_CREATED
 )
 async def _createReview0(
-        request: Request,
         stars: Annotated[int, Query(description="Оценка от 1 до 5", ge=1, le=5)],
-        sessionId: Annotated[str, Header(description="Идентификатор сессии", min_length=1, max_length=32)],
         text: Annotated[Optional[str], Body(description="Текст отзыва", media_type='text/plain', min_length=1, max_length=512)] = None,
+        sessionId: str = Depends(get_session_id),
         service: ReviewsService = Depends(get_reviews_service)
 ) -> CreateReviewApiResponse:
-    request.state.session_id = sessionId
     return await service.create_review(sessionId, stars, text)
 
 
@@ -52,11 +51,9 @@ async def _createReview0(
     response_model=MyReviewApiResponse
 )
 async def _getMyReview0(
-        request: Request,
-        sessionId: Annotated[str, Header(description="Идентификатор сессии", min_length=1, max_length=32)],
+        sessionId: str = Depends(get_session_id),
         service: ReviewsService = Depends(get_reviews_service)
 ) -> MyReviewApiResponse:
-    request.state.session_id = sessionId
     return await service.get_my_review(sessionId)
 
 
@@ -67,11 +64,9 @@ async def _getMyReview0(
     response_model=DeleteReviewApiResponse
 )
 async def _deleteReview0(
-        request: Request,
-        sessionId: Annotated[str, Header(description="Идентификатор сессии", min_length=1, max_length=32)],
+        sessionId: str = Depends(get_session_id),
         service: ReviewsService = Depends(get_reviews_service)
 ) -> DeleteReviewApiResponse:
-    request.state.session_id = sessionId
     return await service.delete_review(sessionId)
 
 
@@ -97,12 +92,10 @@ async def _getReviews0(
     response_model=LikeReviewApiResponse
 )
 async def _likeReview0(
-        request: Request,
         reviewId: Annotated[int, Query(description="Идентификатор отзыва", ge=1, le=2**63-1)],
-        sessionId: Annotated[str, Header(description="Идентификатор сессии", min_length=1, max_length=32)],
+        sessionId: str = Depends(get_session_id),
         service: ReviewsService = Depends(get_reviews_service)
 ) -> LikeReviewApiResponse:
-    request.state.session_id = sessionId
     return await service.like_review(sessionId, reviewId)
 
 
@@ -120,12 +113,14 @@ async def _public_likeReview0(
 ) -> LikeReviewApiResponse:
     csrf_token = request.cookies.get('csrf_token')
     session_id = request.cookies.get('session_id')
+
     request.state.session_id = session_id
+
     if csrf_token != csrfToken:
         raise ApiError(
             type="CSRFInvalid",
             errorMessage="Перезагрузите страницу и повторите запрос"
-        ).exception(HTTP_500_INTERNAL_SERVER_ERROR)
+        ).exception(HTTP_403_FORBIDDEN)
 
     if not isinstance(session_id, str):
         raise ApiError(
@@ -143,12 +138,10 @@ async def _public_likeReview0(
     response_model=DeleteReviewLikeApiResponse
 )
 async def _deleteReviewLike0(
-        request: Request,
         reviewId: Annotated[int, Query(description="Идентификатор отзыва", ge=1, le=2**63-1)],
-        sessionId: Annotated[str, Header(description="Идентификатор сессии", min_length=1, max_length=32)],
+        sessionId: str = Depends(get_session_id),
         service: ReviewsService = Depends(get_reviews_service)
 ) -> DeleteReviewLikeApiResponse:
-    request.state.session_id = sessionId
     return await service.delete_review_like(sessionId, reviewId)
 
 
@@ -173,7 +166,7 @@ async def _public_deleteReviewLike0(
         raise ApiError(
             type="CSRFInvalid",
             errorMessage="Перезагрузите страницу и повторите запрос"
-        ).exception(HTTP_500_INTERNAL_SERVER_ERROR)
+        ).exception(HTTP_403_FORBIDDEN)
 
     if not isinstance(session_id, str):
         raise ApiError(

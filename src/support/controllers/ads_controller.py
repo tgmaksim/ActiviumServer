@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Request, Header, Query
+from fastapi import APIRouter, Depends, Query
 
 from ..schemas.ads_schemas import (
     AdApiResponse,
@@ -8,6 +8,7 @@ from ..schemas.ads_schemas import (
 )
 
 from ..services.ads_service import AdsService
+from ...dependencies.auth import get_session_id
 from ...dependencies.services import get_ads_service
 
 
@@ -24,11 +25,9 @@ router = APIRouter(prefix='/ads', tags=["Ads"])
     response_model=AdApiResponse
 )
 async def _checkAccessibleAd0(
-        request: Request,
-        sessionId: Annotated[str, Header(description="Идентификатор сессии", min_length=1, max_length=32)],
+        sessionId: str = Depends(get_session_id),
         service: AdsService = Depends(get_ads_service)
 ) -> AdApiResponse:
-    request.state.session_id = sessionId
     return await service.check_accessible_ad(sessionId)
 
 
@@ -39,10 +38,8 @@ async def _checkAccessibleAd0(
     response_model=ClickAdApiResponse
 )
 async def _clickAd0(
-        request: Request,
         adId: Annotated[int, Query(description="Идентификатор рекламы")],
-        sessionId: Annotated[str, Header(description="Идентификатор сессии", min_length=1, max_length=32)],
+        sessionId: str = Depends(get_session_id),
         service: AdsService = Depends(get_ads_service)
 ) -> ClickAdApiResponse:
-    request.state.session_id = sessionId
     return await service.click_ad(sessionId, adId)

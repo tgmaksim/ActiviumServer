@@ -1,10 +1,11 @@
 from http import HTTPStatus
 from typing import Annotated
 
+from fastapi import APIRouter, Query, Depends, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
-from fastapi import APIRouter, Query, Depends, Request, Header
 
 from ...config.project_config import settings
+from ...dependencies.auth import get_session_id
 from ..services.school_service import SchoolService
 from ...dependencies.templates import get_templates
 from ...dependencies.services import get_school_service
@@ -36,6 +37,7 @@ public_router = APIRouter(prefix='/school', tags=["School"], include_in_schema=F
 )
 async def _pre_post(request: Request) -> RedirectResponse:
     scheme = 'https' if not settings.DEBUG else 'http'
+
     return RedirectResponse(
         url=request.url.replace(scheme=scheme, path=request.url.path + '/'),
         status_code=HTTPStatus.PERMANENT_REDIRECT
@@ -78,12 +80,10 @@ async def _post(
     response_model=SchoolPostsApiResponse
 )
 async def _getPosts0(
-        request: Request,
         offset: Annotated[int, Query(description="Смещение постов", ge=0)],
-        sessionId: Annotated[str, Header(description="Идентификатор сессии", min_length=1, max_length=32)],
+        sessionId: str = Depends(get_session_id),
         service: SchoolService = Depends(get_school_service)
 ) -> SchoolPostsApiResponse:
-    request.state.session_id = sessionId
     return await service.getPosts(sessionId, offset)
 
 
@@ -95,11 +95,9 @@ async def _getPosts0(
     response_model=SchoolPostsWithoutVisionApiResponse
 )
 async def _checkNewPosts0(
-        request: Request,
-        sessionId: Annotated[str, Header(description="Идентификатор сессии", min_length=1, max_length=32)],
+        sessionId: str = Depends(get_session_id),
         service: SchoolService = Depends(get_school_service)
 ) -> SchoolPostsWithoutVisionApiResponse:
-    request.state.session_id = sessionId
     return await service.checkNewPosts(sessionId)
 
 
@@ -110,12 +108,10 @@ async def _checkNewPosts0(
     response_model=SeeSchoolPostApiResponse
 )
 async def _seePost0(
-        request: Request,
         postId: Annotated[int, Query(description="Идентификатор поста")],
-        sessionId: Annotated[str, Header(description="Идентификатор сессии", min_length=1, max_length=32)],
+        sessionId: str = Depends(get_session_id),
         service: SchoolService = Depends(get_school_service)
 ) -> SeeSchoolPostApiResponse:
-    request.state.session_id = sessionId
     return await service.seePost(sessionId, postId)
 
 
@@ -126,12 +122,10 @@ async def _seePost0(
     response_model=ClickSchoolPostApiResponse
 )
 async def _clickPost0(
-        request: Request,
         postId: Annotated[int, Query(description="Идентификатор поста")],
-        sessionId: Annotated[str, Header(description="Идентификатор сессии", min_length=1, max_length=32)],
+        sessionId: str = Depends(get_session_id),
         service: SchoolService = Depends(get_school_service)
 ) -> ClickSchoolPostApiResponse:
-    request.state.session_id = sessionId
     return await service.clickPost(sessionId, postId)
 
 
@@ -142,12 +136,10 @@ async def _clickPost0(
     response_model=ViewSchoolPostApiResponse
 )
 async def _viewPost0(
-        request: Request,
         postId: Annotated[int, Query(description="Идентификатор поста")],
-        sessionId: Annotated[str, Header(description="Идентификатор сессии", min_length=1, max_length=32)],
+        sessionId: str = Depends(get_session_id),
         service: SchoolService = Depends(get_school_service)
 ) -> ViewSchoolPostApiResponse:
-    request.state.session_id = sessionId
     return await service.viewPost(sessionId, postId)
 
 
@@ -158,12 +150,10 @@ async def _viewPost0(
     response_model=LikeSchoolPostApiResponse
 )
 async def _likePost0(
-        request: Request,
         postId: Annotated[int, Query(description="Идентификатор поста")],
-        sessionId: Annotated[str, Header(description="Идентификатор сессии", min_length=1, max_length=32)],
+        sessionId: str = Depends(get_session_id),
         service: SchoolService = Depends(get_school_service)
 ) -> LikeSchoolPostApiResponse:
-    request.state.session_id = sessionId
     return await service.likePost(sessionId, postId)
 
 
@@ -174,10 +164,8 @@ async def _likePost0(
     response_model=UnlikeSchoolPostApiResponse
 )
 async def _unlikePost0(
-        request: Request,
         postId: Annotated[int, Query(description="Идентификатор поста")],
-        sessionId: Annotated[str, Header(description="Идентификатор сессии", min_length=1, max_length=32)],
+        sessionId: str = Depends(get_session_id),
         service: SchoolService = Depends(get_school_service)
 ) -> UnlikeSchoolPostApiResponse:
-    request.state.session_id = sessionId
     return await service.unlikePost(sessionId, postId)

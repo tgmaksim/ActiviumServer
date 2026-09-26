@@ -22,8 +22,8 @@ from ..schemas.school_schemas import SchoolPost
 from ..schemas.dnevnik_tools_schemas import Note
 
 from ...utils.cache import CacheService
+from ...utils.auth import check_session
 from ...config.project_config import settings
-from ...dependencies.auth import check_session
 from ...utils.zip_int import zip_int, unzip_int
 from ...dependencies.httpx import get_httpx_client
 from ...utils.datetime import datetime_now, astimezone

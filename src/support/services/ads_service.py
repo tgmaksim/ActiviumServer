@@ -8,8 +8,8 @@ from httpx import AsyncClient
 from starlette.status import HTTP_404_NOT_FOUND
 
 from ...models import Parent
+from ...utils.auth import check_session
 from ...config.project_config import settings
-from ...dependencies.auth import check_session
 from ...schemas.error_schema import ApiError
 from ...services.base_service import BaseService
 from ..repositories.app_uow import AppUnitOfWork

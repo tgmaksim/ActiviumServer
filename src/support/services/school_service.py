@@ -7,11 +7,11 @@ from httpx import AsyncClient
 from fastapi import HTTPException
 from starlette.status import HTTP_404_NOT_FOUND
 
+from ...utils.auth import check_session
 from ...utils.datetime import astimezone
 from ...models.session_model import Session
 from ...schemas.error_schema import ApiError
 from ...config.project_config import settings
-from ...dependencies.auth import check_session
 from ...services.html_response import HtmlResponse
 from ...repositories.statistic_repository import StatName
 from ...models.school_post_model import SchoolPostContentEntityType

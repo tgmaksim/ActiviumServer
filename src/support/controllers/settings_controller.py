@@ -1,6 +1,6 @@
 from typing import Annotated, Optional
 
-from fastapi import APIRouter, Depends, Header, Query, Request
+from fastapi import APIRouter, Depends, Query
 
 from ..schemas.settings_schemas import (
     ChildrenApiResponse,
@@ -15,6 +15,7 @@ from ..schemas.settings_schemas import (
     HideExtracurricularActivityApiResponse,
 )
 
+from ...dependencies.auth import get_session_id
 from ..services.settings_service import SettingsService
 from ...dependencies.services import get_settings_service
 
@@ -33,11 +34,9 @@ router = APIRouter(prefix='/settings', tags=["Settings"])
     response_model=ChildrenApiResponse
 )
 async def _getChildren0(
-        request: Request,
-        sessionId: Annotated[str, Header(description="Идентификатор сессии", min_length=1, max_length=32)],
+        sessionId: str = Depends(get_session_id),
         service: SettingsService = Depends(get_settings_service)
 ) -> ChildrenApiResponse:
-    request.state.session_id = sessionId
     return await service.getChildren(sessionId)
 
 
@@ -48,12 +47,10 @@ async def _getChildren0(
     response_model=SwitchActiveChildApiResponse
 )
 async def _setActiveChild0(
-        request: Request,
         childId: Annotated[int, Query(description="Идентификатор ребенка, полученный запросом")],
-        sessionId: Annotated[str, Header(description="Идентификатор сессии", min_length=1, max_length=32)],
+        sessionId: str = Depends(get_session_id),
         service: SettingsService = Depends(get_settings_service)
 ) -> SwitchActiveChildApiResponse:
-    request.state.session_id = sessionId
     return await service.setActiveChild(sessionId, childId)
 
 
@@ -64,12 +61,10 @@ async def _setActiveChild0(
     response_model=StatusMarksNotificationsApiResponse
 )
 async def _getStatusMarksNotifications0(
-        request: Request,
-        sessionId: Annotated[str, Header(description="Идентификатор сессии", min_length=1, max_length=32)],
-        service: SettingsService = Depends(get_settings_service),
-        childId: Annotated[Optional[int], Query(description="Идентификатор ребенка")] = None
+        childId: Annotated[Optional[int], Query(description="Идентификатор ребенка")] = None,
+        sessionId: str = Depends(get_session_id),
+        service: SettingsService = Depends(get_settings_service)
 ) -> StatusMarksNotificationsApiResponse:
-    request.state.session_id = sessionId
     return await service.getStatusMarksNotifications(sessionId, childId)
 
 
@@ -80,13 +75,11 @@ async def _getStatusMarksNotifications0(
     response_model=SwitchMarksNotificationsApiResponse
 )
 async def _switchMarksNotifications0(
-        request: Request,
         status: Annotated[bool, Query(description="Новый статус настройки")],
-        sessionId: Annotated[str, Header(description="Идентификатор сессии", min_length=1, max_length=32)],
-        service: SettingsService = Depends(get_settings_service),
         childId: Annotated[Optional[int], Query(description="Идентификатор ребенка")] = None,
+        sessionId: str = Depends(get_session_id),
+        service: SettingsService = Depends(get_settings_service)
 ) -> SwitchMarksNotificationsApiResponse:
-    request.state.session_id = sessionId
     return await service.switchMarksNotifications(sessionId, childId, status)
 
 
@@ -97,12 +90,10 @@ async def _switchMarksNotifications0(
     response_model=UpdateFirebaseApiResponse
 )
 async def _updateFirebase0(
-        request: Request,
-        sessionId: Annotated[str, Header(description="Идентификатор сессии", min_length=1, max_length=32)],
         firebaseToken: Annotated[str, Query(description="Firebase-токен для отправки уведомлений клиенту", min_length=1, max_length=4096)],
+        sessionId: str = Depends(get_session_id),
         service: SettingsService = Depends(get_settings_service)
 ) -> UpdateFirebaseApiResponse:
-    request.state.session_id = sessionId
     return await service.update_firebase(sessionId, firebaseToken)
 
 
@@ -113,12 +104,10 @@ async def _updateFirebase0(
     response_model=StatusEANotificationsApiResponse
 )
 async def _getStatusEANotifications0(
-        request: Request,
-        sessionId: Annotated[str, Header(description="Идентификатор сессии", min_length=1, max_length=32)],
-        service: SettingsService = Depends(get_settings_service),
-        childId: Annotated[Optional[int], Query(description="Идентификатор ребенка")] = None
+        childId: Annotated[Optional[int], Query(description="Идентификатор ребенка")] = None,
+        sessionId: str = Depends(get_session_id),
+        service: SettingsService = Depends(get_settings_service)
 ) -> StatusEANotificationsApiResponse:
-    request.state.session_id = sessionId
     return await service.getStatusEANotifications(sessionId, childId)
 
 
@@ -129,13 +118,11 @@ async def _getStatusEANotifications0(
     response_model=SwitchEANotificationsApiResponse
 )
 async def _switchEANotifications0(
-        request: Request,
         status: Annotated[bool, Query(description="Новый статус настройки")],
-        sessionId: Annotated[str, Header(description="Идентификатор сессии", min_length=1, max_length=32)],
-        service: SettingsService = Depends(get_settings_service),
         childId: Annotated[Optional[int], Query(description="Идентификатор ребенка")] = None,
+        sessionId: str = Depends(get_session_id),
+        service: SettingsService = Depends(get_settings_service),
 ) -> SwitchEANotificationsApiResponse:
-    request.state.session_id = sessionId
     return await service.switchEANotifications(sessionId, childId, status)
 
 
@@ -147,11 +134,9 @@ async def _switchEANotifications0(
     deprecated=True  # Устарела с версии API 1.14.0
 )
 async def _getReferralParams0(
-        request: Request,
-        sessionId: Annotated[str, Header(description="Идентификатор сессии", min_length=1, max_length=32)],
+        sessionId: str = Depends(get_session_id),
         service: SettingsService = Depends(get_settings_service),
 ) -> ReferralParamsApiResponse0x46:
-    request.state.session_id = sessionId
     return await service.getReferralParams(sessionId, api=0)
 
 
@@ -162,11 +147,9 @@ async def _getReferralParams0(
     response_model=ReferralParamsApiResponse
 )
 async def _getReferralParams1(
-        request: Request,
-        sessionId: Annotated[str, Header(description="Идентификатор сессии", min_length=1, max_length=32)],
+        sessionId: str = Depends(get_session_id),
         service: SettingsService = Depends(get_settings_service),
 ) -> ReferralParamsApiResponse:
-    request.state.session_id = sessionId
     return await service.getReferralParams(sessionId, api=1)
 
 
@@ -177,12 +160,10 @@ async def _getReferralParams1(
     response_model=HideExtracurricularActivityApiResponse
 )
 async def _hideExtracurricularActivity0(
-        request: Request,
         subject: Annotated[str, Query(description="Название предмета внеурочного занятия", min_length=1, max_length=32)],
         place: Annotated[str, Query(description="Место проведения (кабинет) внеурочного занятия", min_length=1, max_length=32)],
-        sessionId: Annotated[str, Header(description="Идентификатор сессии", min_length=1, max_length=32)],
         childId: Annotated[Optional[int], Query(description="Идентификатор ребенка")] = None,
+        sessionId: str = Depends(get_session_id),
         service: SettingsService = Depends(get_settings_service),
 ) -> HideExtracurricularActivityApiResponse:
-    request.state.session_id = sessionId
     return await service.hideExtracurricularActivity(sessionId, childId, subject, place)

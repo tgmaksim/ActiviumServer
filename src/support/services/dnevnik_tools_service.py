@@ -7,7 +7,7 @@ from starlette.status import HTTP_404_NOT_FOUND, HTTP_403_FORBIDDEN, HTTP_400_BA
 
 from ...utils.zip_int import unzip_int
 from ...utils.cache import CacheService
-from ...dependencies.auth import check_session
+from ...utils.auth import check_session
 from ...utils.exception import format_exception
 
 from dnevnikru.aiodnevnikru.dnevnikru import AioDnevnikruApi

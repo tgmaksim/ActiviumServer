@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Annotated, Optional
 
 from fastapi import status
-from fastapi import APIRouter, Query, Depends, Body, Request, Header
+from fastapi import APIRouter, Query, Depends, Body
 
 from ..schemas.dnevnik_tools_schemas import (
     NoteApiResponse,
@@ -16,6 +16,7 @@ from ..schemas.dnevnik_tools_schemas import (
     UnhighlightPersonApiResponse,
 )
 
+from ...dependencies.auth import get_session_id
 from ..services.dnevnik_tools_service import DnevnikToolsService
 from ...dependencies.services import get_dnevnik_tools_service
 
@@ -35,14 +36,12 @@ router = APIRouter(prefix='/dtools', tags=["Dnevnik Tools"])
     deprecated=True  # Устарела с версии API 1.4.1
 )
 async def _createNote0(
-        request: Request,
         lessonKey: Annotated[str, Query(description="Ключ от урока, к которому нужно создать заметку", pattern=r'[0-9a-z]{1,13}', min_length=1, max_length=13)],
         text: Annotated[str, Body(media_type='plain/text', description="Текст заметки", min_length=1, max_length=256)],
         public: Annotated[bool, Query(description="Заметка доступна родителю")],
-        sessionId: Annotated[str, Header(description="Идентификатор сессии", min_length=1, max_length=32)],
+        sessionId: str = Depends(get_session_id),
         service: DnevnikToolsService = Depends(get_dnevnik_tools_service)
 ) -> CreateNoteApiResponse0x36:
-    request.state.session_id = sessionId
     return await service.create_note(sessionId, lessonKey, text, public, None, api=0)
 
 
@@ -54,15 +53,13 @@ async def _createNote0(
     status_code=status.HTTP_201_CREATED
 )
 async def _createNote1(
-        request: Request,
         lessonKey: Annotated[str, Query(description="Ключ от урока, к которому нужно создать заметку", pattern=r'[0-9a-z]{1,13}', min_length=1, max_length=13)],
         text: Annotated[str, Body(media_type='plain/text', description="Текст заметки", min_length=1, max_length=256)],
         public: Annotated[bool, Query(description="Заметка доступна родителю")],
-        sessionId: Annotated[str, Header(description="Идентификатор сессии", min_length=1, max_length=32)],
+        sessionId: str = Depends(get_session_id),
         remindTime: Annotated[Optional[datetime], Query(description="Время напоминания, если требуется")] = None,
         service: DnevnikToolsService = Depends(get_dnevnik_tools_service)
 ) -> CreateNoteApiResponse:
-    request.state.session_id = sessionId
     return await service.create_note(sessionId, lessonKey, text, public, remindTime)
 
 
@@ -74,12 +71,10 @@ async def _createNote1(
     deprecated=True  # Устарела с версии API 1.4.1
 )
 async def _getNote0(
-        request: Request,
         lessonKey: Annotated[str, Query(description="Ключ от урока, к которому нужно создать заметку", pattern=r'[0-9a-z]{1,13}', min_length=1, max_length=13)],
-        sessionId: Annotated[str, Header(description="Идентификатор сессии", min_length=1, max_length=32)],
+        sessionId: str = Depends(get_session_id),
         service: DnevnikToolsService = Depends(get_dnevnik_tools_service)
 ) -> NoteApiResponse0x38:
-    request.state.session_id = sessionId
     return await service.get_note(sessionId, lessonKey, api=0)
 
 
@@ -90,12 +85,10 @@ async def _getNote0(
     response_model=NoteApiResponse
 )
 async def _getNote1(
-        request: Request,
         lessonKey: Annotated[str, Query(description="Ключ от урока, к которому нужно создать заметку", pattern=r'[0-9a-z]{1,13}', min_length=1, max_length=13)],
-        sessionId: Annotated[str, Header(description="Идентификатор сессии", min_length=1, max_length=32)],
+        sessionId: str = Depends(get_session_id),
         service: DnevnikToolsService = Depends(get_dnevnik_tools_service)
 ) -> NoteApiResponse:
-    request.state.session_id = sessionId
     return await service.get_note(sessionId, lessonKey)
 
 
@@ -106,12 +99,10 @@ async def _getNote1(
     response_model=DeleteNoteApiResponse
 )
 async def _deleteNote0(
-        request: Request,
         lessonKey: Annotated[str, Query(description="Ключ от урока, к которому нужно создать заметку", pattern=r'[0-9a-z]{1,13}', min_length=1, max_length=13)],
-        sessionId: Annotated[str, Header(description="Идентификатор сессии", min_length=1, max_length=32)],
+        sessionId: str = Depends(get_session_id),
         service: DnevnikToolsService = Depends(get_dnevnik_tools_service)
 ) -> DeleteNoteApiResponse:
-    request.state.session_id = sessionId
     return await service.delete_note(sessionId, lessonKey)
 
 
@@ -123,13 +114,11 @@ async def _deleteNote0(
     deprecated=True  # Устарела с версии API 1.4.0
 )
 async def _sendPraise0(
-        request: Request,
         lessonKey: Annotated[str, Query(description="Ключ от урока, по которому нужно отправить похвалу", pattern=r'[0-9a-z]{1,13}', min_length=1, max_length=13)],
-        sessionId: Annotated[str, Header(description="Идентификатор сессии", min_length=1, max_length=32)],
+        sessionId: str = Depends(get_session_id),
         text: Annotated[Optional[str], Body(media_type="plain/text", description="Короткое сообщение ребенку", min_length=1, max_length=64)] = None,
         service: DnevnikToolsService = Depends(get_dnevnik_tools_service)
 ) -> PraiseApiResponse0x3A:
-    request.state.session_id = sessionId
     return await service.send_praise(sessionId, lessonKey, None, text, api=0)
 
 
@@ -141,14 +130,12 @@ async def _sendPraise0(
     response_model=PraiseApiResponse  # Начиная с версии API 1.4.0
 )
 async def _sendPraise1(
-        request: Request,
-        sessionId: Annotated[str, Header(description="Идентификатор сессии", min_length=1, max_length=32)],
+        sessionId: str = Depends(get_session_id),
         lessonKey: Annotated[Optional[str], Query(description="Ключ от урока, по которому нужно отправить похвалу", pattern=r'[0-9a-z]{1,13}', min_length=1, max_length=13)] = None,
         ratingKey: Annotated[Optional[str], Query(description="Ключ от последней оценки", pattern=r'[wl][0-9a-z]{1,13}', min_length=2, max_length=14)] = None,
         text: Annotated[Optional[str], Body(media_type="plain/text", description="Короткое сообщение ребенку", min_length=1, max_length=64)] = None,
         service: DnevnikToolsService = Depends(get_dnevnik_tools_service)
 ) -> PraiseApiResponse:
-    request.state.session_id = sessionId
     return await service.send_praise(sessionId, lessonKey, ratingKey, text)
 
 
@@ -160,12 +147,10 @@ async def _sendPraise1(
     response_model=HighlightPersonApiResponse
 )
 async def _highlightPerson0(
-        request: Request,
         personKey: Annotated[str, Query(description="Ключ от одноклассника, которого нужно выделить", pattern=r'[0-9a-z]{1,13}', min_length=1, max_length=13)],
-        sessionId: Annotated[str, Header(description="Идентификатор сессии", min_length=1, max_length=32)],
+        sessionId: str = Depends(get_session_id),
         service: DnevnikToolsService = Depends(get_dnevnik_tools_service)
 ) -> HighlightPersonApiResponse:
-    request.state.session_id = sessionId
     return await service.highlight_person(sessionId, personKey)
 
 
@@ -177,10 +162,8 @@ async def _highlightPerson0(
     response_model=UnhighlightPersonApiResponse
 )
 async def _unhighlightPerson0(
-        request: Request,
         personKey: Annotated[str, Query(description="Ключ от одноклассника, у которого нужно выключить выделение", pattern=r'[0-9a-z]{1,13}', min_length=1, max_length=13)],
-        sessionId: Annotated[str, Header(description="Идентификатор сессии", min_length=1, max_length=32)],
+        sessionId: str = Depends(get_session_id),
         service: DnevnikToolsService = Depends(get_dnevnik_tools_service)
 ) -> UnhighlightPersonApiResponse:
-    request.state.session_id = sessionId
     return await service.unhighlight_person(sessionId, personKey)

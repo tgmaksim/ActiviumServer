@@ -31,10 +31,10 @@ from ..schemas.reviews_schemas import (
 
 from ...api.session_error import SessionError
 
+from ...utils.auth import check_session
 from ...models.parent_model import Parent
 from ...models.session_model import Session
 from ...schemas.error_schema import ApiError
-from ...dependencies.auth import check_session
 from ...repositories.statistic_repository import StatName
 
 from ...services.log_service import LogService

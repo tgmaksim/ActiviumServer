@@ -1,6 +1,6 @@
 from typing import Annotated, Optional
 
-from fastapi import APIRouter, Query, Depends, Request, Header
+from fastapi import APIRouter, Query, Depends
 
 from ..schemas.status_schemas import (
     HealthApiResponse,
@@ -9,6 +9,7 @@ from ..schemas.status_schemas import (
     VersionsApiResponse0x4
 )
 
+from ...dependencies.auth import get_session_id
 from ..services.status_service import StatusService
 from ...dependencies.services import get_status_service
 
@@ -62,9 +63,7 @@ async def _health0(service: StatusService = Depends(get_status_service)) -> Heal
     response_model=InformationApiResponse
 )
 async def _checkInfoNotifications0(
-        request: Request,
-        sessionId: Annotated[str, Header(description="Идентификатор сессии", min_length=1, max_length=32)],
+        sessionId: str = Depends(get_session_id),
         service: StatusService = Depends(get_status_service)
 ) -> InformationApiResponse:
-    request.state.session_id = sessionId
     return await service.check_info_notifications(sessionId)
