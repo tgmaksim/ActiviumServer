@@ -11,6 +11,7 @@ from .support.controllers import (
     school_controller,
     dnevnik_controller,
     reviews_controller,
+    web_app_controller,
     settings_controller,
     tg_webapp_controller,
     dnevnik_tools_controller,
@@ -51,6 +52,7 @@ def get_public_api_router() -> APIRouter:
     public_router.include_router(reviews_controller.public_router)
     public_router.include_router(school_controller.public_router)
     public_router.include_router(tg_webapp_controller.public_router)
+    public_router.include_router(web_app_controller.public_router)
 
     return public_router
 

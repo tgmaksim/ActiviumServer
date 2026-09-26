@@ -19,16 +19,15 @@ await rm(staticApp, { recursive: true, force: true });
 
 await mkdir(staticApp, { recursive: true });
 
-// index.html → templates/app.html
+// index.html → src/templates/app.html
 await cp(
     path.join(dist, "index.html"),
     path.join(templates, "app.html"),
 );
 
-// Всё кроме index.html → www/app
+// Весь dist → www/app
 await cp(dist, staticApp, {
     recursive: true,
-    filter: (source) => !source.endsWith(`${path.sep}index.html`),
 });
 
-console.log("Vue application copied to FastAPI.");
+console.log("Vue application copied to FastAPI");

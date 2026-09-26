@@ -10,7 +10,7 @@ from ...dependencies.services import get_tg_webapp_service
 __all__ = ['public_router']
 
 public_router = APIRouter(prefix="/tg-webapp", tags=["Tg-WebApp"], include_in_schema=False)
-"""Публичный router сайта"""
+"""Публичный router Telegram Web App"""
 
 
 @public_router.get("/bells")
