@@ -14,8 +14,8 @@ from dnevnikru.exceptions import BaseDnevnikruException
 from dnevnikru.aiodnevnikru.dnevnikru import AioDnevnikruApi
 
 from ..repositories.lesson_note_repository import LessonNoteRepository
-from ..repositories.school_post_like_repository import SchoolPostLikeRepository
 from ..repositories.school_post_repository import SchoolPostRepository
+from ..repositories.school_post_like_repository import SchoolPostLikeRepository
 from ..repositories.school_post_vision_repository import SchoolPostVisionRepository
 
 from ..schemas.school_schemas import SchoolPost
@@ -26,7 +26,6 @@ from ...config.project_config import settings
 from ...dependencies.auth import check_session
 from ...utils.zip_int import zip_int, unzip_int
 from ...dependencies.httpx import get_httpx_client
-from ...dependencies.uow import get_log_uow_factory
 from ...utils.datetime import datetime_now, astimezone
 from ...repositories.statistic_repository import StatName
 
@@ -34,6 +33,7 @@ from ...models.hour_model import Hour
 from ...services.log_service import LogService
 from ...services.base_service import BaseService
 from ..repositories.app_uow import AppUnitOfWork
+from ...repositories.log_uow import LogUnitOfWork
 from ...models.lesson_note_model import LessonNote
 from ..repositories.cache_repository import CacheRepository
 from ...models.school_post_model import SchoolPost as SchoolPostModel
@@ -101,10 +101,10 @@ def round_or_int(number: float) -> Union[int, float]:
 class DnevnikService(BaseService[AppUnitOfWork]):
     """Сервис для взаимодействия с расписанием, оценками и другими данными Дневника.ру"""
 
-    def __init__(self, uow_factory: Callable[[], AppUnitOfWork], httpx_client: AsyncClient):
+    def __init__(self, uow_factory: Callable[[], AppUnitOfWork], log_uow_factory: Callable[[], LogUnitOfWork], httpx_client: AsyncClient):
         super().__init__(uow_factory)
         self.httpx_client = httpx_client
-        self.log_service = LogService(get_log_uow_factory())
+        self.log_service = LogService(log_uow_factory)
 
     async def getSchedule(self, session_id: str, before: int, after: int, api: int = None) -> Union[ScheduleApiResponse0x13, ScheduleApiResponse]:
         if api == 1:

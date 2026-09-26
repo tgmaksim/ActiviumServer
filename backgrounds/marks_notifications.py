@@ -168,7 +168,7 @@ class MarksNotificationWorker(BaseBackground):
                         period = await CacheService.get_period(uow.cache_repository, dnr, main_row.session, child, datetime.now(UTC).date())
 
                     # Запрашиваются все оценки и имя ребенка
-                    marks, new_marks, deleted_marks, updated_marks, profile = await self.fetch_marks(
+                    marks, new_marks, deleted_marks, updated_marks, profile = await self._fetch_marks(
                         uow, dnr, session, child, period['start'], period['finish'], period['id'],
                         current_marks, current_marks_hash, current_period_id
                     )
@@ -201,7 +201,7 @@ class MarksNotificationWorker(BaseBackground):
         parents = set()
         firebase_tokens = set()
 
-        if pushes_for_new_marks or pushes_for_deleted_marks or pushes_for_updated_marks:
+        if new_marks or deleted_marks or updated_marks:
             for row in rows:
                 # Если сессия рабочая и этот firebase-токен еще не добавлен
                 if row.session.life and row.session.firebase_token not in firebase_tokens:
@@ -227,7 +227,7 @@ class MarksNotificationWorker(BaseBackground):
         return pushes_for_new_marks, pushes_for_deleted_marks, pushes_for_updated_marks, child.child_id
 
     @classmethod
-    async def fetch_marks(
+    async def _fetch_marks(
             cls,
             uow: AppUnitOfWork, dnr: AioDnevnikruApi, session: Session, child: Child,
             from_date: date, to_date: date, period_id: int,

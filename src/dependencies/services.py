@@ -4,8 +4,9 @@ from fastapi import Depends
 from httpx import AsyncClient
 
 from .httpx import get_httpx_client
-from .uow import get_app_uow_factory
+from .uow import get_app_uow_factory, get_log_uow_factory
 
+from ..repositories.log_uow import LogUnitOfWork
 from ..support.repositories.app_uow import AppUnitOfWork
 
 from ..support.services.ads_service import AdsService
@@ -44,56 +45,62 @@ def get_site_service(
 
 def get_login_service(
         uow_factory: Callable[[], AppUnitOfWork] = Depends(get_app_uow_factory),
+        log_uow_factory: Callable[[], LogUnitOfWork] = Depends(get_log_uow_factory),
         httpx_client: AsyncClient = Depends(get_httpx_client)
 ) -> LoginService:
     """Зависимость FastApi для получения LoginService"""
 
-    return LoginService(uow_factory, httpx_client)
+    return LoginService(uow_factory, log_uow_factory, httpx_client)
 
 
 def get_dnevnik_service(
         uow_factory: Callable[[], AppUnitOfWork] = Depends(get_app_uow_factory),
+        log_uow_factory: Callable[[], LogUnitOfWork] = Depends(get_log_uow_factory),
         httpx_client: AsyncClient = Depends(get_httpx_client)
 ) -> DnevnikService:
     """Зависимость FastApi для получения DnevnikService"""
 
-    return DnevnikService(uow_factory, httpx_client)
+    return DnevnikService(uow_factory, log_uow_factory, httpx_client)
 
 
 def get_settings_service(
         uow_factory: Callable[[], AppUnitOfWork] = Depends(get_app_uow_factory),
+        log_uow_factory: Callable[[], LogUnitOfWork] = Depends(get_log_uow_factory),
         httpx_client: AsyncClient = Depends(get_httpx_client)
 ) -> SettingsService:
     """Зависимость FastApi для получения SettingsService"""
 
-    return SettingsService(uow_factory, httpx_client)
+    return SettingsService(uow_factory, log_uow_factory, httpx_client)
 
 
 def get_reviews_service(
         uow_factory: Callable[[], AppUnitOfWork] = Depends(get_app_uow_factory),
+        log_uow_factory: Callable[[], LogUnitOfWork] = Depends(get_log_uow_factory),
         httpx_client: AsyncClient = Depends(get_httpx_client)
 ) -> ReviewsService:
     """Зависимость FastApi для получения ReviewsService"""
 
-    return ReviewsService(uow_factory, httpx_client)
+    return ReviewsService(uow_factory, log_uow_factory, httpx_client)
 
 
 def get_dnevnik_tools_service(
         uow_factory: Callable[[], AppUnitOfWork] = Depends(get_app_uow_factory),
+        log_uow_factory: Callable[[], LogUnitOfWork] = Depends(get_log_uow_factory),
         httpx_client: AsyncClient = Depends(get_httpx_client)
 ) -> DnevnikToolsService:
     """Зависимость FastApi для получения DnevnikToolsService"""
 
-    return DnevnikToolsService(uow_factory, httpx_client)
+    return DnevnikToolsService(uow_factory, log_uow_factory, httpx_client)
 
 
 def get_school_service(
         uow_factory: Callable[[], AppUnitOfWork] = Depends(get_app_uow_factory),
+        log_uow_factory: Callable[[], LogUnitOfWork] = Depends(get_log_uow_factory),
         httpx_client: AsyncClient = Depends(get_httpx_client)
 ) -> SchoolService:
     """Зависимость FastApi для получения SchoolService"""
 
-    return SchoolService(uow_factory, httpx_client)
+    return SchoolService(uow_factory, log_uow_factory, httpx_client)
 
 
 def get_tg_webapp_service(

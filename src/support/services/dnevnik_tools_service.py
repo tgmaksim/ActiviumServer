@@ -35,8 +35,10 @@ from ...models.child_model import Child
 from ...models.parent_model import Parent
 from ...schemas.error_schema import ApiError
 from ...api.session_error import SessionError
+from ...services.log_service import LogService
 from ...services.base_service import BaseService
 from ..repositories.app_uow import AppUnitOfWork
+from ...repositories.log_uow import LogUnitOfWork
 from ...repositories.statistic_repository import StatName
 
 
@@ -46,9 +48,10 @@ __all__ = ['DnevnikToolsService']
 class DnevnikToolsService(BaseService[AppUnitOfWork]):
     """Сервис для дополнительного взаимодействия с расписанием и оценками"""
 
-    def __init__(self, uow_factory: Callable[[], AppUnitOfWork], httpx_client: AsyncClient):
+    def __init__(self, uow_factory: Callable[[], AppUnitOfWork], log_uow_factory: Callable[[], LogUnitOfWork], httpx_client: AsyncClient):
         super().__init__(uow_factory)
         self.httpx_client = httpx_client
+        self.log_service = LogService(log_uow_factory)
 
     async def create_note(self, session_id: str, lesson_key: str, text: str, public: bool, remind_time: Optional[datetime], api: int = None) -> Union[CreateNoteApiResponse0x36, CreateNoteApiResponse]:
         if api == 0:

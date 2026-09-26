@@ -31,16 +31,16 @@ from ..schemas.reviews_schemas import (
 
 from ...api.session_error import SessionError
 
-from ...dependencies.auth import check_session
 from ...models.parent_model import Parent
 from ...models.session_model import Session
-from ...repositories.statistic_repository import StatName
 from ...schemas.error_schema import ApiError
+from ...dependencies.auth import check_session
+from ...repositories.statistic_repository import StatName
 
 from ...services.log_service import LogService
 from ...services.base_service import BaseService
 from ..repositories.app_uow import AppUnitOfWork
-from ...dependencies.uow import get_log_uow_factory
+from ...repositories.log_uow import LogUnitOfWork
 
 
 __all__ = ['ReviewsService']
@@ -49,10 +49,10 @@ __all__ = ['ReviewsService']
 class ReviewsService(BaseService[AppUnitOfWork]):
     """Сервис для управления и отзывами и просмотра их"""
 
-    def __init__(self, uow_factory: Callable[[], AppUnitOfWork], httpx_client: AsyncClient):
+    def __init__(self, uow_factory: Callable[[], AppUnitOfWork], log_uow_factory: Callable[[], LogUnitOfWork], httpx_client: AsyncClient):
         super().__init__(uow_factory)
         self.httpx_client = httpx_client
-        self.log_service = LogService(get_log_uow_factory())
+        self.log_service = LogService(log_uow_factory)
 
     async def create_review(self, session_id: str, stars: int, text: Optional[str]) -> CreateReviewApiResponse:
         async with self.uow_factory() as uow:
