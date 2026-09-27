@@ -20,6 +20,7 @@ class MonitoringMiddleware(BaseHTTPMiddleware):
 
         try:
             response = await call_next(request)
+            error = bool(getattr(request.state, 'error', None))
             return response
         except Exception:
             error = True
