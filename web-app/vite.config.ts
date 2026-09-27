@@ -18,6 +18,13 @@ export default defineConfig({
         VitePWA({
             registerType: "autoUpdate",
 
+            workbox: {
+                navigateFallback: "/app",
+                navigateFallbackDenylist: [
+                    /^\/app\/login$/,
+                ],
+            },
+
             manifest: {
                 name: "Активиум - Web приложение для школы",
                 short_name: "Активиум",

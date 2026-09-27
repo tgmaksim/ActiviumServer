@@ -13,3 +13,7 @@ class WebAppService(BaseService[AppUnitOfWork]):
     @classmethod
     def app(cls) -> HtmlResponse:
         return HtmlResponse(name='app.html')
+
+    @classmethod
+    def login(cls) -> HtmlResponse:
+        return HtmlResponse(name='error.html')  # TODO: временно для проверки
