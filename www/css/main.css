@@ -303,6 +303,12 @@ header{
     cursor: pointer;
 }
 
+.btn-teacher {
+    grid-column: span 2;
+    display: inline-flex;
+    justify-content: center;
+}
+
 .faq details {
     border: 1px solid var(--glass-border);
     background: var(--card-bg);
@@ -535,7 +541,6 @@ footer{ margin-top:18px; color:var(--muted); font-size:13px; text-align:center }
         width: 100%;
         display: inline-flex;
         justify-content: center;
-        margin-top: 8px;
     }
 }
 

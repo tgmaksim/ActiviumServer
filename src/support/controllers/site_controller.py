@@ -70,3 +70,25 @@ async def _root(
 @public_router.head("/")
 async def _head_root():
     return HTMLResponse()
+
+
+@public_router.get("/teacher")
+async def _teacher(
+        request: Request,
+        service: SiteService = Depends(get_site_service)
+):
+    template_params = await service.teacher()
+
+    templates = get_templates()
+    response = templates.TemplateResponse(
+        request=request,
+        status_code=template_params.status_code,
+        name=template_params.name,
+        context=template_params.context
+    )
+
+    if template_params.cookies:
+        for cookie in template_params.cookies:
+            response.set_cookie(**cookie)
+
+    return response
