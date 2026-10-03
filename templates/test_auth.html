@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+
+    <title>Успешная авторизация — {{ project_name }}</title>
+
+    <link rel="manifest" href="/site.webmanifest">
+    <link rel="apple-touch-icon" sizes="180x180" href="/assets/icons/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/assets/icons/favicon-16x16.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/assets/icons/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="/assets/icons/android-chrome-192x192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="/assets/icons/android-chrome-512x512.png">
+    <link rel="icon" type="image/x-icon" sizes="32x32" href="/assets/icons/favicon.ico">
+
+    <link href="/css/main.css" rel="stylesheet">
+    <link href="/css/error.css" rel="stylesheet">
+
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+<div class="wrap" id="page">
+    <main class="error-layout">
+        <section class="box error-card">
+
+            <div class="error-icon" style="background:linear-gradient(135deg,var(--accent),var(--accent-2))">
+                ✓
+            </div>
+
+            <h2 class="error-title">
+                Авторизация успешна
+            </h2>
+
+            <p class="muted error-subtitle">
+                Вы вошли в {{ project_name }} через Дневник.ру. Сообщите тому, кто отправил Вам ссылку, что авторизация прошла успешно
+            </p>
+
+            <div class="error-details">
+                Спасибо, что выбрали {{ project_name }}
+            </div>
+
+            <div class="error-actions">
+                <a href="/" class="btn-outline">
+                    На главную
+                </a>
+            </div>
+
+        </section>
+    </main>
+</div>
+
+<script src="/js/theme.js"></script>
+</body>
+</html>

@@ -111,6 +111,37 @@ async def _authSchoolAdmin(
     return response
 
 
+@public_router.get(
+    "/testAuth",
+    summary="Тестовая страница для приема dnevnik_token",
+    description="Страница для приема dnevnik_token от Дневника.ру с показом информации об успешном получении",
+    response_class=HTMLResponse
+)
+async def _testAuth(
+        request: Request,
+        access_token: Annotated[Optional[str], Query(description="Токен для взаимодействия с дневником.ру от имени пользователя", min_length=1, max_length=64)] = None,
+        service: LoginService = Depends(get_login_service)
+) -> HTMLResponse:
+    if access_token is not None:
+        template_params = await service.secondTestAuth()
+    else:
+        template_params = await service.firstTestAuth()
+
+    templates = get_templates()
+    response = templates.TemplateResponse(
+        request=request,
+        name=template_params.name,
+        status_code=template_params.status_code,
+        context=template_params.context
+    )
+
+    if template_params.cookies:
+        for cookie in template_params.cookies:
+            response.set_cookie(**cookie)
+
+    return response
+
+
 @router.get(
     "/checkSession/0",
     summary="Проверка сессии",

@@ -124,6 +124,15 @@ class LoginService(BaseService[AppUnitOfWork]):
             }
         )
 
+    @classmethod
+    async def firstTestAuth(cls) -> HtmlResponse:
+        return HtmlResponse(
+            name='auth_session.html',
+            context={
+                'project_name': settings.PROJECT_NAME_RU
+            }
+        )
+
     async def secondAuthSession(self, dnevnik_token: str, session_id: str, referral_token: Optional[str]) -> HtmlResponse:
         # Функция для логирования
         log_exception = lambda error: self.log_service.log(
@@ -540,6 +549,15 @@ class LoginService(BaseService[AppUnitOfWork]):
         )
 
         await uow.statistic_repository.add_statistic(user_id, stat_name)
+
+    @classmethod
+    async def secondTestAuth(cls) -> HtmlResponse:
+        return HtmlResponse(
+            name='test_auth.html',
+            context={
+                'project_name': settings.PROJECT_NAME_RU
+            }
+        )
 
     async def checkSession(self, session_id: str) -> CheckSessionApiResponse:
         async with self.uow_factory() as uow:
