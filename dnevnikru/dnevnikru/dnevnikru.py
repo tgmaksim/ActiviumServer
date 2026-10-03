@@ -205,3 +205,13 @@ class DnevnikruApi(BaseDnevnikruApi):
         """Работы по идентификаторам"""
 
         return self.post("works/many", data=works_ids)
+
+    def teacher_my_edu_groups(self) -> list[dict]:
+        """Список классов во всех образовательных организациях, в которых текущий пользователь ведет уроки"""
+
+        return self.get("teacher/my-edu-groups")
+
+    def get_school_groups(self, school: int) -> list[dict]:
+        """Список классов в образовательной организации"""
+
+        return self.get(f"schools/{school}/edu-groups")

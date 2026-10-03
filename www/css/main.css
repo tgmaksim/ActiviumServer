@@ -251,10 +251,6 @@ header{
     margin-bottom: 4px;
 }
 
-.box a {
-    color: var(--link-text);
-}
-
 .screenshots {
     display: flex;
     flex-wrap: nowrap;

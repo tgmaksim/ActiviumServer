@@ -61,19 +61,7 @@ async def _authSession(
     else:
         template_params = await service.firstAuthSession()
 
-    templates = get_templates()
-    response = templates.TemplateResponse(
-        request=request,
-        name=template_params.name,
-        status_code=template_params.status_code,
-        context=template_params.context
-    )
-
-    if template_params.cookies:
-        for cookie in template_params.cookies:
-            response.set_cookie(**cookie)
-
-    return response
+    return template_params.to_response(request)
 
 
 @public_router.get(
@@ -96,19 +84,7 @@ async def _authSchoolAdmin(
     else:
         template_params = await service.firstAuthSchoolAdmin()
 
-    templates = get_templates()
-    response = templates.TemplateResponse(
-        request=request,
-        name=template_params.name,
-        status_code=template_params.status_code,
-        context=template_params.context
-    )
-
-    if template_params.cookies:
-        for cookie in template_params.cookies:
-            response.set_cookie(**cookie)
-
-    return response
+    return template_params.to_response(request)
 
 
 @public_router.get(
@@ -127,19 +103,7 @@ async def _testAuth(
     else:
         template_params = await service.firstTestAuth()
 
-    templates = get_templates()
-    response = templates.TemplateResponse(
-        request=request,
-        name=template_params.name,
-        status_code=template_params.status_code,
-        context=template_params.context
-    )
-
-    if template_params.cookies:
-        for cookie in template_params.cookies:
-            response.set_cookie(**cookie)
-
-    return response
+    return template_params.to_response(request)
 
 
 @router.get(

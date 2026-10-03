@@ -56,19 +56,7 @@ async def _post(
 ) -> HTMLResponse:
     template_params = await service.get_post(post_id, isDarkTheme)
 
-    templates = get_templates()
-    response = templates.TemplateResponse(
-        request=request,
-        name=template_params.name,
-        status_code=template_params.status_code,
-        context=template_params.context
-    )
-
-    if template_params.cookies:
-        for cookie in template_params.cookies:
-            response.set_cookie(**cookie)
-
-    return response
+    return template_params.to_response(request)
 
 
 @router.get(

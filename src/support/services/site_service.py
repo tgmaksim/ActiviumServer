@@ -96,24 +96,3 @@ class SiteService(BaseService[AppUnitOfWork]):
                 },
                 cookies=cookies
             )
-
-    @classmethod
-    async def teacher(cls) -> HtmlResponse:
-        csrf_token = secrets.token_urlsafe(32)
-
-        return HtmlResponse(
-            name='teacher.html',
-            context={
-                'project_name': settings.PROJECT_NAME_RU,
-                'csrf_token': csrf_token
-            },
-            cookies=[
-                {
-                    'key': 'csrf_token',
-                    'value': csrf_token,
-                    'max_age': 30 * 24 * 60 * 60,
-                    'httponly': False,
-                    'samesite': 'lax'
-                }
-            ]
-        )

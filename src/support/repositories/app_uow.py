@@ -10,6 +10,7 @@ from .review_repository import ReviewRepository
 from .parent_repository import ParentRepository
 from .rating_repository import RatingRepository
 from .session_repository import SessionRepository
+from .teacher_repository import TeacherRepository
 from .version_repository import VersionRepository
 from .referral_repository import ReferralRepository
 from .ad_viewing_repository import AdViewingRepository
@@ -19,6 +20,7 @@ from ...repositories.log_repository import LogRepository
 from .review_likes_repository import ReviewLikeRepository
 from .information_repository import InformationRepository
 from .school_admin_repository import SchoolAdminRepository
+from .teacher_session_repository import TeacherSessionRepository
 from .ea_notification_repository import EANotificationRepository
 from .school_post_like_repository import SchoolPostLikeRepository
 from .school_post_click_repository import SchoolPostClickRepository
@@ -69,6 +71,8 @@ class AppUnitOfWork(SqlAlchemyUnitOfWork):
         self._ad_repository: Optional[AdRepository] = None
         self._ad_viewing_repository: Optional[AdViewingRepository] = None
         self._hidden_extracurricular_activity_repository: Optional[HiddenExtracurricularActivityRepository] = None
+        self._teacher_repository: Optional[TeacherRepository] = None
+        self._teacher_session_repository: Optional[TeacherSessionRepository] = None
 
     @property
     def log_repository(self) -> LogRepository:
@@ -237,3 +241,15 @@ class AppUnitOfWork(SqlAlchemyUnitOfWork):
         if self._hidden_extracurricular_activity_repository is None:
             self._hidden_extracurricular_activity_repository = HiddenExtracurricularActivityRepository(self.queue)
         return self._hidden_extracurricular_activity_repository
+
+    @property
+    def teacher_repository(self) -> TeacherRepository:
+        if self._teacher_repository is None:
+            self._teacher_repository = TeacherRepository(self.queue)
+        return self._teacher_repository
+
+    @property
+    def teacher_session_repository(self) -> TeacherSessionRepository:
+        if self._teacher_session_repository is None:
+            self._teacher_session_repository = TeacherSessionRepository(self.queue)
+        return self._teacher_session_repository

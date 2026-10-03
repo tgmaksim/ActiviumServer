@@ -20,11 +20,186 @@
     <link rel="icon" type="image/png" sizes="512x512" href="/assets/icons/android-chrome-512x512.png?v=2">
     <link rel="icon" type="image/x-icon" sizes="32x32" href="/assets/icons/favicon.ico?v=2">
 
-    <link href="/css/teacher.css" rel="stylesheet">
+    <link href="/css/teacher.css?v=4" rel="stylesheet">
+    <link href="/css/main.css?v=14" rel="stylesheet">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
 </head>
 <body>
-  <h1>Помощник учителю в разработке</h1>
+<div class="wrap teacher-page" id="page">
+    <header>
+        <a class="teacher-brand" href="/" aria-label="На главную страницу Активиум">
+            <img src="/assets/icons/preview.png?v=3" alt="Активиум" class="logo">
+
+            <div>
+                <h1>Активиум</h1>
+                <p>Помощник учителю</p>
+            </div>
+        </a>
+
+        <div class="header-actions">
+            <a class="teacher-home-link" href="/">
+                На главную
+            </a>
+
+            <button class="theme-toggle" id="themeToggle" aria-label="Переключить тему" type="button">
+                <svg xmlns="http://www.w3.org/2000/svg"
+                     width="24"
+                     height="24"
+                     viewBox="0 0 24 24">
+                    <path id="themeSvg" fill="black" d="M 11 0 L 11 3 L 13 3 L 13 0 L 11 0 z M 4.2226562 2.8085938 L 2.8085938 4.2226562 L 4.9296875 6.34375 L 6.34375 4.9296875 L 4.2226562 2.8085938 z M 19.777344 2.8085938 L 17.65625 4.9296875 L 19.070312 6.34375 L 21.191406 4.2226562 L 19.777344 2.8085938 z M 12 5 C 8.1458514 5 5 8.1458514 5 12 C 5 15.854149 8.1458514 19 12 19 C 15.854149 19 19 15.854149 19 12 C 19 8.1458514 15.854149 5 12 5 z M 12 7 C 14.773268 7 17 9.2267316 17 12 C 17 14.773268 14.773268 17 12 17 C 9.2267316 17 7 14.773268 7 12 C 7 9.2267316 9.2267316 7 12 7 z M 0 11 L 0 13 L 3 13 L 3 11 L 0 11 z M 21 11 L 21 13 L 24 13 L 24 11 L 21 11 z M 4.9296875 17.65625 L 2.8085938 19.777344 L 4.2226562 21.191406 L 6.34375 19.070312 L 4.9296875 17.65625 z M 19.070312 17.65625 L 17.65625 19.070312 L 19.777344 21.191406 L 21.191406 19.777344 L 19.070312 17.65625 z M 11 21 L 11 24 L 13 24 L 13 21 L 11 21 z" />
+                </svg>
+            </button>
+        </div>
+    </header>
+
+
+    <!-- Информация о помощнике остаётся в обоих состояниях -->
+    <section class="teacher-intro">
+        <div class="teacher-intro-content">
+            <span class="kicker">Помощник учителю</span>
+
+            <h2>Удобные инструменты для работы с классом</h2>
+
+            <p>
+                Помощник учителю — часть Активиум, которая помогает быстро получать и оформлять информацию об учебном процессе для учителей и классных руководителей. Автоматизация поможет выделить время на более важные дела
+            </p>
+        </div>
+
+        <div class="teacher-intro-mark" aria-hidden="true">
+            <div class="teacher-mark-icon">✓</div>
+            <span>Активиум</span>
+        </div>
+    </section>
+
+
+    {% if not authorized %}
+
+        <!-- Вариант для неавторизованного пользователя -->
+        <section class="teacher-auth-section">
+            <div class="teacher-auth-card box">
+                <div class="teacher-auth-icon" aria-hidden="true">
+                    🔐
+                </div>
+
+                <div class="teacher-auth-content">
+                    <h3>Войдите через Дневник.ру</h3>
+
+                    <p class="muted">
+                        Авторизуйтесь, чтобы получить доступ к инструментам
+                        помощника учителя и данным ваших классов.
+                    </p>
+
+                    <a class="btn-primary teacher-login-button" href="{{ login_url }}">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                            <path d="M5 12h14M13 5l7 7-7 7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+                        </svg>
+
+                        Войти через Дневник.ру
+                    </a>
+                </div>
+            </div>
+        </section>
+
+
+        <section class="teacher-features" aria-label="Возможности помощника">
+            <div class="teacher-feature box">
+                <div class="teacher-feature-icon">📊</div>
+
+                <div>
+                    <h3>Отчёт по классу</h3>
+
+                    <p class="muted">
+                        Сформируйте документ с оценками учеников выбранного
+                        класса, чтобы распечатать его и раздать ученикам.
+                    </p>
+                </div>
+            </div>
+
+            <div class="teacher-feature box teacher-feature-muted">
+                <div class="teacher-feature-icon">⚡</div>
+
+                <div>
+                    <h3>Больше инструментов — позже</h3>
+
+                    <p class="muted">
+                        Помощник будет постепенно расширяться новыми
+                        инструментами для учителей.
+                    </p>
+                </div>
+            </div>
+        </section>
+
+    {% else %}
+
+        <!-- Вариант для авторизованного пользователя -->
+        <section class="teacher-tools box">
+            <div class="teacher-tools-header">
+                <div>
+                    <span class="kicker">Инструменты</span>
+                    <h2>Помощник учителю</h2>
+                    <p class="muted">
+                        Выберите класс и сформируйте нужный документ.
+                    </p>
+                </div>
+            </div>
+
+
+            <div class="teacher-tool">
+                <div class="teacher-tool-icon" aria-hidden="true">
+                    📊
+                </div>
+
+                <div class="teacher-tool-info">
+                    <h3>Отчёт по успеваемости класса</h3>
+
+                    <p class="muted">
+                        Сформируйте документ с оценками учеников выбранного класса для печати и раздачи.
+                    </p>
+                </div>
+
+                <form id="reportForm" class="teacher-report-form" action="/teacher/report" method="post">
+                    <label for="classSelect">
+                        Класс
+                    </label>
+
+                    <select id="classSelect" name="groupId" required>
+                        <option value="" selected disabled>
+                            Выберите класс
+                        </option>
+
+                        {% for class in classes %}
+                            <option value="{{ class.groupId }}">
+                                {{ class.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+
+                    <button type="submit" class="btn-primary teacher-report-button" id="reportButton">
+                        <span class="button-content">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                <path d="M6 3h9l4 4v14H6V3z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>
+                                <path d="M14 3v5h5M9 13h6M9 17h6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+                            </svg>
+
+                            Составить отчёт
+                        </span>
+
+                        <span class="button-loading" aria-hidden="true">
+                            <span class="teacher-spinner"></span>
+                            Формирование...
+                        </span>
+                    </button>
+                </form>
+            </div>
+
+            <div class="teacher-report-status" id="reportStatus" role="status" aria-live="polite" hidden></div>
+        </section>
+
+    {% endif %}
+
+</div>
+
+<script src="/js/theme.js"></script>
 </body>
 </html>
