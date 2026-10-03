@@ -287,7 +287,7 @@ class MarksNotificationWorker(BaseBackground):
 
         # Удаленные оценки
         if difference := set_current_marks.difference(set_result):
-            deleted_marks = await cls.create_mark_list(uow, dnr, session, child, result, subjects, difference, current_marks_by_id)
+            deleted_marks = await cls.create_mark_list(uow, dnr, session, child, current_marks, subjects, difference, current_marks_by_id)
 
         # Измененные оценки
         difference = {
