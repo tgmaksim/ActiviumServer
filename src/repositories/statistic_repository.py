@@ -64,6 +64,10 @@ class StatName(Enum):
     checkAccessibleAd = "Проверка наличия и получение доступного рекламного объявления"
     clickAd = "Запись клика на рекламное объявление"
     hideExtracurricularActivity = "Скрытие уведомлений о конкретном внеурочном занятии"
+    teacher = "Открытие страницы Помощник учителю"
+    teacherRegistration = "Регистрация учителя в Помощнике учителю"
+    teacherAuthorization = "Авторизация сессии учителя в Помощнике учителю"
+    teacherCreateReport = "создание отчета успеваемости в Помощнике учителю"
 
 
 class StatisticRepository(SqlAlchemyRepository[Statistic]):

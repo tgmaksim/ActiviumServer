@@ -205,3 +205,13 @@ class AioDnevnikruApi(BaseAioDnevnikruApi):
         """Работы по идентификаторам"""
 
         return await self.post("works/many", data=works_ids)
+
+    async def teacher_my_edu_groups(self) -> list[dict]:
+        """Список классов во всех образовательных организациях, в которых текущий пользователь ведет уроки"""
+
+        return await self.get("teacher/my-edu-groups")
+
+    async def get_school_groups(self, school: int) -> list[dict]:
+        """Список классов в образовательной организации"""
+
+        return await self.get(f"schools/{school}/edu-groups")

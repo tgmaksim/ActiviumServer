@@ -20,7 +20,7 @@
     <link rel="icon" type="image/png" sizes="512x512" href="/assets/icons/android-chrome-512x512.png?v=2">
     <link rel="icon" type="image/x-icon" sizes="32x32" href="/assets/icons/favicon.ico?v=2">
 
-    <link href="/css/main.css?v=12" rel="stylesheet">
+    <link href="/css/main.css?v=14" rel="stylesheet">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
 </head>
@@ -31,7 +31,7 @@
                 <img src="/assets/icons/preview.png?v=3" alt="logo" class="logo" aria-hidden="true">
                 <div>
                     <h1>{{ project_name }}</h1>
-                    <p>Для учеников и их родителей</p>
+                    <p>Для учеников и их родителей, а также для учителей</p>
                 </div>
             </div>
 
@@ -63,6 +63,13 @@
                     <a class="btn-outline" href="#support" onclick="scrollToIOSFaq(); return false;">
                         <img src="/assets/icons/apple.png" alt="iOS" style="width:16px;height:16px;">
                         iOS
+                    </a>
+
+                    <a class="btn-outline btn-teacher" href="/teacher">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                            <path d="M5 12h14M13 5l7 7-7 7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        Помощник учителю
                     </a>
 
                     <a class="btn-outline open-app-btn" href="tgm://activium/open">

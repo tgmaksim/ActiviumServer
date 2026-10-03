@@ -35,8 +35,7 @@
             </h2>
 
             <p class="muted error-subtitle">
-                Вы вошли в {{ project_name }} от имени администратора ОО. Если Вы инициировали авторизацию, то нажмите на кнопку ниже,
-                чтобы перейти в Telegram-бота, иначе сообщите тому, кто отправил Вам ссылку, что все права предоставлены в боте
+                Вы вошли в {{ project_name }} через Дневник.ру. Сообщите тому, кто отправил Вам ссылку, что авторизация прошла успешно
             </p>
 
             <div class="error-details">
@@ -44,10 +43,6 @@
             </div>
 
             <div class="error-actions">
-                <button class="btn-primary" onclick="openBot()">
-                    Открыть Telegram-бота
-                </button>
-
                 <a href="/" class="btn-outline">
                     На главную
                 </a>
@@ -58,12 +53,5 @@
 </div>
 
 <script src="/js/theme.js"></script>
-<script>
-    const redirectUrl = "{{ redirect_url }}";
-
-    function openBot() {
-        location.replace(redirectUrl);
-    }
-</script>
 </body>
 </html>

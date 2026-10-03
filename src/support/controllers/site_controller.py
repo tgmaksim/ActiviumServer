@@ -52,19 +52,7 @@ async def _root(
 
     template_params = await service.get_root(session_id, likes_offset, likesSort)
 
-    templates = get_templates()
-    response = templates.TemplateResponse(
-        request=request,
-        status_code=template_params.status_code,
-        name=template_params.name,
-        context=template_params.context
-    )
-
-    if template_params.cookies:
-        for cookie in template_params.cookies:
-            response.set_cookie(**cookie)
-
-    return response
+    return template_params.to_response(request)
 
 
 @public_router.head("/")

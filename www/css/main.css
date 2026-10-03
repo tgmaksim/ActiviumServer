@@ -251,10 +251,6 @@ header{
     margin-bottom: 4px;
 }
 
-.box a {
-    color: var(--link-text);
-}
-
 .screenshots {
     display: flex;
     flex-wrap: nowrap;
@@ -301,6 +297,12 @@ header{
     font-weight: 600;
     text-decoration: none;
     cursor: pointer;
+}
+
+.btn-teacher {
+    grid-column: span 2;
+    display: inline-flex;
+    justify-content: center;
 }
 
 .faq details {
@@ -535,7 +537,6 @@ footer{ margin-top:18px; color:var(--muted); font-size:13px; text-align:center }
         width: 100%;
         display: inline-flex;
         justify-content: center;
-        margin-top: 8px;
     }
 }
 

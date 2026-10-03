@@ -17,6 +17,7 @@ from ..support.services.school_service import SchoolService
 from ..support.services.web_app_service import WebAppService
 from ..support.services.dnevnik_service import DnevnikService
 from ..support.services.reviews_service import ReviewsService
+from ..support.services.teacher_service import TeacherService
 from ..support.services.settings_service import SettingsService
 from ..support.services.tg_webapp_service import TgWebAppService
 from ..support.services.web_session_service import WebSessionService
@@ -25,7 +26,7 @@ from ..support.services.dnevnik_tools_service import DnevnikToolsService
 
 __all__ = ['get_status_service', 'get_site_service', 'get_login_service', 'get_dnevnik_service', 'get_settings_service',
            'get_reviews_service', 'get_dnevnik_tools_service', 'get_school_service', 'get_tg_webapp_service',
-           'get_ads_service', 'get_web_session_service', 'get_web_app_service']
+           'get_ads_service', 'get_teacher_service', 'get_web_session_service', 'get_web_app_service']
 
 
 def get_status_service(
@@ -119,6 +120,16 @@ def get_ads_service(
     """Зависимость FastApi для получения AdsService"""
 
     return AdsService(uow_factory, httpx_client)
+
+
+def get_teacher_service(
+        uow_factory: Callable[[], AppUnitOfWork] = Depends(get_app_uow_factory),
+        log_uow_factory: Callable[[], LogUnitOfWork] = Depends(get_log_uow_factory),
+        httpx_client: AsyncClient = Depends(get_httpx_client)
+) -> TeacherService:
+    """Зависимость fastapi для получения TeacherService"""
+
+    return TeacherService(uow_factory, log_uow_factory, httpx_client)
 
 
 def get_web_session_service(

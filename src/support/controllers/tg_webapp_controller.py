@@ -20,19 +20,7 @@ async def _bells(
 ) -> HTMLResponse:
     template_params = await service.bells()
 
-    templates = get_templates()
-    response = templates.TemplateResponse(
-        request=request,
-        status_code=template_params.status_code,
-        name=template_params.name,
-        context=template_params.context
-    )
-
-    if template_params.cookies:
-        for cookie in template_params.cookies:
-            response.set_cookie(**cookie)
-
-    return response
+    return template_params.to_response(request)
 
 
 @public_router.get("/extracurricular_activity/edit")
@@ -42,16 +30,4 @@ async def _extracurricular_activity_edit(
 ) -> HTMLResponse:
     template_params = await service.extracurricular_activity_edit()
 
-    templates = get_templates()
-    response = templates.TemplateResponse(
-        request=request,
-        status_code=template_params.status_code,
-        name=template_params.name,
-        context=template_params.context
-    )
-
-    if template_params.cookies:
-        for cookie in template_params.cookies:
-            response.set_cookie(**cookie)
-
-    return response
+    return template_params.to_response(request)
