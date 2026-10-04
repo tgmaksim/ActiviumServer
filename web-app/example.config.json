@@ -1,0 +1,6 @@
+{
+    "version": "0.0.1",
+    "versionCode": 1,
+    "API_DOMAIN": "https://example.com",
+    "CHECK_INTERNET_DOMAIN": "https://google.com"
+}

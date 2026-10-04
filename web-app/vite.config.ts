@@ -6,7 +6,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 const versionPath = path.resolve(
-    "version.json",
+    "config.json",
 );
 
 const data = JSON.parse(
@@ -14,6 +14,8 @@ const data = JSON.parse(
 );
 const version = data.version;
 const versionCode = data.versionCode;
+const apiDomain = data.apiDomain
+const checkInternetDomain = data.checkInternetDomain
 
 export default defineConfig({
     base: "/app/",
@@ -27,6 +29,8 @@ export default defineConfig({
     define: {
         __APP_VERSION__: JSON.stringify(version),
         __APP_VERSION_CODE__: JSON.stringify(versionCode),
+        __API_DOMAIN__: JSON.stringify(apiDomain),
+        __CHECK_INTERNET_DOMAIN__: JSON.stringify(checkInternetDomain),
     },
 
     plugins: [

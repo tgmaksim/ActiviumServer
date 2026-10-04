@@ -8,7 +8,7 @@ const __dirname = path.dirname(__filename);
 const projectRoot = path.resolve(__dirname, "..");
 const versionPath = path.join(
     projectRoot,
-    "version.json",
+    "config.json",
 );
 
 const data = JSON.parse(
