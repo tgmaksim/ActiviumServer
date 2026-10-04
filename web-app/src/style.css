@@ -1,3 +1,185 @@
+:root {
+    --main-bg: #B3E5FC;
+
+    --text-primary: #000000;
+    --text-secondary: #00000099;
+
+    --developer-text: #0288D1;
+
+    --button-bg: #FFFFFF80;
+    --stroke-bg: #FFFFFF50;
+
+    --bg-login-about: #FFFFFF40;
+
+    --bg-settings-block: #FFFFFF40;
+
+    --bg-bottom-menu: #D9F2FD;
+    --bottom-menu-icon-checked: #000000;
+    --bottom-menu-icon: #00000066;
+
+    --thumb-switch-checked: #0288D1;
+    --thumb-switch-simple: #FFFFFF;
+    --track-switch-checked: #E3F6FE;
+    --track-switch-simple: #CFCFCF;
+
+    --review-star-filled: #F4B400;
+    --review-star-outline: #D7B45C;
+    --review-star-glow: #F4B40033;
+
+    --review-like-filled: #F4C542;
+    --review-like-outline: #C9A63A;
+
+    --skeleton-base: #FFFFFF66;
+    --skeleton-highlight: #FFFFFFCC;
+    --skeleton-shimmer-center: #FFFFFF80;
+
+    --lesson-bg: #FFFFFF40;
+    --lesson-bg-extra: #E3F2FD35;
+    --lesson-subject: #000000;
+    --lesson-time: #555555;
+    --lesson-place: #666666;
+    --lesson-homework-text: #1B1B1B;
+    --lesson-note-text: #0E4D8B;
+    --lesson-work-type: #0D6EAF;
+    --lesson-homework-file-name: #0D6EAF;
+    --lesson-link: #0D6EAF;
+    --lesson-like-icon: #C9A63A;
+
+    --lesson-menu-stroke: #FFFFFF;
+
+    --praise-particle-primary: #4DA3FF;
+    --praise-particle-secondary: #7EE36A;
+    --praise-particle-accent: #FFD54F;
+
+    --mark-log-bg: #FFFFFFC0;
+    --mark-log-pressed: #FFFFFFE0;
+
+    --calendar-day-fill: #FFFFFF30;
+    --calendar-day-stroke: #FFFFFF50;
+    --calendar-day-selected-fill: #FFFFFF60;
+    --calendar-day-selected-stroke: #FFFFFFA0;
+
+    --dialog-background: #B3E5FC;
+    --dialog-button-positive: #0066CC;
+    --dialog-button-negative: #555555;
+
+    --mark-log-good: #4B9A25;
+    --mark-log-average: #FF8F00;
+    --mark-log-bad: #CF3838;
+    --mark-log-more: #94ACC8;
+
+    --slider-accent: #0288D1;
+    --slider-track-off: #D1E9F6;
+    --slider-label-bg: #0288D1;
+    --slider-label-text: #FFFFFF;
+    --slider-halo-static: #0288D120;
+
+    --settings-warning: #FFFF4444;
+    --swipe-refresh-scheme: #0288D1;
+
+    --dialog-menu-background: #B3E5FCC0;
+
+    --bg-marks-switch-block: #FFFFFF40;
+    --bg-marks-switch: #D8F2F9;
+    --bg-old-rating-mark: #C6ECFD;
+
+    --bg-school-badge: #4B9A25;
+
+    --ad-label-bg: #0288D120;
+    --ad-label-text: #0288D1;
+}
+
+html.dark {
+    --main-bg: #001C38;
+
+    --text-primary: #FFFFFF;
+    --text-secondary: #FFFFFF99;
+
+    --developer-text: #4FC3F7;
+
+    --button-bg: #004080;
+    --stroke-bg: #B0B0BE1A;
+
+    --bg-login-about: #10101030;
+
+    --bg-settings-block: #10101030;
+
+    --bg-bottom-menu: #004080;
+    --bottom-menu-icon-checked: #FFFFFF;
+    --bottom-menu-icon: #4FC3F7;
+
+    --thumb-switch-checked: #4FC3F7;
+    --thumb-switch-simple: #CFCFCF;
+    --track-switch-checked: #004080;
+    --track-switch-simple: #545454;
+
+    --review-star-filled: #FFD54F;
+    --review-star-outline: #BFA24A;
+    --review-star-glow: #FFD54F22;
+
+    --review-like-filled: #FFD95A;
+    --review-like-outline: #D7B44A;
+
+    --skeleton-base: #4C8DB333;
+    --skeleton-highlight: #FFFFFF80;
+    --skeleton-shimmer-center: #FFFFFF40;
+
+    --lesson-bg: #10101030;
+    --lesson-bg-extra: #4080A835;
+    --lesson-subject: #FFFFFF;
+    --lesson-time: #DDE8F3;
+    --lesson-place: #C7D8E8;
+    --lesson-homework-text: #FFFFFF;
+    --lesson-note-text: #9AD2FF;
+    --lesson-work-type: #4FC3F7;
+    --lesson-homework-file-name: #4FC3F7;
+    --lesson-link: #4FC3F7;
+    --lesson-like-icon: #D7B44A;
+
+    --lesson-menu-stroke: #FFFFFF60;
+
+    --praise-particle-primary: #4FC3F7;
+    --praise-particle-secondary: #A5D6A7;
+    --praise-particle-accent: #FFD95A;
+
+    --mark-log-bg: #FFFFFF80;
+    --mark-log-pressed: #FFFFFFA0;
+
+    --calendar-day-fill: #FFFFFF10;
+    --calendar-day-stroke: #FFFFFF30;
+    --calendar-day-selected-fill: #FFFFFF40;
+    --calendar-day-selected-stroke: #FFFFFF80;
+
+    --dialog-background: #004080;
+    --dialog-button-positive: #4DA3FF;
+    --dialog-button-negative: #AAAAAA;
+
+    --mark-log-good: #4B9A25;
+    --mark-log-average: #FF8F00;
+    --mark-log-bad: #CF3838;
+    --mark-log-more: #94ACC8;
+
+    --slider-accent: #4FC3F7;
+    --slider-track-off: #333333;
+    --slider-label-bg: #4FC3F7;
+    --slider-label-text: #000000;
+    --slider-halo-static: #4FC3F720;
+
+    --settings-warning: #CC0000FF;
+    --swipe-refresh-scheme: #4FC3F7;
+
+    --dialog-menu-background: #001C38C0;
+
+    --bg-marks-switch-block: #10101030;
+    --bg-marks-switch: #004080;
+    --bg-old-rating-mark: #AAAAAA;
+
+    --bg-school-badge: #4B9A25;
+
+    --ad-label-bg: #4FC3F720;
+    --ad-label-text: #4FC3F7;
+}
+
 * {
     box-sizing: border-box;
 }

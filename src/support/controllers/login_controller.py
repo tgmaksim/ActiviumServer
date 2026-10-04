@@ -1,13 +1,15 @@
+from yarl import URL
 from typing import Annotated, Optional
 
 from fastapi import status
 from fastapi.requests import Request
-from fastapi.responses import HTMLResponse
 from fastapi import APIRouter, Query, Depends
+from fastapi.responses import HTMLResponse, RedirectResponse
 
 from ..schemas.login_schemas import LoginApiResponse
 from ..schemas.status_schemas import CheckSessionApiResponse
 
+from ...config.project_config import settings
 from ..services.login_service import LoginService
 from ...dependencies.templates import get_templates
 from ...dependencies.services import get_login_service
@@ -104,6 +106,54 @@ async def _testAuth(
         template_params = await service.firstTestAuth()
 
     return template_params.to_response(request)
+
+
+@public_router.get(
+    "/web-auth",
+    summary="Авторизация в web-приложении",
+    description="Первичное и вторичное получение параметров от дневника.ру. После авторизации дневник.ру перенаправит "
+                "пользователя в данный метод, а здесь будет возвращен HTML. JS возьмет полученные параметры из url#hash "
+                "и отправит в url?query. После вторичного получения параметров от дневника.ру они используются для "
+                "авторизации в web-приложении",
+    response_class=HTMLResponse
+)
+async def _auth(
+        request: Request,
+        access_token: Annotated[Optional[str], Query(description="Токен для взаимодействия с дневником.ру от имени пользователя", min_length=1, max_length=64)] = None,
+        service: LoginService = Depends(get_login_service)
+) -> HTMLResponse:
+    referral_token = request.cookies.get('referral_token')
+
+    if access_token is not None:
+        template_params = await service.secondWebAuth(access_token, referral_token)
+
+        if template_params.status_code // 100 != 2:  # 2xx
+            templates = get_templates()
+            response = templates.TemplateResponse(
+                request=request,
+                name=template_params.name,
+                status_code=template_params.status_code,
+                context=template_params.context
+            )
+        else:
+            response = RedirectResponse(
+                url=str(URL(settings.URL).joinpath("app"))
+            )
+
+        if template_params.cookies:
+            for cookie in template_params.cookies:
+                response.set_cookie(**cookie)
+
+        if template_params.delete_cookies:
+            for cookie in template_params.delete_cookies:
+                response.delete_cookie(**cookie)
+
+        return response
+
+    else:
+        template_params = await service.firstWebAuth()
+
+        return template_params.to_response(request)
 
 
 @router.get(

@@ -7,7 +7,9 @@ from typing import Callable, Optional, Union, Literal, TypedDict
 from yarl import URL
 from httpx import AsyncClient
 
+from ...models import Session, WebSession
 from ...config.project_config import settings
+from ..repositories.web_session_repository import WebSessionRepository
 
 from ...utils.exception import format_exception
 
@@ -133,6 +135,15 @@ class LoginService(BaseService[AppUnitOfWork]):
             }
         )
 
+    @classmethod
+    async def firstWebAuth(cls) -> HtmlResponse:
+        return HtmlResponse(
+            name='auth_session.html',
+            context={
+                'project_name': settings.PROJECT_NAME_RU
+            }
+        )
+
     async def secondAuthSession(self, dnevnik_token: str, session_id: str, referral_token: Optional[str]) -> HtmlResponse:
         # Функция для логирования
         log_exception = lambda error: self.log_service.log(
@@ -182,7 +193,8 @@ class LoginService(BaseService[AppUnitOfWork]):
                     status_code=403,
                     context={
                         'project_name': settings.PROJECT_NAME_RU,
-                        'reason': f"Учитель, не являющийся родителем, не может пользоваться приложением {settings.PROJECT_NAME}. "
+                        'reason': f"Учитель, не являющийся родителем, не может пользоваться приложением {settings.PROJECT_NAME}, "
+                                  "но вы можете открыть \"Помощник учителю\" на главной странице сайта. "
                                   "Если вы является администратором образовательного учреждения и хотите выставлять новости "
                                   "и объявлять о мероприятиях для обучающихся своей организации, то сделайте это в "
                                   f"<a href=\"{settings.BOT_URL}\">Telegram-боте</a>"
@@ -558,6 +570,122 @@ class LoginService(BaseService[AppUnitOfWork]):
                 'project_name': settings.PROJECT_NAME_RU
             }
         )
+
+    async def secondWebAuth(self, dnevnik_token: str, referral_token: Optional[str]) -> HtmlResponse:
+        # Функция для логирования
+        log_exception = lambda error: self.log_service.log(
+            path='secondAuthSession',
+            status=False,
+            value=error
+        )
+
+        # Получение параметров для авторизации сессии пользователя
+        try:
+            dnevnik_data, parent_name = await self._dnevnik_auth(dnevnik_token)
+            assert dnevnik_data is not None, "Данные авторизации пустые"
+        except Exception as e:
+            await log_exception(format_exception(e))
+            return HtmlResponse(
+                name='error.html',
+                status_code=500,
+                context={
+                    'summary': "Произошла ошибка авторизации",
+                    'description': "Произошла ошибка при получении основных данных от дневника.ру. Авторизация прервана"
+                }
+            )
+
+        # Учитель, не являющийся родителем не может пользовать приложением
+        if dnevnik_data == 'teacher':
+            await self.log_service.log(
+                path='secondAuthSession',
+                value="Попытка регистрации учителя"
+            )
+            return HtmlResponse(
+                name='auth_session_error.html',
+                status_code=403,
+                context={
+                    'project_name': settings.PROJECT_NAME_RU,
+                    'reason': f"Учитель, не являющийся родителем, не может пользоваться приложением {settings.PROJECT_NAME}, "
+                              "но вы можете открыть \"Помощник учителю\" на главной странице сайта. "
+                              "Если вы является администратором образовательного учреждения и хотите выставлять новости "
+                              "и объявлять о мероприятиях для обучающихся своей организации, то сделайте это в "
+                              f"<a href=\"{settings.BOT_URL}\">Telegram-боте</a>"
+                }
+            )
+
+        async with self.uow_factory() as uow:
+            # Если пользователь был приглашен и ссылка валидна, то записывается этот факт
+            parent_referral_id = referral_token and decode_referral_token(referral_token)  # Декодирование токена
+            parent_referral = parent_referral_id and await uow.parent_repository.get_parent(parent_referral_id)  # Проверка пользователя
+            parent_referral_id = parent_referral and parent_referral_id
+
+            # Создание сессии и web-сессии
+            web_session = await self._create_web_session(uow.session_repository, uow.web_session_repository)
+
+            # Авторизация сессии с полученными данными
+            await self._auth_session(uow, web_session.session_id, dnevnik_token, dnevnik_data, parent_name, parent_referral_id)
+
+        return HtmlResponse(
+            name='auth_session_success.html',
+            context={
+                'project_name': settings.PROJECT_NAME_RU
+            },
+            cookies=[
+                {
+                    'key': 'session_id',
+                    'value': web_session.session_id,
+                    'max_age': 30 * 24 * 60 * 60,  # 30 дней
+                    'httponly': True,
+                    'secure': True
+                },
+                {
+                    'key': 'web_session_id',
+                    'value': web_session.web_session_id,
+                    'max_age': 30 * 24 * 60 * 60,  # 30 дней
+                    'httponly': True,
+                    'secure': True
+                },
+                {
+                    'key': 'authorized',
+                    'value': "true",
+                    'max_age': 30 * 24 * 60 * 60,  # 30 дней
+                }
+            ]
+        )
+
+    @staticmethod
+    async def _create_web_session(session_repository: SessionRepository, web_session_repository: WebSessionRepository) -> WebSession:
+        """
+        Создание новой web-сессии
+
+        :param session_repository: репозиторий для создания сессии
+        :param web_session_repository: репозитория для создания web-сессии
+        :return: идентификатор новой web-сессии
+        """
+
+        session: Optional[Session] = None
+        for i in range(10):
+            session_id = secrets.token_hex(16)
+
+            session = await session_repository.create_session(session_id)
+            if session is not None:
+                break
+
+        if session is None:
+            raise RuntimeError('session creation failed')
+
+        web_session: Optional[WebSession] = None
+        for i in range(10):
+            web_session_id = secrets.token_hex(16)
+
+            web_session = await web_session_repository.create_session(web_session_id, session.session_id)
+            if web_session is not None:
+                break
+
+        if web_session is None:
+            raise RuntimeError('web session creation failed')
+
+        return web_session
 
     async def checkSession(self, session_id: str) -> CheckSessionApiResponse:
         async with self.uow_factory() as uow:

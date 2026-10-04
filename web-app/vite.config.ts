@@ -2,6 +2,18 @@ import { defineConfig } from "vite";
 import vue from "@vitejs/plugin-vue";
 import { VitePWA } from "vite-plugin-pwa";
 import { fileURLToPath, URL } from 'node:url'
+import fs from "node:fs";
+import path from "node:path";
+
+const versionPath = path.resolve(
+    "version.json",
+);
+
+const data = JSON.parse(
+    fs.readFileSync(versionPath, "utf-8"),
+);
+const version = data.version;
+const versionCode = data.versionCode;
 
 export default defineConfig({
     base: "/app/",
@@ -10,6 +22,11 @@ export default defineConfig({
         alias: {
           '@': fileURLToPath(new URL('./src', import.meta.url))
         }
+    },
+
+    define: {
+        __APP_VERSION__: JSON.stringify(version),
+        __APP_VERSION_CODE__: JSON.stringify(versionCode),
     },
 
     plugins: [
@@ -21,14 +38,14 @@ export default defineConfig({
             workbox: {
                 navigateFallback: "/app",
                 navigateFallbackDenylist: [
-                    /^\/app\/login$/,
+                    /^\/app\/auth/,
                 ],
             },
 
             manifest: {
-                name: "Активиум - Web приложение для школы",
+                name: "Активиум — Web-приложение",
                 short_name: "Активиум",
-                description: "Удобное Web приложение Активиум — расписание, оценки, мероприятия, рейтинг и статистика — все под рукой!",
+                description: "Удобное Web-приложение Активиум — расписание, оценки, мероприятия, рейтинг и статистика — все под рукой!",
 
                 start_url: "/app/",
                 scope: "/app/",

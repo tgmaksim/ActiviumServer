@@ -5,13 +5,14 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vue-tsc -b && vite build && node copy-dist.mjs",
+    "build": "node scripts/increment-version-code.mjs && vite build && node copy-dist.mjs",
     "preview": "vite preview"
   },
   "dependencies": {
     "dexie": "^4.4.6",
     "pinia": "^4.0.3",
-    "vue": "^3.5.42"
+    "vue": "^3.5.42",
+    "vue-router": "^5.3.1"
   },
   "devDependencies": {
     "@types/node": "^24.13.3",

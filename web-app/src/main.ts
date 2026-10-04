@@ -1,14 +1,23 @@
 import { createApp } from "vue";
 import { createPinia } from "pinia";
 
-import App from "./App.vue";
+import AppView from "./views/AppView.vue";
+import router from "./router";
+
 import { launch } from "./bootstrap/launcher";
 import "./style.css";
 
-if (launch()) {
-    const app = createApp(App);
+const initialRoute = launch();
 
-    app.use(createPinia());
+const app = createApp(AppView);
 
-    app.mount("#app");
-}
+app.use(createPinia());
+app.use(router);
+
+app.mount("#app");
+
+router.isReady().then(() => {
+    if (router.currentRoute.value.path !== initialRoute) {
+        router.replace(initialRoute);
+    }
+});

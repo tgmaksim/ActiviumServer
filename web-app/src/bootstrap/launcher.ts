@@ -1,27 +1,34 @@
-import routes from '../constants/routes'
+import {
+    APP_VERSION,
+    APP_VERSION_STORAGE_KEY,
+    APP_VERSION_CODE,
+    APP_VERSION_CODE_STORAGE_KEY,
+} from "../constants/app";
 
 const AUTHORIZED_COOKIE = "authorized";
 
 function isAuthorized(): boolean {
-    const cookies = document.cookie.split(";");
+    return document.cookie
+        .split(";")
+        .some((cookie) => {
+            const [name, value] = cookie.trim().split("=");
 
-    for (const cookie of cookies) {
-        const [name, ...valueParts] = cookie.trim().split("=");
-
-        if (name === AUTHORIZED_COOKIE) {
-            return valueParts.join("=") === "true";
-        }
-    }
-
-    return false;
+            return (
+                name === AUTHORIZED_COOKIE &&
+                value === "true"
+            );
+        });
 }
 
-export function launch(): boolean {
-    if (isAuthorized()) {
-        return true;
-    }
+export function launch(): "/" | "/login" {
+    localStorage.setItem(
+        APP_VERSION_STORAGE_KEY,
+        APP_VERSION,
+    );
+    localStorage.setItem(
+        APP_VERSION_CODE_STORAGE_KEY,
+        APP_VERSION_CODE.toString(),
+    );
 
-    window.location.replace(routes.login);
-
-    return false;
+    return isAuthorized() ? "/" : "/login";
 }
