@@ -69,15 +69,16 @@ class MarksNotificationWorker(BaseBackground):
 
                 children_count = 0
 
-                rows: list[MarksNotification] = []
+                child_id: Optional[int] = None
                 try:
                     async with self.uow_factory() as uow:
                         children_count = await self._children_count(uow)
                         # Сессии одного ребенка с включенными уведомлениями для следующей обработки
                         rows = await self._acquire_child(uow)
+                        child_id = rows[0].child_id if rows else None
 
                         # Уведомления, которые нужно отправить
-                        pushes_for_new_marks, pushes_for_deleted_marks, pushes_for_updated_marks, child_id = \
+                        pushes_for_new_marks, pushes_for_deleted_marks, pushes_for_updated_marks = \
                             await self._process_child(uow, rows)
 
                     # Результат отправки каждого уведомления
@@ -87,11 +88,11 @@ class MarksNotificationWorker(BaseBackground):
                     # Обработка результатов отправленных уведомлений
                     await self.process_pushes(response)
                 except Exception as e:
-                    if len(rows) > 0:
+                    if child_id is not None:
                         # Если произошла ошибка при обработке одного ребенка, то он пропускается:
                         # обновляется его updated_at
                         async with self.uow_factory() as uow:
-                            await uow.marks_notification_repository.update_date(rows[0].child_id)
+                            await uow.marks_notification_repository.update_date(child_id)
 
                     await self.log_service.log(
                         ip=self.name(),
@@ -120,8 +121,7 @@ class MarksNotificationWorker(BaseBackground):
     async def _process_child(self, uow: AppUnitOfWork, rows: list[MarksNotification]) -> tuple[
         list[tuple[str, dict, Optional[str]]],
         list[tuple[str, dict, Optional[str]]],
-        list[tuple[str, dict, Optional[str]]],
-        Optional[int]
+        list[tuple[str, dict, Optional[str]]]
     ]:
         """
         Проверка новых оценок и возвращение необходимых уведомлений
@@ -132,7 +132,7 @@ class MarksNotificationWorker(BaseBackground):
         """
 
         if not rows:
-            return [], [], [], None
+            return [], [], []
 
         # Чаще всего updated_at у всех одинаковый, но для избежания ошибок
         # для получения обработанных оценок используется самый обновленный
@@ -149,6 +149,7 @@ class MarksNotificationWorker(BaseBackground):
         deleted_marks: list[dict] = []
         updated_marks: list[dict] = []
 
+        processed = False
         profile: str = ""  # Имя профиля (ребенка)
         period: Optional[dict] = None
 
@@ -187,6 +188,7 @@ class MarksNotificationWorker(BaseBackground):
                             value=format_exception(e)
                         )
                 else:
+                    processed = True
                     break
 
             # Уведомления остаются включенными. После повторной авторизации сессии продолжают работать
@@ -218,13 +220,16 @@ class MarksNotificationWorker(BaseBackground):
                     for mark in updated_marks:
                         pushes_for_updated_marks.append((row.session.firebase_token, mark, _profile))
 
-        # Дата последней оценки обновляется для учета предыдущих оценок в следующий раз
-        await uow.marks_notification_repository.update_marks(child.child_id, period['id'], marks)
+        if processed:
+            # Дата последней оценки обновляется для учета предыдущих оценок в следующий раз
+            await uow.marks_notification_repository.update_marks(child.child_id, period['id'], marks)
+        else:
+            await uow.marks_notification_repository.update_date(child.child_id)
 
         for parent in parents:
             await uow.statistic_repository.add_statistic(parent, StatName.marks_notifications)
 
-        return pushes_for_new_marks, pushes_for_deleted_marks, pushes_for_updated_marks, child.child_id
+        return pushes_for_new_marks, pushes_for_deleted_marks, pushes_for_updated_marks
 
     @classmethod
     async def _fetch_marks(
@@ -372,7 +377,7 @@ class MarksNotificationWorker(BaseBackground):
                     data={
                         "from_notification": "new_mark",
                         "good_mark": str(mark['mood'] == 'good').lower(),
-                        "profile": str(child_id),
+                        "profile": str(child_id),  # child_id is None только при отсутствии уведомлений
                         "buttons": json.dumps([{
                             "text": "Отправить похвалу",
                             "action": "praise",
