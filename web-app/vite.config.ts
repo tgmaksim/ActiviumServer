@@ -1,29 +1,30 @@
 import { defineConfig } from "vite";
 import vue from "@vitejs/plugin-vue";
 import { VitePWA } from "vite-plugin-pwa";
-import { fileURLToPath, URL } from 'node:url'
+import { fileURLToPath, URL } from "node:url";
 import fs from "node:fs";
 import path from "node:path";
 
-const versionPath = path.resolve(
-    "config.json",
-);
+const base = "/app/";
 
-const data = JSON.parse(
-    fs.readFileSync(versionPath, "utf-8"),
-);
-const version = data.version;
-const versionCode = data.versionCode;
-const apiDomain = data.apiDomain
-const checkInternetDomain = data.checkInternetDomain
+const dataPath = path.resolve("config.json");
+const data = JSON.parse(fs.readFileSync(dataPath, "utf-8"));
+
+const {
+    version,
+    versionCode,
+    apiDomain,
+    checkInternetDomain,
+    firebase,
+} = data;
 
 export default defineConfig({
-    base: "/app/",
+    base,
 
     resolve: {
         alias: {
-          '@': fileURLToPath(new URL('./src', import.meta.url))
-        }
+            "@": fileURLToPath(new URL("./src", import.meta.url)),
+        },
     },
 
     define: {
@@ -31,18 +32,29 @@ export default defineConfig({
         __APP_VERSION_CODE__: JSON.stringify(versionCode),
         __API_DOMAIN__: JSON.stringify(apiDomain),
         __CHECK_INTERNET_DOMAIN__: JSON.stringify(checkInternetDomain),
+
+        __FIREBASE_API_KEY__: JSON.stringify(firebase.apiKey),
+        __FIREBASE_AUTH_DOMAIN__: JSON.stringify(firebase.authDomain),
+        __FIREBASE_PROJECT_ID__: JSON.stringify(firebase.projectId),
+        __FIREBASE_STORAGE_BUCKET__: JSON.stringify(firebase.storageBucket),
+        __FIREBASE_MESSAGING_SENDER_ID__: JSON.stringify(firebase.messagingSenderId),
+        __FIREBASE_APP_ID__: JSON.stringify(firebase.appId),
+        __FIREBASE_MEASUREMENT_ID__: JSON.stringify(firebase.measurementId),
+        __FIREBASE_VAPID_KEY__: JSON.stringify(firebase.messaging.vapidKey),
     },
 
     plugins: [
         vue(),
 
         VitePWA({
+            strategies: "injectManifest",
+            srcDir: "src",
+            filename: "sw.ts",
             registerType: "autoUpdate",
 
-            workbox: {
-                navigateFallback: "/app",
-                navigateFallbackDenylist: [
-                    /^\/app\/auth/,
+            injectManifest: {
+                globPatterns: [
+                    "**/*.{js,css,html,ico,png,svg,webp,woff2}",
                 ],
             },
 
@@ -51,14 +63,11 @@ export default defineConfig({
                 short_name: "Активиум",
                 description: "Удобное Web-приложение Активиум — расписание, оценки, мероприятия, рейтинг и статистика — все под рукой!",
 
-                start_url: "/app/",
-                scope: "/app/",
-
+                start_url: base,
+                scope: base,
                 display: "standalone",
-
                 theme_color: "#ffffff",
                 background_color: "#ffffff",
-
                 lang: "ru",
 
                 icons: [

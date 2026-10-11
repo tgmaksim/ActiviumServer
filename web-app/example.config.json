@@ -2,5 +2,17 @@
     "version": "0.0.1",
     "versionCode": 1,
     "API_DOMAIN": "https://example.com",
-    "CHECK_INTERNET_DOMAIN": "https://google.com"
+    "CHECK_INTERNET_DOMAIN": "https://google.com",
+    "firebase": {
+        "apiKey": "apiKey",
+        "authDomain": "project-1.firebaseapp.com",
+        "projectId": "project-1",
+        "storageBucket": "project-1.firebasestorage.app",
+        "messagingSenderId": "2",
+        "appId": "1:2:web:key",
+        "measurementId": "A-BCDEF",
+        "messaging": {
+            "vapidKey": "token"
+        }
+    }
 }

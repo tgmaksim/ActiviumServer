@@ -6,13 +6,13 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const projectRoot = path.resolve(__dirname, "..");
-const versionPath = path.join(
+const dataPath = path.join(
     projectRoot,
     "config.json",
 );
 
 const data = JSON.parse(
-    await readFile(versionPath, "utf-8"),
+    await readFile(dataPath, "utf-8"),
 );
 
 data.versionCode++;

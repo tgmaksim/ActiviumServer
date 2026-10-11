@@ -4,4 +4,11 @@ declare const __APP_VERSION__: string;
 declare const __APP_VERSION_CODE__: number;
 declare const __API_DOMAIN__: string;
 declare const __CHECK_INTERNET_DOMAIN__: string;
-
+declare const __FIREBASE_API_KEY__: string;
+declare const __FIREBASE_AUTH_DOMAIN__: string;
+declare const __FIREBASE_PROJECT_ID__: string;
+declare const __FIREBASE_STORAGE_BUCKET: string;
+declare const __FIREBASE_MESSAGING_SENDER_ID: string;
+declare const __FIREBASE_APP_ID: string;
+declare const __FIREBASE_MEASUREMENT_ID: string;
+declare const __FIREBASE_VAPID_KEY__: string;
