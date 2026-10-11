@@ -3,7 +3,7 @@ import secrets
 from pathlib import Path
 from asyncio import gather
 from datetime import datetime, UTC
-from typing import Optional, Callable
+from typing import Optional, Callable, Union
 
 from yarl import URL
 from httpx import AsyncClient
@@ -188,7 +188,7 @@ class TeacherService(BaseService[AppUnitOfWork]):
             ]
         )
 
-    async def create_report(self, session_id: str, group_id: int):
+    async def create_report(self, session_id: str, group_id: int) -> Union[tuple[Path, str], HtmlResponse]:
         async with self.uow_factory() as uow:
             session = await uow.teacher_session_repository.get_session(session_id)
 
@@ -222,7 +222,8 @@ class TeacherService(BaseService[AppUnitOfWork]):
         dnr = AioDnevnikruApi(self.httpx_client, session.dnevnik_token)
 
         try:
-            periods, _persons, _subjects = await gather(
+            group, periods, _persons, _subjects = await gather(
+                dnr.get_group(group_id),
                 dnr.get_reporting_periods(group_id),
                 dnr.get_group_persons(group_id),
                 dnr.get_subjects(group_id)
@@ -253,8 +254,8 @@ class TeacherService(BaseService[AppUnitOfWork]):
             marks_by_person_id_subject[mark['person']][subject].append(mark['textValue'])
 
         marks_by_person_subject: list[tuple[str, dict[str, list[str]]]] = [
-            (persons[person_id], subjects)
-            for person_id, subjects in marks_by_person_id_subject.items()
+            (person_name, marks_by_person_id_subject.get(person_id, {subject: [] for subject in subjects.values()}))
+            for person_id, person_name in persons.items()
         ]
 
         pdf = self._create_pdf(session.teacher_id, marks_by_person_subject)
@@ -262,7 +263,7 @@ class TeacherService(BaseService[AppUnitOfWork]):
         async with self.uow_factory() as uow:
             await uow.statistic_repository.add_statistic(session.teacher_id, StatName.teacherCreateReport)
 
-        return pdf
+        return pdf, group['fullName']
 
     @staticmethod
     def _create_pdf(teacher_id: int, data: list[tuple[str, dict[str, list[str]]]]) -> Path:
