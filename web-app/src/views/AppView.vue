@@ -1,7 +1,3 @@
 <template>
-    <RouterView />
+    <p>Главный экран</p>
 </template>
-
-<script setup lang="ts">
-import { RouterView } from "vue-router";
-</script>

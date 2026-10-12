@@ -14,14 +14,28 @@
                 {{ message }}
             </p>
 
-            <button
-                v-if="actionText"
-                class="dialog-action"
-                type="button"
-                @click="$emit('action')"
+            <div
+                v-if="actionText || cancelText"
+                class="dialog-actions"
             >
-                {{ actionText }}
-            </button>
+                <button
+                    v-if="cancelText"
+                    class="dialog-cancel"
+                    type="button"
+                    @click="$emit('cancel')"
+                >
+                    {{ cancelText }}
+                </button>
+
+                <button
+                    v-if="actionText"
+                    class="dialog-action"
+                    type="button"
+                    @click="$emit('action')"
+                >
+                    {{ actionText }}
+                </button>
+            </div>
         </div>
     </div>
 </template>
@@ -32,10 +46,12 @@ defineProps<{
     title?: string;
     message?: string;
     actionText?: string;
+    cancelText?: string;
 }>();
 
 defineEmits<{
     action: [];
+    cancel: [];
 }>();
 </script>
 
@@ -59,8 +75,8 @@ defineEmits<{
     padding: 24px;
 
     border-radius: 20px;
-    background: var(--color-surface, #ffffff);
-    color: var(--color-text, #111111);
+    background: var(--dialog-background);
+    color: var(--text-primary);
 
     box-shadow: 0 10px 40px rgb(0 0 0 / 20%);
 }
@@ -71,19 +87,27 @@ defineEmits<{
 }
 
 .dialog-message {
-    margin: 0 0 20px;
+    margin: 0 0 10px;
     line-height: 1.5;
+    white-space: pre-line;
 }
 
-.dialog-action {
+.dialog-actions {
+    display: flex;
+    flex-direction: row;
+    gap: 10px;
+}
+
+.dialog-action,
+.dialog-cancel {
     width: 100%;
     min-height: 44px;
+    padding: 10px 16px;
 
     border: 0;
     border-radius: 12px;
 
-    background: #1683ff;
-    color: #ffffff;
+    background: var(--dialog-background);
 
     font: inherit;
     font-weight: 600;
@@ -91,7 +115,16 @@ defineEmits<{
     cursor: pointer;
 }
 
-.dialog-action:active {
+.dialog-action {
+    color: var(--dialog-button-positive);
+}
+
+.dialog-cancel {
+    color: var(--dialog-button-negative);
+}
+
+.dialog-action:active,
+.dialog-cancel:active {
     opacity: 0.8;
 }
 </style>

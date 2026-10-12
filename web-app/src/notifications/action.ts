@@ -1,53 +1,87 @@
-import type { NotificationActionMessage } from "./types";
+import { DnevnikTools } from "@/api/dtools";
+import { Settings } from "@/api/settings";
+import { NotificationManager } from "./manager";
+import { Utilities } from "@/utils/utils";
+import type { NotificationActionResult } from "./types";
 
-export function subscribeToNotificationActions(
-    handler: (message: NotificationActionMessage) => void,
-): () => void {
-    const listener = (event: MessageEvent<NotificationActionMessage>) => {
-        const message = event.data;
+export async function handleNotificationAction(
+    action: string,
+    data: Record<string, unknown>,
+    registration: ServiceWorkerRegistration,
+): Promise<void> {
+    const notificationId = String(
+        data.notificationId ?? crypto.randomUUID(),
+    );
 
-        if (
-            message?.type !== "notification-action" ||
-            typeof message.action !== "string"
-        ) {
-            return;
-        }
+    let result: NotificationActionResult = "unknown";
 
-        handler(message);
-    };
+    try {
+        switch (action) {
+            case "praise": {
+                const ratingKey =
+                    typeof data.ratingKey === "string"
+                        ? data.ratingKey
+                        : null;
 
-    navigator.serviceWorker.addEventListener("message", listener);
+                const lessonKey =
+                    typeof data.lessonKey === "string"
+                        ? data.lessonKey
+                        : null;
 
-    // Поддержка сценария, когда PWA открылась из уведомления
-    // и параметры действия были переданы через URL.
-    const url = new URL(window.location.href);
-    const action = url.searchParams.get("notificationAction");
-    const rawData = url.searchParams.get("notificationData");
+                if (ratingKey === null && lessonKey === null) {
+                    return;
+                }
 
-    if (action) {
-        let data: Record<string, unknown> = {};
+                const response = await DnevnikTools.sendPraise(
+                    lessonKey,
+                    ratingKey,
+                    typeof data.text === "string" ? data.text : null,
+                );
 
-        if (rawData) {
-            try {
-                data = JSON.parse(rawData);
-            } catch {
-                data = {};
+                result = response.status ? "success" : "failure";
+                break;
             }
+
+            case "hide_extracurricular_activity": {
+                const childId = Number(data.profile);
+                const subject = data.subject;
+                const place = data.place;
+
+                if (
+                    !Number.isInteger(childId) ||
+                    childId <= 0 ||
+                    typeof subject !== "string" ||
+                    typeof place !== "string"
+                ) {
+                    return;
+                }
+
+                const response =
+                    await Settings.hideExtracurricularActivity(
+                        childId,
+                        subject,
+                        place,
+                    );
+
+                result = response.status ? "success" : "failure";
+                break;
+            }
+
+            default:
+                break;
         }
+    } catch (error) {
+        Utilities.log(
+            error,
+            "Coroutine Error at NotificationActionReceiver.runAsyncAction",
+        );
 
-        handler({
-            type: "notification-action",
-            action,
-            data,
-        });
-
-        url.searchParams.delete("notificationAction");
-        url.searchParams.delete("notificationData");
-
-        window.history.replaceState({}, "", url);
+        result = "failure";
     }
 
-    return () => {
-        navigator.serviceWorker.removeEventListener("message", listener);
-    };
+    await NotificationManager.showActionResult(
+        registration,
+        notificationId,
+        result,
+    );
 }

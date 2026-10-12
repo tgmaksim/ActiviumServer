@@ -1,5 +1,4 @@
-import { getMessaging, onMessage } from "firebase/messaging";
-import { firebaseApp } from "@/firebase/app";
+import { Messaging } from "@/firebase/messaging";
 import { NotificationManager } from "./manager";
 import type { NotificationPayload } from "./types";
 
@@ -15,16 +14,6 @@ function parsePayload(
         return null;
     }
 
-    let buttons = data.buttons;
-
-    if (buttons) {
-        try {
-            buttons = JSON.parse(buttons);
-        } catch {
-            buttons = "[]";
-        }
-    }
-
     return {
         ...data,
         title,
@@ -35,23 +24,16 @@ function parsePayload(
         ...(data.time !== undefined
             ? { time: Number(data.time) }
             : {}),
-        ...(buttons !== undefined ? { buttons } : {}),
+        buttons: NotificationManager.parseButtons(data.buttons),
     };
 }
 
-export function subscribeToMessages(): () => void {
+export async function subscribeToMessages(): Promise<(() => void) | null> {
     unsubscribe?.();
+    unsubscribe = undefined;
 
-    const messaging = getMessaging(firebaseApp);
-
-    unsubscribe = onMessage(messaging, async (message) => {
-        const data = message.data;
-
-        if (!data) {
-            return;
-        }
-
-        const payload = parsePayload(data);
+    const stop = await Messaging.subscribeToMessages(async (message) => {
+        const payload = parsePayload(message.data ?? {});
 
         if (!payload) {
             return;
@@ -60,6 +42,8 @@ export function subscribeToMessages(): () => void {
         const registration = await navigator.serviceWorker.ready;
         await NotificationManager.show(registration, payload);
     });
+
+    unsubscribe = stop ?? undefined;
 
     return () => {
         unsubscribe?.();

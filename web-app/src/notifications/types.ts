@@ -23,3 +23,8 @@ export interface NotificationActionMessage {
     action: string;
     data: Record<string, unknown>;
 }
+
+export type NotificationActionResult =
+    | "success"
+    | "failure"
+    | "unknown";

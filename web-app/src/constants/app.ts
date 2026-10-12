@@ -8,3 +8,5 @@ export const CHECK_INTERNET_DOMAIN = __CHECK_INTERNET_DOMAIN__;
 
 export const APP_VERSION_STORAGE_KEY = "appVersion";
 export const APP_VERSION_CODE_STORAGE_KEY = "appVersionCode";
+
+export const INSTALL_PROMPT_HIDDEN_KEY = "pwaInstallPromptHidden";

@@ -18,7 +18,7 @@ const data = JSON.parse(
 data.versionCode++;
 
 await writeFile(
-    versionPath,
+    dataPath,
     JSON.stringify(data, null, 4) + "\n",
 );
 

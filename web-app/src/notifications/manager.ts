@@ -1,7 +1,10 @@
 import type {
     NotificationButton,
     NotificationPayload,
+    NotificationActionResult,
 } from "./types";
+import { Utilities } from "@/utils/utils";
+import { strings } from "@/constants/strings";
 import { routes } from "@/constants/routes";
 
 export class NotificationManager {
@@ -30,6 +33,7 @@ export class NotificationManager {
             }
         }
 
+        const notificationId = crypto.randomUUID();
         await registration.showNotification(payload.title, {
             body: payload.body,
             icon: `${routes.home}icons/logo.png`,
@@ -37,15 +41,14 @@ export class NotificationManager {
             ...(payload.time !== undefined
                 ? { timestamp: payload.time }
                 : {}),
-            ...(payload.channelId
-                ? { tag: payload.channelId }
-                : {}),
+            tag: `activium-${notificationId}`,
             actions: buttons.map((button) => ({
                 action: button.action,
                 title: button.text,
             })),
             data: {
                 ...data,
+                notificationId,
                 buttonData,
             },
         });
@@ -57,7 +60,11 @@ export class NotificationManager {
         if (typeof value === "string") {
             try {
                 value = JSON.parse(value);
-            } catch {
+            } catch (error) {
+                Utilities.log(
+                    error,
+                    "Error at NotificationManager.parseButtons",
+                );
                 return [];
             }
         }
@@ -73,5 +80,27 @@ export class NotificationManager {
                 typeof button.text === "string" &&
                 typeof button.action === "string",
         );
+    }
+
+    static async showActionResult(
+        registration: ServiceWorkerRegistration,
+        notificationId: string,
+        result: NotificationActionResult,
+    ): Promise<void> {
+        const messages: Record<NotificationActionResult, string> = {
+            success: strings.notification_broadcast_success_text,
+            failure: strings.notification_broadcast_unsuccess_text,
+            unknown: strings.notification_broadcast_unknown_text,
+        };
+
+        await registration.showNotification(strings.notification_broadcast_title, {
+            body: messages[result],
+            icon: `${routes.home}icons/logo.png`,
+            tag: `activium-${notificationId}`,
+            data: {
+                notificationId: `result-${notificationId}`,
+                type: "action-result",
+            },
+        });
     }
 }

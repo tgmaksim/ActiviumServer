@@ -95,17 +95,24 @@ function parsePayload(
 }
 
 onBackgroundMessage(messaging, async (message) => {
-    const data = message.data;
+    try {
+        const data = message.data;
 
-    if (!data) {
-        return;
+        if (!data) {
+            return;
+        }
+
+        const payload = parsePayload(data);
+
+        if (!payload) {
+            return;
+        }
+
+        await NotificationManager.show(self.registration, payload);
+    } catch (error) {
+        Utilities.log(
+            error,
+            "Error at MessagingService.onMessageReceived",
+        );
     }
-
-    const payload = parsePayload(data);
-
-    if (!payload) {
-        return;
-    }
-
-    await NotificationManager.show(self.registration, payload);
 });
