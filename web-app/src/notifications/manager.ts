@@ -88,12 +88,12 @@ export class NotificationManager {
         result: NotificationActionResult,
     ): Promise<void> {
         const messages: Record<NotificationActionResult, string> = {
-            success: strings.notification_broadcast_success_text,
-            failure: strings.notification_broadcast_unsuccess_text,
-            unknown: strings.notification_broadcast_unknown_text,
+            success: strings.notificationBroadcastSuccessText,
+            failure: strings.notificationBroadcastUnsuccessText,
+            unknown: strings.notificationBroadcastUnknownText,
         };
 
-        await registration.showNotification(strings.notification_broadcast_title, {
+        await registration.showNotification(strings.notificationBroadcastTitle, {
             body: messages[result],
             icon: `${routes.home}icons/logo.png`,
             tag: `activium-${notificationId}`,

@@ -16,7 +16,6 @@ import {
     FIREBASE_MEASUREMENT_ID,
 } from "@/constants/firebase";
 
-import { routes } from "@/constants/routes";
 import { NotificationManager } from "@/notifications/manager";
 import type { NotificationPayload } from "@/notifications/types";
 
@@ -47,8 +46,8 @@ const firebaseApp = initializeApp({
 cleanupOutdatedCaches();
 precacheAndRoute(self.__WB_MANIFEST);
 
-const homeUrl = new URL(routes.home, self.location.origin);
-const fallbackUrl = routes.home;
+const homeUrl = new URL(import.meta.env.BASE_URL, self.location.origin);
+const fallbackUrl = `${import.meta.env.BASE_URL}index.html`;
 
 registerRoute(
     ({ request, url }) =>

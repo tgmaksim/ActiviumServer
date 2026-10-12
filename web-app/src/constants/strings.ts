@@ -16,11 +16,15 @@ export const strings = {
     changeActiveChild: (profile: string) =>
         `Профиль сменен на ${profile}`,
 
-    titleDialogPermissionDnevnikNotifications:
-        "Разрешение на уведомления",
-    messageDialogPermissionDnevnikNotifications:
-        "Предоставьте разрешения на уведомления. Если окно не откроется, посетите настройки",
-    buttonDialogPermissionDnevnikNotifications: "Предоставить",
+    titleDialogPermissionNotifications:
+        "Включить уведомления",
+    messageDialogPermissionNotifications:
+        "Разрешите уведомления от приложения, чтобы получать только важную информацию и для работы некоторых функций",
+    messageDialogPermissionNotificationsBlocked:
+        "Уведомления запрещены в настройках браузера. Чтобы получать уведомления, разрешите их в настройках сайта и перезапустите приложение",
+    buttonDialogPermissionNotifications: "Включить уведомления",
+    buttonDialogPermissionNotificationsManual: "Понятно",
+    buttonDialogPermissionNotificationsCancel: "Не сейчас",
 
     messageDialogPwaInstallIntro:
         "Активиум открыт во вкладке браузера. Нажмите «Установить», чтобы добавить приложение на главный экран. Если браузер не поддерживает установку через системное окно, мы покажем инструкцию.",

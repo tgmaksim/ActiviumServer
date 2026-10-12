@@ -639,16 +639,16 @@ class LoginService(BaseService[AppUnitOfWork]):
                     'secure': True
                 },
                 {
-                    'key': 'web_session_id',
+                    'key': 'webSessionId',
                     'value': web_session.web_session_id,
-                    'max_age': 30 * 24 * 60 * 60,  # 30 дней
+                    'max_age': 90 * 24 * 60 * 60,  # 90 дней
                     'httponly': True,
                     'secure': True
                 },
                 {
                     'key': 'authorized',
                     'value': "true",
-                    'max_age': 30 * 24 * 60 * 60,  # 30 дней
+                    'max_age': 90 * 24 * 60 * 60,  # 90 дней
                 }
             ]
         )
