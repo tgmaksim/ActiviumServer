@@ -11,6 +11,7 @@ from ..schemas.dnevnik_schemas import (
     LessonRatingStatsApiResponse,
     MarksSubjectRatingApiResponse,
     MarksRatingStatsApiResponse0x1B,
+    MarksSubjectRatingApiResponse0x1D,
 )
 
 from ..services.dnevnik_service import DnevnikService
@@ -128,10 +129,27 @@ async def _getMarkRatingStats1(
 @router.get(
     "/getMarksSubjectRating/0",
     summary="Получение общего или предметного рейтинга",
+    description="Получение общего или предметного рейтинга в классе с изменением места пользователя. Устарела с версии API 1.18.0",
+    response_model=MarksSubjectRatingApiResponse0x1D,
+    deprecated=True  # Устарела с версии API 1.18.0
+)
+async def _getMarksSubjectRating0(
+        request: Request,
+        ratingKey: Annotated[str, Query(description="Ключ от предмета или общий ключ", pattern=r'(?:[0-9a-z]{1,13}\.)?[0-9a-z]{1,13}', min_length=1, max_length=27)],
+        sessionId: Annotated[str, Header(description="Идентификатор сессии", min_length=1, max_length=32)],
+        service: DnevnikService = Depends(get_dnevnik_service)
+) -> MarksSubjectRatingApiResponse0x1D:
+    request.state.session_id = sessionId
+    return await service.getMarksSubjectRating(sessionId, ratingKey, api=0)
+
+
+@router.get(
+    "/getMarksSubjectRating/1",  # Начиная с версии API 1.18.0
+    summary="Получение общего или предметного рейтинга",
     description="Получение общего или предметного рейтинга в классе с изменением места пользователя",
     response_model=MarksSubjectRatingApiResponse
 )
-async def _getMarksSubjectRating0(
+async def _getMarksSubjectRating1(
         request: Request,
         ratingKey: Annotated[str, Query(description="Ключ от предмета или общий ключ", pattern=r'(?:[0-9a-z]{1,13}\.)?[0-9a-z]{1,13}', min_length=1, max_length=27)],
         sessionId: Annotated[str, Header(description="Идентификатор сессии", min_length=1, max_length=32)],

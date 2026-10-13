@@ -13,10 +13,10 @@ from typing import ClassVar, Literal, Optional
 __all__ = ['ScheduleHomeworkDocument', 'ScheduleExtracurricularActivity', 'ScheduleHours', 'WorkType', 'MarkLog',
            'MarksOther', 'ScheduleLesson0x10', 'ScheduleDay0x11', 'ScheduleResult0x12', 'ScheduleApiResponse0x13',
            'LessonRatingStatsResult', 'LessonRatingStatsApiResponse', 'MarkLast', 'MarksSubjectPeriod', 'MarksResult',
-           'MarksApiResponse', 'MarksRatingStatsResult0x1A', 'MarksRatingStatsApiResponse0x1B', 'MarksSubjectRatingResult',
-           'MarksSubjectRatingApiResponse', 'MarksSubjectFinal', 'MarksFinalResult', 'MarksFinalApiResponse',
+           'MarksApiResponse', 'MarksRatingStatsResult0x1A', 'MarksRatingStatsApiResponse0x1B', 'MarksSubjectRatingResult0x1C',
+           'MarksSubjectRatingApiResponse0x1D', 'MarksSubjectFinal', 'MarksFinalResult', 'MarksFinalApiResponse',
            'MarksRatingStatsResult', 'MarksRatingStatsApiResponse', 'ScheduleLesson', 'ScheduleDay', 'ScheduleResult',
-           'ScheduleApiResponse']
+           'ScheduleApiResponse', 'MarksSubjectRatingResult', 'MarksSubjectRatingApiResponse']
 
 
 class ScheduleHomeworkDocument(ApiBase):
@@ -655,7 +655,7 @@ class MarksRatingStatsApiResponse(ApiResponse):
     )
 
 
-class MarksSubjectRatingResult(ApiBase):
+class MarksSubjectRatingResult0x1C(ApiBase):  # До версии API 1.18.0
     """Результат запроса получения общего или предметного рейтинга"""
 
     classId: ClassVar[int] = 0x1C
@@ -673,11 +673,48 @@ class MarksSubjectRatingResult(ApiBase):
     )
 
 
-class MarksSubjectRatingApiResponse(ApiResponse):
+class MarksSubjectRatingApiResponse0x1D(ApiResponse):  # До версии API 1.18.0
     """Ответ на запрос получения общего или предметного рейтинга"""
 
     classId: ClassVar[int] = 0x1D
     class_id: Literal[0x1D, 0x2] = Field(
+        default=classId,
+        alias='classId',
+        description="Идентификатор класса"
+    )
+
+    answer: Optional[MarksSubjectRatingResult0x1C] = Field(
+        default=None,
+        description="Рейтинг в классе и прошлое место в рейтинге"
+    )
+
+
+class MarksSubjectRatingResult(ApiBase):  # Начиная с версии API 1.18.0
+    """Результат запроса получения общего или предметного рейтинга"""
+
+    classId: ClassVar[int] = 0x59
+    class_id: Literal[0x59] = Field(
+        default=classId,
+        alias='classId',
+        description="Идентификатор класса"
+    )
+
+    rating: list[MarksOther] = Field(
+        description="Средние баллы одноклассников"
+    )
+    oldMark: Optional[MarksOther] = Field(
+        description="Прошлая оценка с момента прошлого запроса"
+    )
+    isRatingUp: Optional[bool] = Field(
+        description="Повысилось ли место в рейтинге"
+    )
+
+
+class MarksSubjectRatingApiResponse(ApiResponse):  # Начиная с версии API 1.18.0
+    """Ответ на запрос получения общего или предметного рейтинга"""
+
+    classId: ClassVar[int] = 0x5A
+    class_id: Literal[0x5A, 0x2] = Field(
         default=classId,
         alias='classId',
         description="Идентификатор класса"
