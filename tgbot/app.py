@@ -111,7 +111,7 @@ class TgBotApp:
             if repr(my_admin_commands) != repr(admin_commands):
                 await self.bot.set_my_commands(admin_commands, scope=admin_scope)
 
-    async def send_to_admins(self, message: Text, **kwargs) -> list[Message]:
+    async def send_to_admins(self, message: Text, **kwargs) -> tuple[Message]:
         """Отправка сообщений администраторам Telegram-бота"""
 
         return await gather(

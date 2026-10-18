@@ -49,6 +49,8 @@ class ScheduleHours(ApiBase):
         description="Идентификатор класса"
     )
 
+    # Параметры start и end использовались ранее, еще до глобального обновления 1.0.0.
+    # Все совместимые версии клиента используют только string
     start: datetime.datetime = Field(
         description="Начало урока или внеурочного занятия"
     )

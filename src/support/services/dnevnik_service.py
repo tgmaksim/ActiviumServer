@@ -338,9 +338,13 @@ class DnevnikService(BaseService[AppUnitOfWork]):
                     end = time.fromisoformat(hours.hours[lesson['number'] - 1]['end'])
                     string = hours.hours[lesson['number'] - 1]['string']
                 else:
-                    start = time.fromisoformat(lesson['hours'].split(' - ')[0])
-                    end = time.fromisoformat(lesson['hours'].split(' - ')[1])
+                    try:
+                        start = time.fromisoformat(lesson['hours'].split(' - ')[0])
+                        end = time.fromisoformat(lesson['hours'].split(' - ')[1])
+                    except ValueError:
+                        start = end = time()
                     string = lesson['hours']
+
                 lesson_hours = ScheduleHours(
                     start=astimezone(day_date.replace(hour=start.hour, minute=start.minute), child.timezone),
                     end=astimezone(day_date.replace(hour=end.hour, minute=end.minute), child.timezone),
