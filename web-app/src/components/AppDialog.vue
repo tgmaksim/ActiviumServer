@@ -22,6 +22,7 @@
                     v-if="cancelText"
                     class="dialog-cancel"
                     type="button"
+                    :disabled="loading"
                     @click="$emit('cancel')"
                 >
                     {{ cancelText }}
@@ -31,8 +32,14 @@
                     v-if="actionText"
                     class="dialog-action"
                     type="button"
+                    :disabled="loading"
                     @click="$emit('action')"
                 >
+                    <span
+                        v-if="loading"
+                        class="dialog-spinner"
+                        aria-hidden="true"
+                    ></span>
                     {{ actionText }}
                 </button>
             </div>
@@ -47,6 +54,7 @@ defineProps<{
     message?: string;
     actionText?: string;
     cancelText?: string;
+    loading?: boolean;
 }>();
 
 defineEmits<{
@@ -126,5 +134,28 @@ defineEmits<{
 .dialog-action:active,
 .dialog-cancel:active {
     opacity: 0.8;
+}
+
+.dialog-spinner {
+    display: inline-block;
+    width: 1em;
+    height: 1em;
+    flex: 0 0 auto;
+    border: 2px solid var(--stroke-bg);
+    border-top-color: var(--dialog-button-positive);
+    border-radius: 50%;
+    animation: dialog-spinner-rotate 0.7s linear infinite;
+}
+
+.dialog-action:disabled,
+.dialog-cancel:disabled {
+    cursor: wait;
+    opacity: 0.7;
+}
+
+@keyframes dialog-spinner-rotate {
+    to {
+        transform: rotate(360deg);
+    }
 }
 </style>

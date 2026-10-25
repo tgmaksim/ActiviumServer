@@ -21,6 +21,7 @@
                 ? undefined
                 : strings.buttonDialogPermissionNotificationsCancel
         "
+        :loading="isEnablingNotifications"
         @action="handleNotificationAction"
         @cancel="showNotificationDialog = false"
     />
@@ -51,17 +52,25 @@ const showNotificationDialog = ref(false);
 const notificationPermissionBlocked = ref(false);
 const isEnablingNotifications = ref(false);
 
-const notificationDialogMessage = computed(() =>
-    notificationPermissionBlocked.value
-        ? strings.messageDialogPermissionNotificationsBlocked
-        : strings.messageDialogPermissionNotifications,
-);
+const notificationDialogMessage = computed(() => {
+    if (isEnablingNotifications.value) {
+        return strings.messageDialogNotificationsConnecting;
+    }
 
-const notificationActionText = computed(() =>
-    notificationPermissionBlocked.value
+    return notificationPermissionBlocked.value
+        ? strings.messageDialogPermissionNotificationsBlocked
+        : strings.messageDialogPermissionNotifications;
+});
+
+const notificationActionText = computed(() => {
+    if (isEnablingNotifications.value) {
+        return strings.buttonDialogNotificationsConnecting;
+    }
+
+    return notificationPermissionBlocked.value
         ? strings.buttonDialogPermissionNotificationsManual
-        : strings.buttonDialogPermissionNotifications,
-);
+        : strings.buttonDialogPermissionNotifications;
+});
 
 const route = useRoute();
 

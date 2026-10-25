@@ -25,6 +25,7 @@ import {
     createHandlerBoundToURL,
 } from "workbox-precaching";
 import { registerRoute } from "workbox-routing";
+import { clientsClaim } from "workbox-core";
 
 declare let self: ServiceWorkerGlobalScope & {
     __WB_MANIFEST: Array<{
@@ -45,6 +46,9 @@ const firebaseApp = initializeApp({
 
 cleanupOutdatedCaches();
 precacheAndRoute(self.__WB_MANIFEST);
+
+self.skipWaiting();
+clientsClaim();
 
 const homeUrl = new URL(import.meta.env.BASE_URL, self.location.origin);
 const fallbackUrl = `${import.meta.env.BASE_URL}index.html`;

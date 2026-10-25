@@ -19,12 +19,14 @@ export const strings = {
     titleDialogPermissionNotifications:
         "Включить уведомления",
     messageDialogPermissionNotifications:
-        "Разрешите уведомления от приложения, чтобы получать только важную информацию и для работы некоторых функций",
+        "Разрешите уведомления от приложения для работы некоторых функций, чтобы получать только важную информацию, которую Вы выберите",
     messageDialogPermissionNotificationsBlocked:
-        "Уведомления запрещены в настройках браузера. Чтобы получать уведомления, разрешите их в настройках сайта и перезапустите приложение",
+        "Уведомления запрещены в настройках браузера. Чтобы получать уведомления, разрешите их в меню сайта и перезапустите приложение",
     buttonDialogPermissionNotifications: "Включить уведомления",
     buttonDialogPermissionNotificationsManual: "Понятно",
     buttonDialogPermissionNotificationsCancel: "Не сейчас",
+    messageDialogNotificationsConnecting: "Подключаем уведомления. Это может занять несколько секунд…",
+    buttonDialogNotificationsConnecting: "Подключение…",
 
     messageDialogPwaInstallIntro:
         "Активиум открыт во вкладке браузера. Нажмите «Установить», чтобы добавить приложение на главный экран. Если браузер не поддерживает установку через системное окно, мы покажем инструкцию.",

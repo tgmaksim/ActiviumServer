@@ -79,7 +79,15 @@ async function getFcmToken(): Promise<string | null> {
         return null;
     }
 
-    const registration = await navigator.serviceWorker.ready;
+    const registration = await navigator.serviceWorker.getRegistration(
+        import.meta.env.BASE_URL,
+    );
+
+    if (!registration?.active) {
+        throw new Error(
+            "Не найден активный Service Worker для PWA",
+        );
+    }
 
     return getToken(messaging, {
         vapidKey: VAPID_KEY,
