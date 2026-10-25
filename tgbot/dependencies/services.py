@@ -7,7 +7,7 @@ from aiogram.types import TelegramObject
 
 from src.services.base_service import BaseService
 from src.dependencies.httpx import get_httpx_client
-from src.dependencies.uow import get_app_uow_factory
+from src.dependencies.uow import get_app_uow_factory, get_log_uow_factory
 
 from ..dependencies.uow import get_tgbot_uow_factory
 
@@ -28,7 +28,8 @@ class ModuleService(Filter, Generic[ModelType]):
         params = {
             'uow_factory': get_app_uow_factory(),
             'tgbot_uow_factory': get_tgbot_uow_factory(),
-            'httpx_client': get_httpx_client()
+            'httpx_client': get_httpx_client(),
+            'log_uow_factory': get_log_uow_factory()
         }
 
         service = self.service_type(**{k: v for k, v in params.items() if k in self.valid_params})

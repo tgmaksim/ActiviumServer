@@ -1,5 +1,5 @@
 from typing import Any, Union, Sequence, Literal
-from httpx import AsyncClient, Headers, Response, TimeoutException
+from httpx import AsyncClient, Headers, Response, TimeoutException, ConnectError
 
 from dnevnikru.config import dnevnikru_path, login_dnevnikru_path
 from dnevnikru.exceptions import InvalidResponseException, DnevnikruApiException, RequestTimeoutException
@@ -114,8 +114,8 @@ class BaseAioDnevnikruApi:
                 headers=self._headers,
                 **httpx_kwargs
             )
-        except TimeoutException as e:
-            raise RequestTimeoutException(e)
+        except (TimeoutException, ConnectError) as e:
+            raise RequestTimeoutException(e) from e
 
         return self._validate_response(response)
 

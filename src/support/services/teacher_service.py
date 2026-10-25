@@ -72,10 +72,15 @@ class TeacherService(BaseService[AppUnitOfWork]):
 
                     schools = context['schools']
                     schools_id = [school['id'] for school in schools]
-                    school: dict = next(filter(lambda s: s['type'] in ('Regular', 'Professional') and s['id'] in schools_id, schools))
-                    school_id = int(school['id'])
+                    school_names = {school['id']: school['name'] for school in schools}
 
-                    groups = await dnr.get_school_groups(school_id)
+                    groups: tuple[Union[list[dict], BaseException]] = await gather(*(dnr.get_school_groups(school_id) for school_id in schools_id), return_exceptions=True)
+                    zip_groups: list[tuple[int, Union[list[dict], BaseException]]] = list(zip(schools_id, groups))
+                    groups_by_school: dict[int, list[dict]] = {
+                        school_id: groups_or_exception
+                        for school_id, groups_or_exception in zip_groups
+                        if isinstance(groups_or_exception, list)
+                    }
                 except DnevnikruApiException as e:
                     authorized = False
                     await self.log_service.log(
@@ -88,10 +93,10 @@ class TeacherService(BaseService[AppUnitOfWork]):
                     parent_id = context['personId']
                     classes = [
                         {
-                            'name': group['name'],
+                            'name': group['name'] if len(groups_by_school) == 1 else f"{group['name']} {school_names[school_id]}",
                             'groupId': group['id']
                         }
-                        for group in groups
+                        for school_id, school_groups in groups_by_school.items() for group in school_groups
                     ]
 
         if not authorized:

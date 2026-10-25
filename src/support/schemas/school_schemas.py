@@ -208,7 +208,7 @@ class LikeSchoolPostApiResponse(ApiResponse):
     """Ответ на запрос постановки реакции на посте"""
 
     classId: ClassVar[int] = 0x57
-    class_id: Literal[0x58, 0x2] = Field(
+    class_id: Literal[0x57, 0x2] = Field(
         default=classId,
         alias='classId',
         description="Идентификатор класса"
@@ -224,7 +224,7 @@ class UnlikeSchoolPostApiResponse(ApiResponse):
     """Ответ на запрос удаления реакции на посте"""
 
     classId: ClassVar[int] = 0x58
-    class_id: Literal[0x5A, 0x2] = Field(
+    class_id: Literal[0x58, 0x2] = Field(
         default=classId,
         alias='classId',
         description="Идентификатор класса"

@@ -71,10 +71,12 @@ from ..schemas.dnevnik_schemas import (
     MarksSubjectRatingResult,
     MarksRatingStatsResult0x1A,
     MarksRatingStatsApiResponse,
+    MarksSubjectRatingResult0x1C,
     LessonRatingStatsApiResponse,
     MarksSubjectRatingApiResponse,
     MarksRatingStatsApiResponse0x1B,
     ScheduleExtracurricularActivity,
+    MarksSubjectRatingApiResponse0x1D,
 )
 
 
@@ -336,9 +338,13 @@ class DnevnikService(BaseService[AppUnitOfWork]):
                     end = time.fromisoformat(hours.hours[lesson['number'] - 1]['end'])
                     string = hours.hours[lesson['number'] - 1]['string']
                 else:
-                    start = time.fromisoformat(lesson['hours'].split(' - ')[0])
-                    end = time.fromisoformat(lesson['hours'].split(' - ')[1])
+                    try:
+                        start = time.fromisoformat(lesson['hours'].split(' - ')[0])
+                        end = time.fromisoformat(lesson['hours'].split(' - ')[1])
+                    except ValueError:
+                        start = end = time()
                     string = lesson['hours']
+
                 lesson_hours = ScheduleHours(
                     start=astimezone(day_date.replace(hour=start.hour, minute=start.minute), child.timezone),
                     end=astimezone(day_date.replace(hour=end.hour, minute=end.minute), child.timezone),
@@ -1223,7 +1229,14 @@ class DnevnikService(BaseService[AppUnitOfWork]):
                 )
             )
 
-    async def getMarksSubjectRating(self, session_id: str, rating_key: str) -> MarksSubjectRatingApiResponse:
+    async def getMarksSubjectRating(self, session_id: str, rating_key: str, api: int = None) -> Union[MarksSubjectRatingApiResponse, MarksSubjectRatingApiResponse0x1D]:
+        if api == 0:
+            answer_type = MarksSubjectRatingApiResponse0x1D
+            result_type = MarksSubjectRatingResult0x1C
+        else:
+            answer_type = MarksSubjectRatingApiResponse
+            result_type = MarksSubjectRatingResult
+
         async with self.uow_factory() as uow:
             try:
                 key = re.fullmatch(r'(?:(?P<subject_id>[0-9a-z]{1,13})\.)?(?P<period_id>[0-9a-z]{1,13})', rating_key)
@@ -1385,6 +1398,13 @@ class DnevnikService(BaseService[AppUnitOfWork]):
                 if me is not None and old_mark == rating[me][0]:
                     old_mark = None
 
+            if old is not None and me is not None:
+                if rating[me][0].number == old.number:
+                    is_rating_up = None
+                else:
+                    is_rating_up = rating[me][0].number < old.number
+            else:
+                is_rating_up = None
 
             # Обновление прошлого места в рейтинге
             if me is not None:
@@ -1404,10 +1424,11 @@ class DnevnikService(BaseService[AppUnitOfWork]):
 
             await uow.statistic_repository.add_statistic(parent.parent_id, StatName.getMarksSubjectRating)
 
-            return MarksSubjectRatingApiResponse(
-                answer=MarksSubjectRatingResult(
+            return answer_type(
+                answer=result_type(
                     rating=[other_mark for (other_mark, _, _) in rating],
-                    oldMark=old_mark
+                    oldMark=old_mark,
+                    isRatingUp=is_rating_up,
                 )
             )
 
