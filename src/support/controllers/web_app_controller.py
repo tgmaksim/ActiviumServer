@@ -33,6 +33,46 @@ async def _app(
     return template_params.to_response(request)
 
 
+@public_router.get("/schedule", include_in_schema=False)
+async def _app(
+        request: Request,
+        service: WebAppService = Depends(get_web_app_service)
+) -> HTMLResponse:
+    template_params = service.app()
+
+    return template_params.to_response(request)
+
+
+@public_router.get("/marks", include_in_schema=False)
+async def _app(
+        request: Request,
+        service: WebAppService = Depends(get_web_app_service)
+) -> HTMLResponse:
+    template_params = service.app()
+
+    return template_params.to_response(request)
+
+
+@public_router.get("/school", include_in_schema=False)
+async def _app(
+        request: Request,
+        service: WebAppService = Depends(get_web_app_service)
+) -> HTMLResponse:
+    template_params = service.app()
+
+    return template_params.to_response(request)
+
+
+@public_router.get("/settings", include_in_schema=False)
+async def _app(
+        request: Request,
+        service: WebAppService = Depends(get_web_app_service)
+) -> HTMLResponse:
+    template_params = service.app()
+
+    return template_params.to_response(request)
+
+
 @public_router.get("/login", include_in_schema=False)
 async def _app(
         request: Request,

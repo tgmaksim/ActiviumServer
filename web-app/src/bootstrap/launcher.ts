@@ -13,6 +13,6 @@ function isAuthorized(): boolean {
         });
 }
 
-export function launch(): "/" | "/login" {
-    return isAuthorized() ? "/" : "/login";
+export function launch(): null | "/login" {
+    return isAuthorized() ? null : "/login";
 }

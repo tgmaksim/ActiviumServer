@@ -30,7 +30,7 @@ app.use(router);
 app.mount("#app");
 
 router.isReady().then(() => {
-    if (router.currentRoute.value.path !== initialRoute) {
+    if (initialRoute !== null && router.currentRoute.value.path !== initialRoute) {
         router.replace(initialRoute);
     }
 });
