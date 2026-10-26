@@ -73,31 +73,18 @@ import { strings } from "../constants/strings";
 
 import {
     APP_VERSION,
-    APP_VERSION_STORAGE_KEY,
     APP_VERSION_CODE,
-    APP_VERSION_CODE_STORAGE_KEY,
 } from "../constants/app";
 import { getLoginUrl } from "../api/login";
 import { getDeviceInfo } from "../utils/device";
 
-const appVersion = ref(
-    localStorage.getItem(APP_VERSION_STORAGE_KEY) ?? APP_VERSION,
-);
-const appVersionCode = ref(
-    parseInt(localStorage.getItem(APP_VERSION_CODE_STORAGE_KEY) ?? APP_VERSION_CODE.toString(), 10),
-);
+const appVersion = ref(APP_VERSION);
+const appVersionCode = ref(APP_VERSION_CODE);
 
 const deviceInfo = getDeviceInfo();
 
 const loading = ref(false);
 const error = ref<string | null>(null);
-
-onMounted(() => {
-    localStorage.setItem(
-        APP_VERSION_STORAGE_KEY,
-        APP_VERSION,
-    );
-});
 
 async function login() {
     if (loading.value) {

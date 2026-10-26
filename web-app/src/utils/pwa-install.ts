@@ -1,4 +1,4 @@
-import { INSTALL_PROMPT_HIDDEN_KEY } from "@/constants/app";
+import { useSettingsStore } from "@/stores/settings";
 
 type InstallOutcome =
     | "accepted"
@@ -85,11 +85,9 @@ export function shouldShowInstallPrompt(): boolean {
         return false;
     }
 
-    return (
-        localStorage.getItem(
-            INSTALL_PROMPT_HIDDEN_KEY,
-        ) !== "true"
-    );
+    const settingsStore = useSettingsStore();
+
+    return !settingsStore.installPromptHiddenKey;
 }
 
 /**
@@ -125,8 +123,6 @@ export async function promptPwaInstall():
  * Больше не показывать предложение установки.
  */
 export function hideInstallPrompt(): void {
-    localStorage.setItem(
-        INSTALL_PROMPT_HIDDEN_KEY,
-        "true",
-    );
+    const settingsStore = useSettingsStore();
+    settingsStore.installPromptHiddenKey = true;
 }

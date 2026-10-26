@@ -1,48 +1,30 @@
 import { createApp } from "vue";
-import { createPinia } from "pinia";
-import { registerSW } from "virtual:pwa-register";
 
 import App from "./App.vue";
 import router from "./router";
 
 import { launch } from "./bootstrap/launcher";
+import { initializeSW } from "./utils/register-sw";
 import "./style.css";
 
 import { Utilities } from "@/utils/utils";
 
+import { createPinia } from "pinia";
+import { useSettingsStore } from "@/stores/settings";
+import { initializeTheme } from "@/theme/theme-manager";
+
 const initialRoute = launch();
 
-const UPDATE_CHECK_INTERVAL = 5 * 60 * 1000;
-
-registerSW({
-    immediate: true,
-
-    onRegisteredSW(_swUrl, registration) {
-        if (!registration) {
-            return;
-        }
-
-        // Проверка актуальности при запуске приложения
-        void registration.update().catch((error: unknown) => {
-            Utilities.log(error, "Не удалось проверить обновление");
-        });
-
-        // Повторная проверка, если приложение долго открыто
-        window.setInterval(() => {
-            void registration.update().catch((error: unknown) => {
-                Utilities.log(error, "Не удалось проверить обновление");
-            });
-        }, UPDATE_CHECK_INTERVAL);
-    },
-
-    onRegisterError(error) {
-        Utilities.log(error, "Не удалось зарегистрировать Service Worker");
-    },
-});
+initializeSW();
 
 const app = createApp(App);
 
-app.use(createPinia());
+const pinia = createPinia()
+app.use(pinia);
+useSettingsStore(pinia);
+
+initializeTheme();
+
 app.use(router);
 
 app.mount("#app");
