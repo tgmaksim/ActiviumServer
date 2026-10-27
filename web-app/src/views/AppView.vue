@@ -8,6 +8,8 @@
             </RouterView>
         </main>
 
+        <Toast />
+
         <footer class="app-footer">
             <BottomNavigation />
         </footer>
@@ -16,45 +18,42 @@
 
 <script setup lang="ts">
 import BottomNavigation from "@/components/BottomNavigation.vue";
+import Toast from "@/components/Toast.vue";
 </script>
 
 <style scoped>
 .app-layout {
-    display: flex;
-    flex-direction: column;
     min-height: 100vh;
     min-height: 100dvh;
     background: var(--main-bg);
 }
 
 .app-content {
-    flex: 1;
     min-width: 0;
-    padding: 24px;
+    min-height: 100vh;
+    min-height: 100dvh;
 }
 
 .app-footer {
+    position: fixed;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 1000;
+
     display: flex;
     justify-content: center;
+
     width: 100%;
-    padding: 16px 24px 20px;
+    box-sizing: border-box;
+    padding: 8px 12px max(8px, env(safe-area-inset-bottom));
+
+    pointer-events: none;
 }
 
-@media (max-width: 600px) {
-    .app-content {
-        padding: 20px 16px;
-    }
-
-    .app-footer {
-        position: sticky;
-        bottom: 0;
-        z-index: 10;
-        padding: 8px 12px max(8px, env(safe-area-inset-bottom));
-        background: var(--main-bg);
-    }
-
-    .app-footer :deep(.bottom-navigation) {
-        max-width: none;
-    }
+.app-footer :deep(.bottom-navigation) {
+    width: 100%;
+    max-width: 480px;
+    pointer-events: auto;
 }
 </style>

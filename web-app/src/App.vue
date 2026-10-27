@@ -34,9 +34,11 @@ import { useRoute, RouterView } from "vue-router";
 import AppDialog from "@/components/AppDialog.vue";
 import { strings } from "@/constants/strings";
 import { Messaging } from "@/firebase/messaging";
+import { useSettingsStore } from "@/stores/settings";
 import { Settings } from "@/api/settings";
 import { Utilities } from "@/utils/utils";
 import { routes } from "@/constants/routes"
+import { NotificationPermission } from "@/notifications/permission";
 
 import {
     getPwaPlatform,
@@ -149,53 +151,24 @@ function dismissInstallDialog(): void {
     finishInstallFlow();
 }
 
-async function syncFirebaseToken(): Promise<void> {
-    try {
-        const token = await Messaging.getFcmToken();
-
-        if (token === null) {
-            return;
-        }
-
-        await Settings.updateFirebase(token);
-    } catch (error) {
-        Utilities.log(
-            error,
-            "Не удалось синхронизировать Firebase-токен",
-        );
-    }
-}
-
 async function checkNotifications(): Promise<void> {
-    if (!("Notification" in window)) {
-        return;
-    }
+    const state = await NotificationPermission.checkPermission();
 
-    try {
-        if (!await Messaging.isMessagingSupported()) {
-            return;
-        }
+    switch (state) {
+        case "denied":
+            notificationPermissionBlocked.value = true;
+            showNotificationDialog.value = true;
+            break;
 
-        switch (Notification.permission) {
-            case "granted":
-                await syncFirebaseToken();
-                return;
+        case "default":
+            notificationPermissionBlocked.value = false;
+            showNotificationDialog.value = true;
+            break;
 
-            case "denied":
-                notificationPermissionBlocked.value = true;
-                showNotificationDialog.value = true;
-                return;
-
-            case "default":
-                notificationPermissionBlocked.value = false;
-                showNotificationDialog.value = true;
-                return;
-        }
-    } catch (error) {
-        Utilities.log(
-            error,
-            "Не удалось проверить поддержку уведомлений",
-        );
+        case "unsupported":
+        case "granted":
+        case "error":
+            break;
     }
 }
 
@@ -205,41 +178,34 @@ function finishInstallFlow(): void {
 }
 
 async function handleNotificationAction(): Promise<void> {
-    if (notificationPermissionBlocked.value) {
+    if (notificationPermissionBlocked.value || isEnablingNotifications.value) {
         showNotificationDialog.value = false;
-        return;
-    }
-
-    if (isEnablingNotifications.value) {
         return;
     }
 
     isEnablingNotifications.value = true;
 
     try {
-        const token = await Messaging.enableNotifications();
+        const result = await NotificationPermission.enableNotifications();
 
-        if (token !== null) {
-            await Settings.updateFirebase(token);
-            showNotificationDialog.value = false;
-            return;
+        switch (result) {
+            case "enabled":
+            case "unavailable":
+                showNotificationDialog.value = false;
+                break;
+
+            case "denied":
+                notificationPermissionBlocked.value = true;
+                break;
+
+            case "error":
+                Utilities.log(
+                    error,
+                    "Не удалось включить уведомления",
+                );
+                showNotificationDialog.value = false;
+                break;
         }
-
-        if (
-            "Notification" in window &&
-            Notification.permission === "denied"
-        ) {
-            notificationPermissionBlocked.value = true;
-            return;
-        }
-
-        showNotificationDialog.value = false;
-    } catch (error) {
-        Utilities.log(
-            error,
-            "Не удалось включить уведомления",
-        );
-        showNotificationDialog.value = false;
     } finally {
         isEnablingNotifications.value = false;
     }

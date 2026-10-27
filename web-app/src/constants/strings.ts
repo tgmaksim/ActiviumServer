@@ -1,5 +1,7 @@
+const appName = "Активиум";
+
 export const strings = {
-    appName: "Активиум",
+    appName: appName,
 
     errorApi: "Произошла ошибка на сервере…",
     errorInternet: "Нет подключения к интернету",
@@ -160,7 +162,7 @@ export const strings = {
     settingsEaNotifications:
         "Напоминать о внеурочных занятиях",
     settingsMarksNotifications:
-        "Уведомлять об оценках",
+        "Уведомлять об оценках 🆕🗑️✏️",
     errorMarksNotifications:
         "Произошла ошибка при загрузке статуса уведомлений об оценках",
     errorEaNotifications:
@@ -225,8 +227,8 @@ export const strings = {
         date: string,
         marker: string,
     ) => `${author} • ${date}${marker}`,
-    reviewEditMarker: "изменен",
-    reviewModerationMarker: "на модерации",
+    reviewEditMarker: " (изменен)",
+    reviewModerationMarker: " (на модерации)",
     writeReview: "Написать отзыв",
     editReview: "Изменить отзыв",
     deleteReview: "Удалить отзыв",
@@ -279,19 +281,15 @@ export const strings = {
         return `🤜🤛 Вы пригласили ${count} друзей`;
     },
     activeRelativesChildren: (
-        school: string,
         current: number,
         total: number,
-    ) => `🧒 Дети в ${school}: ${current} из ${total}`,
-    allActiveRelativesChildren: (school: string) =>
-        `🧒 Ваши дети уже в ${school}!`,
+    ) => `🧒 Дети в ${appName}: ${current} из ${total}`,
+    allActiveRelativesChildren: `🧒 Ваши дети уже в ${appName}!`,
     activeRelativesParents: (
-        school: string,
         current: number,
         total: number,
-    ) => `👩👨 Родители в ${school}: ${current} из ${total}`,
-    allActiveRelativesParents: (school: string) =>
-        `👩👨 Ваши родители уже в ${school}!`,
+    ) => `👩👨 Родители в ${appName}: ${current} из ${total}`,
+    allActiveRelativesParents: `👩👨 Ваши родители уже в ${appName}!`,
     meReferral: (name: string) =>
         `📥 Вас пригласили: ${name}`,
     share: "Пригласить",

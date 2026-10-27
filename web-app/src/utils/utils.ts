@@ -2,6 +2,11 @@
  * Утилиты приложения.
  */
 
+import { showToast } from "../composables/useToast";
+
+import { strings } from "@/constants/strings";
+import type { UiText } from "@/utils/ui-text";
+
 function log(string: string | null, tag: string): void;
 function log(error: string): void;
 function log(error: Error, context?: string): void;
@@ -32,6 +37,46 @@ function log(
     console.error("Activium.error", value);
 }
 
+function showText(
+    text: string,
+    long: boolean = false
+): void {
+    showToast(text, long ? "long" : "short");
+}
+
+/**
+ * Показывает UI-сообщение, представленное ресурсной
+ * или динамической строкой.
+ */
+function showUiMessage(
+    message: UiText,
+    long: boolean = false,
+): void {
+    if (message.type === "dynamicString") {
+        showText(message.value, long);
+        return;
+    }
+
+    const resource = strings[message.key];
+
+    const value =
+        typeof resource === "function"
+            ? Reflect.apply(resource, undefined, [...(message.args ?? [])])
+            : resource;
+
+    if (typeof value !== "string") {
+        log(
+            `Ресурс "${String(message.key)}" не вернул строку`,
+            "showUiMessage",
+        );
+        return;
+    }
+
+    showText(value, long);
+}
+
 export const Utilities = {
     log,
+    showText,
+    showUiMessage,
 };
