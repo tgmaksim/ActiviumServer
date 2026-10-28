@@ -45,7 +45,7 @@
                 class="review-input"
                 :placeholder="strings.reviewTextHint"
                 :maxlength="TEXT_LIMIT"
-                rows="5"
+                rows="10"
             ></textarea>
 
             <p
@@ -63,7 +63,7 @@
                     type="button"
                     @click="close"
                 >
-                    {{ strings.ok }}
+                    {{ strings.cancel }}
                 </button>
 
                 <button
@@ -186,7 +186,7 @@ function submit(): void {
     padding: 24px;
     border-radius: 20px;
 
-    background: var(--dialog-background);
+    background: var(--main-bg);
     color: var(--text-primary);
 
     box-shadow: 0 10px 40px rgb(0 0 0 / 20%);
@@ -221,7 +221,7 @@ function submit(): void {
 }
 
 .star-button.star-selected {
-    color: var(--slider-accent);
+    color: var(--review-star-filled);
 }
 
 .review-input {
@@ -234,7 +234,7 @@ function submit(): void {
     border: 1px solid var(--stroke-bg);
     border-radius: 12px;
 
-    background: var(--dialog-background);
+    background: var(--main-bg);
     color: var(--text-primary);
 
     font: inherit;

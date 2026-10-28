@@ -1,3 +1,4 @@
+import { Utilities } from "./utils.ts";
 import { useSettingsStore } from "@/stores/settings";
 
 type InstallOutcome =

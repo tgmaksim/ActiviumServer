@@ -33,9 +33,6 @@ import { useRoute, RouterView } from "vue-router";
 
 import AppDialog from "@/components/AppDialog.vue";
 import { strings } from "@/constants/strings";
-import { Messaging } from "@/firebase/messaging";
-import { useSettingsStore } from "@/stores/settings";
-import { Settings } from "@/api/settings";
 import { Utilities } from "@/utils/utils";
 import { routes } from "@/constants/routes"
 import { NotificationPermission } from "@/notifications/permission";

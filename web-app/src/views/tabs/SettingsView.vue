@@ -28,7 +28,7 @@
                 </div>
 
                 <label
-                    v-if="eaNotificationsLoaded"
+                    v-if="eaNotificationsLoaded || eaNotificationsError"
                     class="setting-row setting-row-nested"
                 >
                     <span class="setting-description">
@@ -36,22 +36,24 @@
                     </span>
 
                     <input
+                        v-if="eaNotificationsLoaded"
                         v-model="eaNotifications"
                         class="switch"
                         type="checkbox"
                         :disabled="eaNotificationsBusy"
                         @change="toggleEaNotifications"
                     />
-                </label>
 
-                <button
-                    v-if="eaNotificationsError"
-                    class="text-button"
-                    type="button"
-                    @click="loadEaNotifications"
-                >
-                    {{ strings.errorEaNotifications }}
-                </button>
+                    <button
+                        v-else
+                        class="setting-error-button"
+                        type="button"
+                        :aria-label="strings.errorEaNotifications"
+                        @click="loadEaNotifications"
+                    >
+                        ×
+                    </button>
+                </label>
             </div>
 
             <div>
@@ -64,7 +66,7 @@
                 </div>
 
                 <label
-                    v-if="marksNotificationsLoaded"
+                    v-if="marksNotificationsLoaded || marksNotificationsError"
                     class="setting-row setting-row-nested"
                 >
                     <span class="setting-description">
@@ -72,22 +74,24 @@
                     </span>
 
                     <input
+                        v-if="marksNotificationsLoaded"
                         v-model="marksNotifications"
                         class="switch"
                         type="checkbox"
                         :disabled="marksNotificationsBusy"
                         @change="toggleMarksNotifications"
                     />
-                </label>
 
-                <button
-                    v-if="marksNotificationsError"
-                    class="text-button"
-                    type="button"
-                    @click="loadMarksNotifications"
-                >
-                    {{ strings.errorMarksNotifications }}
-                </button>
+                    <button
+                        v-else
+                        class="setting-error-button"
+                        type="button"
+                        :aria-label="strings.errorMarksNotifications"
+                        @click="loadMarksNotifications"
+                    >
+                        ×
+                    </button>
+                </label>
             </div>
 
             <label class="setting-row">
@@ -102,45 +106,66 @@
                 />
             </label>
 
-            <div>
+            <div class="setting-range-block">
                 <div class="setting-heading">
                     <span class="setting-description">
                         {{ strings.settingsSchedulePeriod }}
                     </span>
-
-                    <span class="setting-value">
-                        {{ scheduleRangeText }}
-                    </span>
                 </div>
 
-                <div class="range-control">
+                <div
+                    class="range-control"
+                    :class="{ 'range-control-active': activeScheduleThumb !== null }"
+                >
+                    <div class="range-track" aria-hidden="true">
+                        <span
+                            class="range-track-selected"
+                            :style="scheduleTrackStyle"
+                        ></span>
+                    </div>
+
+                    <div
+                        v-if="activeScheduleThumb !== null"
+                        class="slider-island"
+                        :style="scheduleLabelStyle(activeScheduleThumb)"
+                        aria-live="polite"
+                    >
+                        {{ scheduleLabel(activeScheduleThumb === 'left' ? scheduleLeft : scheduleRight) }}
+                    </div>
+
                     <input
                         v-model.number="scheduleLeft"
+                        class="range-input range-input-left"
                         type="range"
                         min="-14"
-                        max="0"
+                        max="21"
                         step="1"
-                        :aria-label="strings.scheduleRangeLabelFrom"
+                        aria-label="Начало диапазона расписания"
+                        @pointerdown="activeScheduleThumb = 'left'"
+                        @pointerup="finishScheduleRange"
+                        @pointercancel="finishScheduleRange"
+                        @focus="activeScheduleThumb = 'left'"
+                        @blur="activeScheduleThumb = null"
                         @input="updateScheduleRange('left')"
                         @change="saveScheduleRange"
                     />
 
                     <input
                         v-model.number="scheduleRight"
+                        class="range-input range-input-right"
                         type="range"
-                        min="1"
+                        min="-14"
                         max="21"
                         step="1"
-                        :aria-label="strings.scheduleRangeLabelTo"
+                        aria-label="Конец диапазона расписания"
+                        @pointerdown="activeScheduleThumb = 'right'"
+                        @pointerup="finishScheduleRange"
+                        @pointercancel="finishScheduleRange"
+                        @focus="activeScheduleThumb = 'right'"
+                        @blur="activeScheduleThumb = null"
                         @input="updateScheduleRange('right')"
                         @change="saveScheduleRange"
                     />
-                </div>
-
-                <div class="range-labels">
-                    <span>{{ strings.scheduleRangeLabelFrom(beforeSchedule) }}</span>
-                    <span>{{ strings.scheduleRangeLabelTo(afterSchedule) }}</span>
-                    <span>{{ strings.lastMarksLabel(lastMarksPeriod) }}</span>
                 </div>
 
                 <p
@@ -151,31 +176,50 @@
                 </p>
             </div>
 
-            <div>
+            <div class="setting-range-block">
                 <div class="setting-heading">
                     <span class="setting-description">
                         {{ strings.settingsLastMarksPeriod }}
                     </span>
-
-                    <span class="setting-value">
-                        {{ lastMarksPeriod }}
-                    </span>
                 </div>
 
-                <input
-                    v-model.number="lastMarksPeriod"
-                    class="single-range"
-                    type="range"
-                    min="1"
-                    max="14"
-                    step="1"
-                    :aria-label="strings.settingsLastMarksPeriod"
-                    @change="saveLastMarksPeriod"
-                />
+                <div
+                    class="single-range-control"
+                    :class="{ 'range-control-active': lastMarksSliderActive }"
+                >
+                    <div class="range-track" aria-hidden="true">
+                        <span
+                            class="range-track-selected"
+                            :style="lastMarksTrackStyle"
+                        ></span>
+                    </div>
 
-                <p class="setting-value">
-                    {{ strings.lastMarksLabel(lastMarksPeriod) }}
-                </p>
+                    <div
+                        v-if="lastMarksSliderActive"
+                        class="slider-island"
+                        :style="lastMarksLabelStyle"
+                        aria-live="polite"
+                    >
+                        {{ strings.lastMarksLabel(lastMarksPeriod) }}
+                    </div>
+
+                    <input
+                        v-model.number="lastMarksPeriod"
+                        class="single-range"
+                        type="range"
+                        min="0"
+                        max="14"
+                        step="1"
+                        :aria-label="strings.settingsLastMarksPeriod"
+                        @pointerdown="lastMarksSliderActive = true"
+                        @pointerup="finishLastMarksSlider"
+                        @pointercancel="finishLastMarksSlider"
+                        @focus="lastMarksSliderActive = true"
+                        @blur="lastMarksSliderActive = false"
+                        @input="normalizeLastMarksPeriod"
+                        @change="saveLastMarksPeriod"
+                    />
+                </div>
 
                 <p
                     v-if="lastMarksPeriod > 7"
@@ -196,11 +240,21 @@
                 <span class="section-title">
                     {{ strings.activeProfile }}
                 </span>
-
-                <span class="section-chevron">
+                <span class="section-chevron" aria-hidden="true">
                     {{ childrenExpanded ? "−" : "+" }}
                 </span>
             </button>
+
+            <div
+                v-if="!childrenLoading && !childrenError && activeChild"
+                class="child-option child-option-active"
+                aria-current="true"
+            >
+                <span>{{ activeChild.name }}</span>
+                <span class="child-active">
+                    {{ strings.selectedProfile }}
+                </span>
+            </div>
 
             <p
                 v-if="childrenLoading"
@@ -209,18 +263,14 @@
                 <span class="loader"></span>
             </p>
 
-            <p
-                v-else-if="childrenError"
-                class="state-message"
-            >
-                {{ strings.errorChildren }}
-
+            <p v-else-if="childrenError" class="state-message">
                 <button
-                    class="text-button"
+                    class="setting-error-button"
                     type="button"
+                    :aria-label="strings.errorChildren"
                     @click="loadChildren"
                 >
-                    {{ strings.update }}
+                    ×
                 </button>
             </p>
 
@@ -233,7 +283,7 @@
                 </p>
 
                 <button
-                    v-for="child in children"
+                    v-for="child in otherChildren"
                     :key="child.id"
                     class="child-option"
                     type="button"
@@ -249,7 +299,7 @@
                         v-if="child.id === activeChildId"
                         class="child-active"
                     >
-                        {{ strings.loadActiveProfile }}
+                        {{ strings.selectedProfile }}
                     </span>
                 </button>
             </template>
@@ -267,22 +317,29 @@
                 <span class="loader"></span>
             </div>
 
-            <div
-                v-else-if="reviewError"
-                class="state-message"
-            >
-                {{ strings.errorReview }}
-
+            <div v-else-if="reviewError" class="state-message">
                 <button
-                    class="text-button"
+                    class="setting-error-button"
                     type="button"
+                    :aria-label="strings.errorReview"
                     @click="loadReview"
                 >
-                    {{ strings.update }}
+                    ×
                 </button>
             </div>
 
             <template v-else-if="myReview">
+                <span class="review-status">
+                    {{
+                        strings.reviewMeta(
+                            myReview.name,
+                            new Intl.DateTimeFormat('ru-RU', {day: '2-digit', month: '2-digit', year: 'numeric'}).format(new Date(myReview.createdAt)),
+                            (myReview.isUpdated ? strings.reviewEditMarker : '') +
+                                (myReviewOnModeration ? strings.reviewModerationMarker : '')
+                        )
+                    }}
+                </span>
+
                 <div class="review-meta">
                     <span
                         v-for="star in 5"
@@ -292,17 +349,6 @@
                     >
                         ★
                     </span>
-
-                    <span class="review-status">
-                        {{
-                            strings.reviewMeta(
-                                myReview.name,
-                                myReview.createdAt,
-                                (myReview.isUpdated ? strings.reviewEditMarker : '') +
-                                    (myReview.onModeration ? strings.reviewModerationMarker : '')
-                            )
-                        }}
-                    </span>
                 </div>
 
                 <p class="review-text">
@@ -310,7 +356,7 @@
                 </p>
 
                 <p class="review-likes">
-                    ♥ {{ myReview.likesCount ?? myReview.likes ?? 0 }}
+                    👍 {{ myReview.likes }}
                 </p>
 
                 <button
@@ -361,18 +407,14 @@
                 <span class="loader"></span>
             </p>
 
-            <div
-                v-else-if="referralError"
-                class="state-message"
-            >
-                {{ strings.errorReferral }}
-
+            <div v-else-if="referralError" class="state-message">
                 <button
-                    class="text-button"
+                    class="setting-error-button"
                     type="button"
+                    :aria-label="strings.errorReferral"
                     @click="loadReferral"
                 >
-                    {{ strings.update }}
+                    ×
                 </button>
             </div>
 
@@ -388,12 +430,12 @@
                 <p>
                     {{
                         referral.countActiveRelatives == referral.countRelatives
-                            ? referral.isParent
+                            ? (referral.isParent
                                 ? strings.allActiveRelativesChildren
-                                : strings.allActiveRelativesParents
-                            : referral.isParent
+                                : strings.allActiveRelativesParents)
+                            : (referral.isParent
                                 ? strings.activeRelativesChildren(referral.countActiveRelatives, referral.countRelatives)
-                                : strings.activeRelativesParents(referral.countActiveRelatives, referral.countRelatives)
+                                : strings.activeRelativesParents(referral.countActiveRelatives, referral.countRelatives))
                     }}
                 </p>
 
@@ -462,7 +504,7 @@
             :title="strings.deleteReview"
             :message="strings.messageDialogDeleteReview"
             :action-text="strings.buttonDialogDeleteReview"
-            :cancel-text="strings.ok"
+            :cancel-text="strings.cancel"
             :loading="reviewActionBusy"
             @action="deleteMyReview"
             @cancel="showDeleteReviewDialog = false"
@@ -482,7 +524,7 @@
             :title="strings.logout"
             :message="strings.logout"
             :action-text="strings.logout"
-            :cancel-text="strings.ok"
+            :cancel-text="strings.cancel"
             @action="confirmLogout"
             @cancel="showLogoutDialog = false"
         />
@@ -513,6 +555,7 @@ import { Reviews } from "@/api/reviews";
 import { NotificationPermission } from "@/notifications/permission";
 import { useSettingsStore } from "@/stores/settings";
 import { logout } from "@/utils/logout";
+import { Utilities } from "@/utils/utils";
 import ReviewEditorDialog from "@/components/ReviewEditorDialog.vue";
 
 import { getDeviceInfo } from "@/utils/device";
@@ -527,13 +570,12 @@ interface Child {
 }
 
 interface MyReview {
-    id?: number;
-    stars?: number;
-    rating?: number;
+    reviewId: number;
+    stars: number;
     text: string;
-    moderated?: boolean;
-    likesCount?: number;
-    likes?: number;
+    likes: number;
+    isUpdated: boolean;
+    createdAt: string;
     [key: string]: unknown;
 }
 
@@ -552,12 +594,85 @@ const scheduleLeft = ref(-settings.beforeSchedule);
 const scheduleRight = ref(settings.afterSchedule);
 const lastMarksPeriod = ref(settings.lastMarksPeriod);
 
+const activeScheduleThumb = ref<"left" | "right" | null>(null);
+const lastMarksSliderActive = ref(false);
+
 const scheduleRangeText = computed(() => {
     const before = Math.abs(scheduleLeft.value);
     const after = scheduleRight.value;
 
     return `${before} / ${after}`;
 });
+
+const scheduleTrackStyle = computed(() => {
+    const min = -14;
+    const max = 21;
+    const left = ((scheduleLeft.value - min) / (max - min)) * 100;
+    const right = ((scheduleRight.value - min) / (max - min)) * 100;
+
+    return {
+        left: `${left}%`,
+        width: `${Math.max(0, right - left)}%`,
+    };
+});
+
+const activeChild = computed(
+    () => children.value.find((child) => child.id === activeChildId.value) ?? null,
+);
+
+const otherChildren = computed(
+    () => children.value.filter((child) => child.id !== activeChildId.value),
+);
+
+const lastMarksLabelStyle = computed(() => ({
+    left: `${(lastMarksPeriod.value / 14) * 100}%`,
+}));
+
+const lastMarksTrackStyle = computed(() => ({
+    left: "0%",
+    width: `${(lastMarksPeriod.value / 14) * 100}%`,
+}));
+
+function scheduleLabel(value: number): string {
+    if (value < 0) {
+        return strings.scheduleRangeLabelFrom(Math.abs(value));
+    }
+
+    if (value === 0) {
+        return strings.scheduleRangeLabelToday;
+    }
+
+    if (value === 1) {
+        return strings.scheduleRangeLabelTomorrow;
+    }
+
+    return strings.scheduleRangeLabelTo(value);
+}
+
+function scheduleLabelStyle(thumb: "left" | "right") {
+    const value = thumb === "left" ? scheduleLeft.value : scheduleRight.value;
+    const position = ((value + 14) / 35) * 100;
+
+    return {
+        left: `${Math.min(100, Math.max(0, position))}%`,
+    };
+}
+
+function finishScheduleRange(): void {
+    saveScheduleRange();
+    activeScheduleThumb.value = null;
+}
+
+function normalizeLastMarksPeriod(): void {
+    if (lastMarksPeriod.value < 1) {
+        lastMarksPeriod.value = 1;
+    }
+}
+
+function finishLastMarksSlider(): void {
+    saveLastMarksPeriod();
+    lastMarksSliderActive.value = false;
+}
 
 const scheduleWarning = computed(() =>
     Math.abs(scheduleLeft.value) > 7 ||
@@ -587,6 +702,7 @@ const reviewLoading = ref(true);
 const reviewError = ref(false);
 const reviewActionBusy = ref(false);
 const myReview = ref<MyReview | null>(null);
+const myReviewOnModeration = ref<boolean | null>(null);
 
 const showReviewEditor = ref(false);
 const editingReview = ref(false);
@@ -713,8 +829,10 @@ async function loadMarksNotifications(): Promise<void> {
 
         marksNotifications.value = answer.status;
         marksNotificationsLoaded.value = true;
-    } catch {
+    } catch (error) {
+        Utilities.log(error);
         marksNotificationsError.value = true;
+        Utilities.showText(strings.errorMarksNotifications);
     } finally {
         marksNotificationsLoading.value = false;
     }
@@ -742,12 +860,10 @@ async function toggleMarksNotifications(): Promise<void> {
         getAnswer(
             await Settings.switchMarksNotifications(desired),
         );
-    } catch {
+    } catch (error) {
+        Utilities.log(error);
         marksNotifications.value = previous;
-        showMessage(
-            strings.errorMarksNotifications,
-            strings.errorMarksNotifications,
-        );
+        Utilities.showText(strings.errorMarksNotifications);
     } finally {
         marksNotificationsBusy.value = false;
     }
@@ -769,8 +885,10 @@ async function loadEaNotifications(): Promise<void> {
 
         eaNotifications.value = answer.status;
         eaNotificationsLoaded.value = true;
-    } catch {
+    } catch (error) {
+        Utilities.log(error);
         eaNotificationsError.value = true;
+        Utilities.showText(strings.errorEaNotifications);
     } finally {
         eaNotificationsLoading.value = false;
     }
@@ -798,12 +916,10 @@ async function toggleEaNotifications(): Promise<void> {
         getAnswer(
             await Settings.switchEANotifications(desired),
         );
-    } catch {
+    } catch (error) {
+        Utilities.log(error);
         eaNotifications.value = previous;
-        showMessage(
-            strings.errorEaNotifications,
-            strings.errorEaNotifications,
-        );
+        Utilities.showText(strings.errorEaNotifications);
     } finally {
         eaNotificationsBusy.value = false;
     }
@@ -835,8 +951,10 @@ async function loadChildren(): Promise<void> {
             activeChildId.value = serverActiveId;
             settings.activeChildId = serverActiveId;
         }
-    } catch {
+    } catch (error) {
+        Utilities.log(error);
         childrenError.value = true;
+        Utilities.showText(strings.errorChildren);
     } finally {
         childrenLoading.value = false;
     }
@@ -861,8 +979,9 @@ async function selectChild(child: Child): Promise<void> {
             loadMarksNotifications(),
             loadEaNotifications(),
         ]);
-    } catch {
-        showMessage(strings.errorChildren, strings.errorChildren);
+    } catch (error) {
+        Utilities.log(error);
+        Utilities.showText(strings.errorChildren);
     } finally {
         activeChildBusy.value = false;
     }
@@ -881,8 +1000,11 @@ async function loadReview(): Promise<void> {
         myReview.value = review && typeof review === "object"
             ? review as MyReview
             : null;
-    } catch {
+        myReviewOnModeration.value = answer.onModeration;
+    } catch (error) {
+        Utilities.log(error);
         reviewError.value = true;
+        Utilities.showText(strings.errorReview);
     } finally {
         reviewLoading.value = false;
     }
@@ -920,11 +1042,9 @@ async function submitReview(
         messageDialogText.value = strings.messageDialogReviewSent;
 
         await loadReview();
-    } catch {
-        showMessage(
-            strings.errorCreateReview,
-            strings.errorCreateReview,
-        );
+    } catch (error) {
+        Utilities.log(error);
+        Utilities.showText(strings.errorReview);
     } finally {
         reviewActionBusy.value = false;
     }
@@ -942,11 +1062,10 @@ async function deleteMyReview(): Promise<void> {
 
         showDeleteReviewDialog.value = false;
         myReview.value = null;
-    } catch {
-        showMessage(
-            strings.errorDeleteReview,
-            strings.errorDeleteReview,
-        );
+        myReviewOnModeration.value = null;
+    } catch (error) {
+        Utilities.log(error);
+        Utilities.showText(strings.errorReview);
     } finally {
         reviewActionBusy.value = false;
     }
@@ -954,7 +1073,7 @@ async function deleteMyReview(): Promise<void> {
 
 function openAllReviews(): void {
     window.open(
-        new URL("/", window.location.origin).toString(),
+        new URL("/#reviews", window.location.origin).toString(),
         "_blank",
         "noopener,noreferrer",
     );
@@ -972,8 +1091,10 @@ async function loadReferral(): Promise<void> {
         if (!referral.value) {
             throw new Error(strings.errorReferral);
         }
-    } catch {
+    } catch (error) {
+        Utilities.log(error);
         referralError.value = true;
+        Utilities.showText(strings.errorReferral);
     } finally {
         referralLoading.value = false;
     }
@@ -985,7 +1106,7 @@ async function shareReferral(): Promise<void> {
     }
 
     const url = referral.value.referralUrl;
-    const text = strings.shareText(referralUrl);
+    const text = strings.shareText(referral.value.referralUrl);
 
     try {
         if (navigator.share) {
@@ -997,11 +1118,12 @@ async function shareReferral(): Promise<void> {
 
         showMessage(strings.share, strings.shareText);
     } catch (error) {
+        Utilities.log(error);
         if (error instanceof Error && error.name === "AbortError") {
             return;
         }
 
-        showMessage(strings.errorReferral, strings.errorReferral);
+        Utilities.showText(strings.errorReferral);
     }
 }
 
@@ -1033,8 +1155,10 @@ onMounted(() => {
 .settings-page {
     box-sizing: border-box;
     width: 100%;
+    max-width: 720px;
     min-height: 100vh;
     min-height: 100dvh;
+    margin-inline: auto;
     padding: 16px 16px calc(112px + env(safe-area-inset-bottom));
     overflow-y: auto;
     color: var(--text-primary);
@@ -1046,7 +1170,7 @@ onMounted(() => {
     padding: 16px;
     border: 1px solid var(--stroke-bg);
     border-radius: 18px;
-    background: var(--dialog-background);
+    background: var(--bg-settings-block);
 }
 
 .section-title {
@@ -1086,6 +1210,34 @@ onMounted(() => {
     padding-top: 4px;
 }
 
+.setting-error-button {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: #e53935;
+    font-size: 26px;
+    font-weight: 500;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.setting-error-button:focus-visible {
+    outline: 2px solid var(--slider-accent);
+    outline-offset: 2px;
+}
+
+.setting-error-button:disabled {
+    cursor: wait;
+    opacity: 0.6;
+}
+
 .switch {
     position: relative;
     flex: 0 0 auto;
@@ -1095,7 +1247,7 @@ onMounted(() => {
     appearance: none;
     border: 1px solid var(--stroke-bg);
     border-radius: 999px;
-    background: var(--bg-bottom-menu);
+    background: var(--track-switch-simple);
     cursor: pointer;
     transition: background-color 0.2s ease;
 }
@@ -1107,16 +1259,17 @@ onMounted(() => {
     width: 18px;
     height: 18px;
     border-radius: 50%;
-    background: var(--bottom-menu-icon-checked);
+    background: var(--thumb-switch-simple);
     content: "";
     transition: transform 0.2s ease;
 }
 
 .switch:checked {
-    background: var(--slider-accent);
+    background: var(--track-switch-checked);
 }
 
 .switch:checked::before {
+    background: var(--thumb-switch-checked);
     transform: translateX(20px);
 }
 
@@ -1125,35 +1278,158 @@ onMounted(() => {
     opacity: 0.6;
 }
 
-.range-control {
-    position: relative;
-    display: grid;
-    gap: 6px;
-    padding: 8px 0;
+.setting-range-block {
+    margin-top: 14px;
 }
 
-.range-control input[type="range"],
+.range-control,
+.single-range-control {
+    position: relative;
+    min-height: 42px;
+    padding: 10px 0;
+    touch-action: pan-y;
+}
+
+.range-track {
+    position: absolute;
+    top: 50%;
+    right: 0;
+    left: 0;
+    height: 4px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: var(--slider-track-off);
+    transform: translateY(-50%);
+    pointer-events: none;
+}
+
+.range-track-selected {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    border-radius: inherit;
+    background: var(--slider-accent);
+}
+
+.range-input,
 .single-range {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    display: block;
     width: 100%;
+    height: 32px;
     margin: 0;
+    padding: 0;
+    appearance: none;
+    -webkit-appearance: none;
+    background: transparent;
+    transform: translateY(-50%);
+    cursor: pointer;
+    touch-action: pan-y;
+}
+
+.range-input {
+    z-index: 2;
+    pointer-events: none;
+}
+
+.range-input::-webkit-slider-thumb,
+.single-range::-webkit-slider-thumb {
+    pointer-events: auto;
+}
+
+.range-input::-moz-range-thumb,
+.single-range::-moz-range-thumb {
+    pointer-events: auto;
+}
+
+.range-input::-webkit-slider-runnable-track,
+.single-range::-webkit-slider-runnable-track {
+    height: 4px;
+    background: transparent;
+}
+
+.range-input::-moz-range-track,
+.single-range::-moz-range-track {
+    height: 4px;
+    background: transparent;
+}
+
+.range-input::-webkit-slider-thumb,
+.single-range::-webkit-slider-thumb {
+    width: 22px;
+    height: 22px;
+    margin-top: -9px;
+    appearance: none;
+    -webkit-appearance: none;
+    border: 0;
+    border-radius: 50%;
+    background: var(--slider-accent);
+    box-shadow: 0 1px 3px rgb(0 0 0 / 24%);
+}
+
+.range-input::-moz-range-thumb,
+.single-range::-moz-range-thumb {
+    width: 22px;
+    height: 22px;
+    border: 0;
+    border-radius: 50%;
+    background: var(--slider-accent);
+    box-shadow: 0 1px 3px rgb(0 0 0 / 24%);
+}
+
+.range-input-left {
+    z-index: 2;
+}
+
+.range-input-right {
+    z-index: 3;
+}
+
+.slider-island {
+    position: absolute;
+    z-index: 5;
+    bottom: calc(100% - 2px);
+    min-width: max-content;
+    max-width: 220px;
+    padding: 6px 10px;
+    border-radius: 8px;
+    background: var(--slider-label-bg);
+    color: var(--slider-label-text);
+    font-size: 12px;
+    line-height: 1.2;
+    text-align: center;
+    box-shadow: 0 2px 6px rgb(0 0 0 / 14%);
+    transform: translateX(-50%);
+    pointer-events: none;
+}
+
+.single-range {
+    position: relative;
+    z-index: 2;
+    top: auto;
+    height: 32px;
+    transform: none;
     accent-color: var(--slider-accent);
 }
 
-.range-control input[type="range"] {
-    grid-area: 1 / 1;
+.single-range-control .slider-island {
+    bottom: calc(100% - 3px);
 }
 
-.range-labels {
-    display: flex;
-    justify-content: space-between;
-    gap: 8px;
-    color: var(--text-secondary);
-    font-size: 12px;
+.single-range-control .range-track-selected {
+    left: 0;
+}
+
+.range-control-active .range-track-selected {
+    background: var(--slider-accent);
 }
 
 .setting-warning {
     margin: 10px 0 0;
-    color: var(--developer-text);
+    color: var(--settings-warning);
+    font-weight: 600;
     font-size: 13px;
     line-height: 1.4;
 }
@@ -1191,7 +1467,7 @@ onMounted(() => {
     padding: 12px;
     border: 1px solid var(--stroke-bg);
     border-radius: 12px;
-    background: var(--bg-bottom-menu);
+    background: var(--button-bg);
     color: inherit;
     font: inherit;
     text-align: left;
@@ -1201,6 +1477,10 @@ onMounted(() => {
 .child-option:disabled {
     cursor: default;
     opacity: 0.75;
+}
+
+.child-option-active {
+    cursor: default;
 }
 
 .child-active {
@@ -1234,7 +1514,7 @@ onMounted(() => {
     padding: 12px 16px;
     border: 1px solid var(--stroke-bg);
     border-radius: 12px;
-    background: var(--bg-bottom-menu);
+    background: var(--button-bg);
     color: var(--text-primary);
     font: inherit;
     font-weight: 600;
@@ -1247,7 +1527,7 @@ onMounted(() => {
 }
 
 .action-button-secondary {
-    background: transparent;
+    background: var(--button-bg);
 }
 
 .review-meta {
@@ -1259,17 +1539,15 @@ onMounted(() => {
 
 .review-star {
     color: var(--text-secondary);
-    font-size: 22px;
+    font-size: 32px;
 }
 
 .review-star-filled {
-    color: var(--slider-accent);
+    color: var(--review-star-filled);
 }
 
 .review-status {
-    margin-left: 8px;
     color: var(--text-secondary);
-    font-size: 12px;
 }
 
 .review-text {
@@ -1280,8 +1558,8 @@ onMounted(() => {
 }
 
 .review-likes {
-    color: var(--text-secondary);
-    font-size: 13px;
+    color: var(--text-primary);
+    font-size: 15px;
 }
 
 .review-editor {
@@ -1312,7 +1590,7 @@ onMounted(() => {
     padding: 12px;
     border: 1px solid var(--stroke-bg);
     border-radius: 12px;
-    background: var(--dialog-background);
+    background: var(--bg-login-about);
     color: var(--text-primary);
     font: inherit;
     resize: vertical;
@@ -1346,6 +1624,13 @@ onMounted(() => {
     border-top-color: var(--slider-accent);
     border-radius: 50%;
     animation: settings-loader 0.7s linear infinite;
+}
+
+@media (max-width: 480px) {
+    .settings-page {
+        padding-right: 16px;
+        padding-left: 16px;
+    }
 }
 
 @keyframes settings-loader {

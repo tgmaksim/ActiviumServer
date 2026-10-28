@@ -7,8 +7,6 @@ import { launch } from "./bootstrap/launcher";
 import { initializeSW } from "./utils/register-sw";
 import "./style.css";
 
-import { Utilities } from "@/utils/utils";
-
 import { createPinia } from "pinia";
 import { useSettingsStore } from "@/stores/settings";
 import { initializeTheme } from "@/theme/theme-manager";

@@ -18,6 +18,7 @@ import {
 
 import { NotificationManager } from "@/notifications/manager";
 import type { NotificationPayload } from "@/notifications/types";
+import { Utilities } from "@/utils/utils";
 
 import {
     cleanupOutdatedCaches,

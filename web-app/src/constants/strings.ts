@@ -7,6 +7,7 @@ export const strings = {
     errorInternet: "Нет подключения к интернету",
     errorServer: "Сервер в данное время недоступен",
     ok: "Ок",
+    cancel: "Отмена",
 
     notificationBroadcastTitle: "Фоновое действие",
     notificationBroadcastSuccessText: "Успешно выполнено",
@@ -215,6 +216,7 @@ export const strings = {
 
     activeProfile: "Активный профиль",
     loadActiveProfile: "Загрузка…",
+    selectedProfile: "Выбран",
     contentDescriptionArrow: "v",
     selectProfile: "Выберите активный профиль",
     noChild: "Не выбран",

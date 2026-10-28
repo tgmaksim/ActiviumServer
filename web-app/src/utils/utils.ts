@@ -2,10 +2,10 @@
  * Утилиты приложения.
  */
 
-import { showToast } from "../composables/useToast";
+import { showToast } from "@/composables/useToast";
 
 import { strings } from "@/constants/strings";
-import type { UiText } from "@/utils/ui-text";
+import type { UiText } from "@/types/ui-text";
 
 function log(string: string | null, tag: string): void;
 function log(error: string): void;

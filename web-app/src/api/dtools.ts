@@ -112,7 +112,7 @@ const UNHIGHLIGHT_PERSON_VERSION = 0;
  *
  * @param lessonKey Ключ урока.
  * @param text Текст заметки.
- * @param public Доступна ли заметка родителю.
+ * @param public_ Доступна ли заметка родителю.
  * @param remindTime Время напоминания или null.
  */
 async function createNote(
@@ -203,10 +203,12 @@ async function sendPraise(
     ratingKey: string | null,
     text: string | null,
 ): Promise<PraiseApiResponse> {
-    const params =
-        lessonKey !== null
-            ? { lessonKey }
-            : { ratingKey: ratingKey! };
+    const params: Record<
+        string,
+        string | number | boolean
+    > = lessonKey !== null
+        ? { lessonKey }
+        : { ratingKey: ratingKey! };
 
     return Request.post<PraiseApiResponse>(
         [

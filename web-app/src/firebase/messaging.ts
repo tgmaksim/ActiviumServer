@@ -5,7 +5,7 @@ import {
     isSupported,
     onMessage,
     type MessagePayload,
-    type Messaging,
+    type Messaging as FCMMessaging,
 } from "firebase/messaging";
 
 import { firebaseApp } from "./app";
@@ -13,9 +13,9 @@ import { FIREBASE_VAPID_KEY } from "../constants/firebase"
 
 const VAPID_KEY = FIREBASE_VAPID_KEY;
 
-let messagingPromise: Promise<Messaging | null> | null = null;
+let messagingPromise: Promise<FCMMessaging | null> | null = null;
 
-async function getMessagingInstance(): Promise<Messaging | null> {
+async function getMessagingInstance(): Promise<FCMMessaging | null> {
     if (messagingPromise === null) {
         messagingPromise = (async () => {
             if (typeof window === "undefined") {

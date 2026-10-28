@@ -74,7 +74,7 @@
     --slider-label-text: #FFFFFF;
     --slider-halo-static: #0288D120;
 
-    --settings-warning: #FFFF4444;
+    --settings-warning: #FF4444;
     --swipe-refresh-scheme: #0288D1;
 
     --dialog-menu-background: #B3E5FCC0;
@@ -165,7 +165,7 @@ html.dark {
     --slider-label-text: #000000;
     --slider-halo-static: #4FC3F720;
 
-    --settings-warning: #CC0000FF;
+    --settings-warning: #CC0000;
     --swipe-refresh-scheme: #4FC3F7;
 
     --dialog-menu-background: #001C38C0;

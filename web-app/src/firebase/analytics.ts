@@ -5,17 +5,17 @@ import {
     setAnalyticsCollectionEnabled,
     setUserId,
     setUserProperties,
-    type Analytics,
+    type Analytics as FCMAnalytics,
 } from "firebase/analytics";
 
 import { firebaseApp } from "./app";
 
-let analyticsPromise: Promise<Analytics | null> | null = null;
+let analyticsPromise: Promise<FCMAnalytics | null> | null = null;
 
 /**
  * Получение экземпляра Firebase Analytics.
  */
-async function getAnalyticsInstance(): Promise<Analytics | null> {
+async function getAnalyticsInstance(): Promise<FCMAnalytics | null> {
     if (typeof window === "undefined") {
         return null;
     }

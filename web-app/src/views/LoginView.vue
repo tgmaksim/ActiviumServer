@@ -67,7 +67,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from "vue";
+import { ref } from "vue";
 import { routes } from "../constants/routes";
 import { strings } from "../constants/strings";
 
