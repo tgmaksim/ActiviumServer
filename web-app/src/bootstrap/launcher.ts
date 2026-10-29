@@ -22,17 +22,9 @@ function isAuthorized(): boolean {
  * действующую cookie с другим Path.
  */
 export function setUnauthorized(): void {
-    const basePath = import.meta.env.BASE_URL.replace(/\/+$/, "");
+    const basePath = routes.home.replace(/\/+$/, "");
 
-    const paths = new Set([
-        "/",
-        ...(basePath ? [basePath, `${basePath}/`] : []),
-    ]);
-
-    for (const path of paths) {
-        document.cookie =
-            `${AUTHORIZED_COOKIE}=false; Path=${path}; SameSite=Lax`;
-    }
+    document.cookie = `${AUTHORIZED_COOKIE}=false; Path=${basePath}; SameSite=Lax; max-age=` + (90 * 24 * 60 * 60);
 }
 
 /**

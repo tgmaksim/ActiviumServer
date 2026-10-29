@@ -13,19 +13,34 @@ export function initializeSW(): void {
 
             // Проверка актуальности при запуске приложения
             void registration.update().catch((error: unknown) => {
-                Utilities.log(error, "Не удалось проверить обновление");
+                Utilities.log(
+                    error instanceof Error
+                        ? error
+                        : new Error(String(error)),
+                    "Не удалось проверить обновление"
+                );
             });
 
             // Повторная проверка, если приложение долго открыто
             window.setInterval(() => {
                 void registration.update().catch((error: unknown) => {
-                    Utilities.log(error, "Не удалось проверить обновление");
+                    Utilities.log(
+                        error instanceof Error
+                            ? error
+                            : new Error(String(error)),
+                        "Не удалось проверить обновление"
+                    );
                 });
             }, UPDATE_CHECK_INTERVAL);
         },
 
         onRegisterError(error) {
-            Utilities.log(error, "Не удалось зарегистрировать Service Worker");
+            Utilities.log(
+                error instanceof Error
+                    ? error
+                    : new Error(String(error)),
+                "Не удалось зарегистрировать Service Worker"
+            );
         },
     });
 }

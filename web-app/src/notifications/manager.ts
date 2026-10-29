@@ -62,7 +62,9 @@ export class NotificationManager {
                 value = JSON.parse(value);
             } catch (error) {
                 Utilities.log(
-                    error,
+                    error instanceof Error
+                        ? error
+                        : new Error(String(error)),
                     "Error at NotificationManager.parseButtons",
                 );
                 return [];

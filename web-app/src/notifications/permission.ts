@@ -50,7 +50,9 @@ async function checkPermission(): Promise<NotificationPermissionState> {
         }
     } catch (error) {
         Utilities.log(
-            error instanceof Error ? error : String(error),
+            error instanceof Error
+                ? error
+                : new Error(String(error)),
             "Не удалось проверить поддержку уведомлений",
         );
 
@@ -81,7 +83,9 @@ async function enableNotifications(): Promise<EnableNotificationsResult> {
         return "enabled";
     } catch (error) {
         Utilities.log(
-            error instanceof Error ? error : String(error),
+            error instanceof Error
+                ? error
+                : new Error(String(error)),
             "Не удалось включить уведомления",
         );
 

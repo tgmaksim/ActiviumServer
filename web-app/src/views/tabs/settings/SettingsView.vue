@@ -14,83 +14,70 @@
                     v-model="settings.darkTheme"
                     class="switch"
                     type="checkbox"
-                    @change="applyTheme"
                 />
             </label>
 
             <div>
-                <div class="setting-heading">
-                    <span
-                        v-if="eaNotificationsLoading"
-                        class="loader"
-                        aria-label="Loading"
-                    ></span>
-                </div>
-
-                <label
-                    v-if="eaNotificationsLoaded || eaNotificationsError"
-                    class="setting-row setting-row-nested"
-                >
+                <label class="setting-row setting-row-nested">
                     <span class="setting-description">
                         {{ strings.settingsEaNotifications }}
                     </span>
 
-                    <input
-                        v-if="eaNotificationsLoaded"
-                        v-model="eaNotifications"
-                        class="switch"
-                        type="checkbox"
-                        :disabled="eaNotificationsBusy"
-                        @change="toggleEaNotifications"
-                    />
+                    <span
+                        v-if="settingsViewModel.statusEANotificationsState.value.type === 'loading'"
+                        class="loader"
+                        aria-label="Loading"
+                    ></span>
 
                     <button
-                        v-else
+                        v-else-if="isLoadError(settingsViewModel.statusEANotificationsState.value)"
                         class="setting-error-button"
                         type="button"
                         :aria-label="strings.errorEaNotifications"
-                        @click="loadEaNotifications"
+                        @click="settingsViewModel.loadEANotifications()"
                     >
                         ×
                     </button>
+
+                    <input
+                        v-else-if="settingsViewModel.statusEANotificationsState.value.type === 'success'"
+                        :checked="settingsViewModel.statusEANotificationsState.value.data.status"
+                        class="switch"
+                        type="checkbox"
+                        @change="toggleEaNotifications"
+                    />
                 </label>
             </div>
 
             <div>
-                <div class="setting-heading">
-                    <span
-                        v-if="marksNotificationsLoading"
-                        class="loader"
-                        aria-label="Loading"
-                    ></span>
-                </div>
-
-                <label
-                    v-if="marksNotificationsLoaded || marksNotificationsError"
-                    class="setting-row setting-row-nested"
-                >
+                <label class="setting-row setting-row-nested">
                     <span class="setting-description">
                         {{ strings.settingsMarksNotifications }}
                     </span>
 
-                    <input
-                        v-if="marksNotificationsLoaded"
-                        v-model="marksNotifications"
-                        class="switch"
-                        type="checkbox"
-                        :disabled="marksNotificationsBusy"
-                        @change="toggleMarksNotifications"
-                    />
+                    <span
+                        v-if="settingsViewModel.statusMarksNotificationsState.value.type === 'loading'"
+                        class="loader"
+                        aria-label="Loading"
+                    ></span>
 
                     <button
-                        v-else
+                        v-else-if="isLoadError(settingsViewModel.statusMarksNotificationsState.value)"
                         class="setting-error-button"
                         type="button"
                         :aria-label="strings.errorMarksNotifications"
-                        @click="loadMarksNotifications"
+                        @click="settingsViewModel.loadMarksNotifications()"
                     >
                         ×
                     </button>
+
+                    <input
+                        v-else-if="settingsViewModel.statusMarksNotificationsState.value.type === 'success'"
+                        :checked="settingsViewModel.statusMarksNotificationsState.value.data.status"
+                        class="switch"
+                        type="checkbox"
+                        @change="toggleMarksNotifications"
+                    />
                 </label>
             </div>
 
@@ -207,7 +194,7 @@
                         v-model.number="lastMarksPeriod"
                         class="single-range"
                         type="range"
-                        min="0"
+                        min="1"
                         max="14"
                         step="1"
                         :aria-label="strings.settingsLastMarksPeriod"
@@ -231,50 +218,66 @@
         </section>
 
         <section class="settings-card">
+            <h2 class="section-title">
+                {{ strings.activeProfile }}
+            </h2>
+
             <button
-                class="section-heading-button"
+                v-if="settingsViewModel.childrenState.value.type === 'success'"
+                class="child-profile-trigger"
                 type="button"
                 :aria-expanded="childrenExpanded"
-                @click="childrenExpanded = !childrenExpanded"
+                @click="toggleChildren"
             >
-                <span class="section-title">
-                    {{ strings.activeProfile }}
+                <span class="child-profile-trigger-text">
+                    {{
+                        childrenExpanded
+                            ? strings.selectProfile
+                            : activeChild?.name ?? strings.noChild
+                    }}
                 </span>
-                <span class="section-chevron" aria-hidden="true">
-                    {{ childrenExpanded ? "−" : "+" }}
+
+                <span
+                    class="child-profile-chevron"
+                    :class="{ 'child-profile-chevron-expanded': childrenExpanded }"
+                    aria-hidden="true"
+                >
+                    ▾
                 </span>
             </button>
 
             <div
-                v-if="!childrenLoading && !childrenError && activeChild"
-                class="child-option child-option-active"
-                aria-current="true"
+                v-else
+                class="child-profile-trigger child-profile-trigger-static"
+                aria-live="polite"
             >
-                <span>{{ activeChild.name }}</span>
-                <span class="child-active">
-                    {{ strings.selectedProfile }}
+                <span class="child-profile-trigger-text">
+                    {{ strings.loadActiveProfile }}
                 </span>
-            </div>
 
-            <p
-                v-if="childrenLoading"
-                class="state-message"
-            >
-                <span class="loader"></span>
-            </p>
+                <span
+                    v-if="settingsViewModel.childrenState.value.type === 'loading'"
+                    class="loader"
+                    role="status"
+                    :aria-label="strings.loadActiveProfile"
+                ></span>
 
-            <p v-else-if="childrenError" class="state-message">
                 <button
+                    v-else-if="isLoadError(settingsViewModel.childrenState.value)"
                     class="setting-error-button"
                     type="button"
                     :aria-label="strings.errorChildren"
-                    @click="loadChildren"
+                    @click.stop="retryChildren"
                 >
                     ×
                 </button>
-            </p>
+            </div>
 
-            <template v-else-if="childrenExpanded">
+            <!-- Список доступных профилей -->
+            <div
+                v-if="childrenExpanded && settingsViewModel.childrenState.value.type === 'success'"
+                class="children-list"
+            >
                 <p
                     v-if="children.length === 0"
                     class="state-message"
@@ -283,69 +286,98 @@
                 </p>
 
                 <button
-                    v-for="child in otherChildren"
-                    :key="child.id"
+                    v-for="child in children"
+                    :key="child.childId"
                     class="child-option"
+                    :class="{
+                        'child-option-active': child.childId === settings.activeChildId,
+                    }"
                     type="button"
-                    :disabled="
-                        child.id === activeChildId ||
-                        activeChildBusy
+                    :aria-current="
+                        child.childId === settings.activeChildId ? 'true' : undefined
                     "
-                    @click="selectChild(child)"
+                    @click="selectChild(child.childId)"
                 >
                     <span>{{ child.name }}</span>
 
                     <span
-                        v-if="child.id === activeChildId"
+                        v-if="child.childId === settings.activeChildId"
                         class="child-active"
                     >
                         {{ strings.selectedProfile }}
                     </span>
                 </button>
-            </template>
+            </div>
         </section>
 
         <section class="settings-card">
-            <h2 class="section-title">
-                {{ strings.review }}
-            </h2>
+            <div class="review-header">
+                <h2 class="section-title">
+                    {{ strings.review }}
+                </h2>
 
-            <div
-                v-if="reviewLoading"
-                class="state-message"
-            >
-                <span class="loader"></span>
-            </div>
+                <span
+                    v-if="settingsViewModel.reviewState.value.type == 'loading'"
+                    class="review-header-action"
+                    role="status"
+                    :aria-label="strings.review"
+                >
+                    <span class="loader"></span>
+                </span>
 
-            <div v-else-if="reviewError" class="state-message">
                 <button
-                    class="setting-error-button"
+                    v-else-if="isLoadError(settingsViewModel.reviewState.value)"
+                    class="setting-error-button review-header-action"
                     type="button"
                     :aria-label="strings.errorReview"
-                    @click="loadReview"
+                    @click="settingsViewModel.loadReview()"
                 >
                     ×
                 </button>
+
+                <button
+                    v-else-if="settingsViewModel.reviewState.value.type == 'success'"
+                    class="review-refresh-button review-header-action"
+                    type="button"
+                    :aria-label="strings.review"
+                    @click="settingsViewModel.loadReview()"
+                >
+                    <img
+                        src="@/assets/ic_refresh.svg"
+                        alt=""
+                        aria-hidden="true"
+                    />
+                </button>
             </div>
 
-            <template v-else-if="myReview">
+            <template v-if="myReview">
                 <span class="review-status">
                     {{
                         strings.reviewMeta(
                             myReview.name,
-                            new Intl.DateTimeFormat('ru-RU', {day: '2-digit', month: '2-digit', year: 'numeric'}).format(new Date(myReview.createdAt)),
-                            (myReview.isUpdated ? strings.reviewEditMarker : '') +
-                                (myReviewOnModeration ? strings.reviewModerationMarker : '')
+                            new Intl.DateTimeFormat("ru-RU", {
+                                day: "2-digit",
+                                month: "2-digit",
+                                year: "numeric",
+                            }).format(new Date(myReview.createdAt)),
+                            (myReview.isUpdated ? strings.reviewEditMarker : "") +
+                                (myReviewOnModeration
+                                    ? strings.reviewModerationMarker
+                                    : ""),
                         )
                     }}
                 </span>
 
-                <div class="review-meta">
+                <div
+                    class="review-meta"
+                    :aria-label="`${reviewStars} из 5`"
+                >
                     <span
                         v-for="star in 5"
                         :key="star"
                         class="review-star"
                         :class="{ 'review-star-filled': star <= reviewStars }"
+                        aria-hidden="true"
                     >
                         ★
                     </span>
@@ -368,9 +400,8 @@
                 </button>
 
                 <button
-                    class="action-button action-button-secondary"
+                    class="action-button"
                     type="button"
-                    :disabled="reviewActionBusy"
                     @click="showDeleteReviewDialog = true"
                 >
                     {{ strings.deleteReview }}
@@ -378,7 +409,7 @@
             </template>
 
             <button
-                v-else
+                v-else-if="settingsViewModel.reviewState.value.type === 'success'"
                 class="action-button"
                 type="button"
                 @click="openReviewEditor"
@@ -387,7 +418,7 @@
             </button>
 
             <button
-                class="action-button action-button-secondary"
+                class="action-button"
                 type="button"
                 @click="openAllReviews"
             >
@@ -396,46 +427,59 @@
         </section>
 
         <section class="settings-card">
-            <h2 class="section-title">
-                {{ strings.referral }}
-            </h2>
+            <div class="referral-header">
+                <h2 class="section-title">
+                    {{ strings.referral }}
+                </h2>
 
-            <p
-                v-if="referralLoading"
-                class="state-message"
-            >
-                <span class="loader"></span>
-            </p>
+                <span
+                    v-if="settingsViewModel.referralState.value.type === 'loading'"
+                    class="referral-header-action"
+                    role="status"
+                    :aria-label="strings.referral"
+                >
+                    <span class="loader"></span>
+                </span>
 
-            <div v-else-if="referralError" class="state-message">
                 <button
-                    class="setting-error-button"
+                    v-else-if="isLoadError(settingsViewModel.referralState.value)"
+                    class="setting-error-button referral-header-action"
                     type="button"
                     :aria-label="strings.errorReferral"
-                    @click="loadReferral"
+                    @click="settingsViewModel.loadReferralParams()"
                 >
                     ×
                 </button>
             </div>
 
-            <template v-else-if="referral">
-                <p v-if="referral.meReferralName">
-                    {{ strings.meReferral(referral.meReferralName) }}
+            <template v-if="settingsViewModel.referralState.value.type === 'success'">
+                <p v-if="settingsViewModel.referralState.value.data.meReferralName">
+                    {{ strings.meReferral(settingsViewModel.referralState.value.data.meReferralName) }}
                 </p>
 
                 <p>
-                    {{ strings.referralCount(referral.referralsCount) }}
+                    {{ strings.referralCount(settingsViewModel.referralState.value.data.referralsCount) }}
                 </p>
 
                 <p>
                     {{
-                        referral.countActiveRelatives == referral.countRelatives
-                            ? (referral.isParent
-                                ? strings.allActiveRelativesChildren
-                                : strings.allActiveRelativesParents)
-                            : (referral.isParent
-                                ? strings.activeRelativesChildren(referral.countActiveRelatives, referral.countRelatives)
-                                : strings.activeRelativesParents(referral.countActiveRelatives, referral.countRelatives))
+                        settingsViewModel.referralState.value.data.countActiveRelatives === settingsViewModel.referralState.value.data.countRelatives
+                            ? (
+                                settingsViewModel.referralState.value.data.isParent
+                                    ? strings.allActiveRelativesChildren
+                                    : strings.allActiveRelativesParents
+                            )
+                            : (
+                                settingsViewModel.referralState.value.data.isParent
+                                    ? strings.activeRelativesChildren(
+                                        settingsViewModel.referralState.value.data.countActiveRelatives,
+                                        settingsViewModel.referralState.value.data.countRelatives,
+                                    )
+                                    : strings.activeRelativesParents(
+                                        settingsViewModel.referralState.value.data.countActiveRelatives,
+                                        settingsViewModel.referralState.value.data.countRelatives,
+                                    )
+                            )
                     }}
                 </p>
 
@@ -505,7 +549,7 @@
             :message="strings.messageDialogDeleteReview"
             :action-text="strings.buttonDialogDeleteReview"
             :cancel-text="strings.cancel"
-            :loading="reviewActionBusy"
+            :loading="settingsViewModel.reviewState.value.type == 'loading'"
             @action="deleteMyReview"
             @cancel="showDeleteReviewDialog = false"
         />
@@ -543,52 +587,26 @@
 <script setup lang="ts">
 import {
     computed,
-    onMounted,
     ref,
     watch,
 } from "vue";
 
 import AppDialog from "@/components/AppDialog.vue";
 import { strings } from "@/constants/strings";
-import { Settings } from "@/api/settings";
-import { Reviews } from "@/api/reviews";
 import { NotificationPermission } from "@/notifications/permission";
 import { useSettingsStore } from "@/stores/settings";
 import { logout } from "@/utils/logout";
 import { Utilities } from "@/utils/utils";
+import { SettingsViewModel } from "./settings-view-model";
+import { setShownError, setLoading, isLoadError } from "@/ui-core/state-utils";
 import ReviewEditorDialog from "@/components/ReviewEditorDialog.vue";
 
 import { getDeviceInfo } from "@/utils/device";
 import { APP_VERSION, APP_VERSION_CODE } from "@/constants/app";
 
-const deviceInfo = getDeviceInfo();
-
-interface Child {
-    id: number;
-    name: string;
-    [key: string]: unknown;
-}
-
-interface MyReview {
-    reviewId: number;
-    stars: number;
-    text: string;
-    likes: number;
-    isUpdated: boolean;
-    createdAt: string;
-    [key: string]: unknown;
-}
-
-interface ReferralParams {
-    meReferralName: string | null;
-    referralsCount: number;
-    isParent: boolean;
-    countActiveRelatives: number;
-    countRelatives: number;
-    referralUrl: string;
-}
-
+const settingsViewModel = new SettingsViewModel();
 const settings = useSettingsStore();
+const deviceInfo = getDeviceInfo();
 
 const scheduleLeft = ref(-settings.beforeSchedule);
 const scheduleRight = ref(settings.afterSchedule);
@@ -596,13 +614,6 @@ const lastMarksPeriod = ref(settings.lastMarksPeriod);
 
 const activeScheduleThumb = ref<"left" | "right" | null>(null);
 const lastMarksSliderActive = ref(false);
-
-const scheduleRangeText = computed(() => {
-    const before = Math.abs(scheduleLeft.value);
-    const after = scheduleRight.value;
-
-    return `${before} / ${after}`;
-});
 
 const scheduleTrackStyle = computed(() => {
     const min = -14;
@@ -615,14 +626,6 @@ const scheduleTrackStyle = computed(() => {
         width: `${Math.max(0, right - left)}%`,
     };
 });
-
-const activeChild = computed(
-    () => children.value.find((child) => child.id === activeChildId.value) ?? null,
-);
-
-const otherChildren = computed(
-    () => children.value.filter((child) => child.id !== activeChildId.value),
-);
 
 const lastMarksLabelStyle = computed(() => ({
     left: `${(lastMarksPeriod.value / 14) * 100}%`,
@@ -679,30 +682,30 @@ const scheduleWarning = computed(() =>
     scheduleRight.value > 14,
 );
 
-const marksNotifications = ref(false);
-const marksNotificationsLoading = ref(true);
-const marksNotificationsLoaded = ref(false);
-const marksNotificationsBusy = ref(false);
-const marksNotificationsError = ref(false);
-
-const eaNotifications = ref(false);
-const eaNotificationsLoading = ref(true);
-const eaNotificationsLoaded = ref(false);
-const eaNotificationsBusy = ref(false);
-const eaNotificationsError = ref(false);
-
-const children = ref<Child[]>([]);
-const activeChildId = ref(settings.activeChildId);
 const childrenExpanded = ref(false);
-const childrenLoading = ref(true);
-const childrenError = ref(false);
-const activeChildBusy = ref(false);
 
-const reviewLoading = ref(true);
-const reviewError = ref(false);
-const reviewActionBusy = ref(false);
-const myReview = ref<MyReview | null>(null);
-const myReviewOnModeration = ref<boolean | null>(null);
+const children = computed(
+    () => settingsViewModel.childrenState.value.data?.children ?? [],
+);
+
+const activeChild = computed(
+    () =>
+        children.value.find(
+            (child) => child.childId === settings.activeChildId,
+        ) ?? null,
+);
+
+const myReview = computed(
+    () => settingsViewModel.reviewState.value.data?.review ?? null,
+);
+
+const myReviewOnModeration = computed(
+    () => settingsViewModel.reviewState.value.data?.onModeration ?? false,
+);
+
+const reviewStars = computed(
+    () => Number(myReview.value?.stars ?? 0),
+);
 
 const showReviewEditor = ref(false);
 const editingReview = ref(false);
@@ -710,22 +713,115 @@ const editingReview = ref(false);
 const showDeleteReviewDialog = ref(false);
 const showLogoutDialog = ref(false);
 
-const referralLoading = ref(true);
-const referralError = ref(false);
-const referral = ref<ReferralParams | null>(null);
-
 const showMessageDialog = ref(false);
 const messageDialogTitle = ref("");
 const messageDialogText = ref("");
 
-const reviewStars = computed(
-    () => Number(myReview.value?.stars ?? myReview.value?.rating ?? 0),
+watch(
+    () => settingsViewModel.statusEANotificationsState.value,
+    (state) => {
+        if (state.type === "empty") {
+            settingsViewModel.loadEANotifications();
+            return;
+        }
+
+        if (state.type === "error") {
+            Utilities.showUiMessage(state.message);
+
+            settingsViewModel.statusEANotificationsState.value =
+                setShownError(state);
+        }
+    },
+    { immediate: true },
 );
 
 watch(
-    () => settings.darkTheme,
-    (darkTheme) => {
-        document.documentElement.classList.toggle("dark", darkTheme);
+    () => settingsViewModel.statusMarksNotificationsState.value,
+    (state) => {
+        if (state.type === "empty") {
+            settingsViewModel.loadMarksNotifications();
+            return;
+        }
+
+        if (state.type === "error") {
+            Utilities.showUiMessage(state.message);
+
+            settingsViewModel.statusMarksNotificationsState.value =
+                setShownError(state);
+        }
+    },
+    { immediate: true },
+);
+
+watch(
+    () => settingsViewModel.childrenState.value,
+    (state) => {
+        if (state.type === "empty") {
+            settingsViewModel.loadChildren();
+            return;
+        }
+
+        if (state.type === "error") {
+            Utilities.showUiMessage(state.message);
+
+            settingsViewModel.childrenState.value = setShownError(state);
+        }
+    },
+    { immediate: true },
+);
+
+watch(
+    () => settingsViewModel.reviewState.value,
+    (state) => {
+        switch (state.type) {
+            case "empty":
+                settingsViewModel.loadReview();
+                break;
+
+            case "loading":
+            case "shownError":
+                break;
+
+            case "error":
+                Utilities.showUiMessage(state.message);
+
+                settingsViewModel.reviewState.value = setShownError(state);
+                break;
+
+            case "success":
+                // Отправка отзыва завершилась успешно.
+                if (showReviewEditor.value) {
+                    showReviewEditor.value = false;
+
+                    showMessageDialog.value = true;
+                    messageDialogTitle.value = strings.titleDialogReviewSent;
+                    messageDialogText.value = strings.messageDialogReviewSent;
+                }
+
+                // Удаление отзыва завершилось успешно.
+                if (showDeleteReviewDialog.value) {
+                    showDeleteReviewDialog.value = false;
+                }
+
+                break;
+        }
+    },
+    { immediate: true },
+);
+
+watch(
+    () => settingsViewModel.referralState.value,
+    (state) => {
+        if (state.type === "empty") {
+            settingsViewModel.loadReferralParams();
+            return;
+        }
+
+        if (state.type === "error") {
+            Utilities.showUiMessage(state.message);
+
+            settingsViewModel.referralState.value = setShownError(state);
+        }
     },
     { immediate: true },
 );
@@ -750,13 +846,6 @@ watch(
         lastMarksPeriod.value = value;
     },
 );
-
-function applyTheme(): void {
-    document.documentElement.classList.toggle(
-        "dark",
-        settings.darkTheme,
-    );
-}
 
 function updateScheduleRange(changed: "left" | "right"): void {
     if (scheduleRight.value - scheduleLeft.value > 30) {
@@ -789,225 +878,91 @@ function saveLastMarksPeriod(): void {
     settings.lastMarksPeriod = value;
 }
 
-function showMessage(title: string, message: string): void {
-    messageDialogTitle.value = title;
-    messageDialogText.value = message;
-    showMessageDialog.value = true;
-}
+async function toggleMarksNotifications(event: Event): Promise<void> {
+    const desired = (event.target as HTMLInputElement).checked;
 
-function getAnswer<T>(response: unknown): T | null {
-    if (!response || typeof response !== "object") {
-        return null;
-    }
+    const previousState = settingsViewModel.statusMarksNotificationsState.value;
+    settingsViewModel.statusMarksNotificationsState.value =
+        setLoading(settingsViewModel.statusMarksNotificationsState);
 
-    const value = response as {
-        status?: boolean;
-        answer?: T | null;
-        error?: { errorMessage?: string };
-    };
-
-    if (value.status === false) {
-        throw new Error(value.error?.errorMessage || strings.errorApi);
-    }
-
-    return value.answer ?? null;
-}
-
-async function loadMarksNotifications(): Promise<void> {
-    marksNotificationsLoading.value = true;
-    marksNotificationsError.value = false;
-    marksNotificationsLoaded.value = false;
-
-    try {
-        const answer = getAnswer<{
-            status?: boolean;
-        }>(await Settings.getStatusMarksNotifications());
-
-        if (!answer || typeof answer.status !== "boolean") {
-            throw new Error(strings.errorMarksNotifications);
-        }
-
-        marksNotifications.value = answer.status;
-        marksNotificationsLoaded.value = true;
-    } catch (error) {
-        Utilities.log(error);
-        marksNotificationsError.value = true;
-        Utilities.showText(strings.errorMarksNotifications);
-    } finally {
-        marksNotificationsLoading.value = false;
-    }
-}
-
-async function toggleMarksNotifications(): Promise<void> {
-    const desired = marksNotifications.value;
-    const previous = !desired;
-
-    marksNotificationsBusy.value = true;
-
-    try {
-        if (desired) {
+    if (desired) {
+        try {
             const permission = await NotificationPermission.checkPermission();
 
             if (permission !== "granted") {
                 const result = await NotificationPermission.enableNotifications();
 
                 if (result !== "enabled") {
-                    throw new Error(strings.errorMarksNotifications);
+                    settingsViewModel.statusMarksNotificationsState.value = previousState;
+                    return;
                 }
             }
+        } catch (error: unknown) {
+            settingsViewModel.statusMarksNotificationsState.value = previousState;
+            Utilities.log(
+                error instanceof Error
+                    ? error
+                    : new Error(String(error)),
+                "Ошибка при проверке уведомлений"
+            );
         }
-
-        getAnswer(
-            await Settings.switchMarksNotifications(desired),
-        );
-    } catch (error) {
-        Utilities.log(error);
-        marksNotifications.value = previous;
-        Utilities.showText(strings.errorMarksNotifications);
-    } finally {
-        marksNotificationsBusy.value = false;
     }
+
+    settingsViewModel.switchMarksNotifications(desired);
 }
 
-async function loadEaNotifications(): Promise<void> {
-    eaNotificationsLoading.value = true;
-    eaNotificationsError.value = false;
-    eaNotificationsLoaded.value = false;
+async function toggleEaNotifications(event: Event): Promise<void> {
+    const desired = (event.target as HTMLInputElement).checked;
 
-    try {
-        const answer = getAnswer<{
-            status?: boolean;
-        }>(await Settings.getStatusEANotifications());
+    const previousState = settingsViewModel.statusEANotificationsState.value;
+    settingsViewModel.statusEANotificationsState.value =
+        setLoading(settingsViewModel.statusEANotificationsState);
 
-        if (!answer || typeof answer.status !== "boolean") {
-            throw new Error(strings.errorEaNotifications);
-        }
-
-        eaNotifications.value = answer.status;
-        eaNotificationsLoaded.value = true;
-    } catch (error) {
-        Utilities.log(error);
-        eaNotificationsError.value = true;
-        Utilities.showText(strings.errorEaNotifications);
-    } finally {
-        eaNotificationsLoading.value = false;
-    }
-}
-
-async function toggleEaNotifications(): Promise<void> {
-    const desired = eaNotifications.value;
-    const previous = !desired;
-
-    eaNotificationsBusy.value = true;
-
-    try {
-        if (desired) {
+    if (desired) {
+        try {
             const permission = await NotificationPermission.checkPermission();
 
             if (permission !== "granted") {
                 const result = await NotificationPermission.enableNotifications();
 
                 if (result !== "enabled") {
-                    throw new Error(strings.errorEaNotifications);
+                    settingsViewModel.statusMarksNotificationsState.value = previousState;
+                    return;
                 }
             }
+        } catch (error: unknown) {
+            settingsViewModel.statusMarksNotificationsState.value = previousState;
+            Utilities.log(
+                error instanceof Error
+                    ? error
+                    : new Error(String(error)),
+                "Ошибка при проверке уведомлений"
+            );
         }
-
-        getAnswer(
-            await Settings.switchEANotifications(desired),
-        );
-    } catch (error) {
-        Utilities.log(error);
-        eaNotifications.value = previous;
-        Utilities.showText(strings.errorEaNotifications);
-    } finally {
-        eaNotificationsBusy.value = false;
     }
+
+    settingsViewModel.switchEANotifications(desired);
 }
 
-async function loadChildren(): Promise<void> {
-    childrenLoading.value = true;
-    childrenError.value = false;
-
-    try {
-        const answer = getAnswer<{
-            children?: Array<Record<string, unknown>>;
-            activeChildId?: number;
-        }>(await Settings.getChildren());
-
-        if (!answer || !Array.isArray(answer.children)) {
-            throw new Error(strings.errorChildren);
-        }
-
-        children.value = answer.children.map((item) => ({
-            ...item,
-            id: Number(item.id ?? item.childId),
-            name: String(item.name ?? item.fullName ?? ""),
-        }));
-
-        const serverActiveId = Number(answer.activeChildId);
-
-        if (Number.isFinite(serverActiveId) && serverActiveId > 0) {
-            activeChildId.value = serverActiveId;
-            settings.activeChildId = serverActiveId;
-        }
-    } catch (error) {
-        Utilities.log(error);
-        childrenError.value = true;
-        Utilities.showText(strings.errorChildren);
-    } finally {
-        childrenLoading.value = false;
-    }
-}
-
-async function selectChild(child: Child): Promise<void> {
-    if (child.id === activeChildId.value || activeChildBusy.value) {
+function toggleChildren(): void {
+    if (settingsViewModel.childrenState.value.type !== "success") {
         return;
     }
 
-    activeChildBusy.value = true;
-
-    try {
-        getAnswer(
-            await Settings.setActiveChild(child.id),
-        );
-
-        activeChildId.value = child.id;
-        settings.activeChildId = child.id;
-
-        await Promise.all([
-            loadMarksNotifications(),
-            loadEaNotifications(),
-        ]);
-    } catch (error) {
-        Utilities.log(error);
-        Utilities.showText(strings.errorChildren);
-    } finally {
-        activeChildBusy.value = false;
-    }
+    childrenExpanded.value = !childrenExpanded.value;
 }
 
-async function loadReview(): Promise<void> {
-    reviewLoading.value = true;
-    reviewError.value = false;
+function retryChildren(): void {
+    childrenExpanded.value = false;
+    settingsViewModel.loadChildren();
+}
 
-    try {
-        const response = await Reviews.getMyReview();
-        const answer = getAnswer<Record<string, unknown>>(response);
+function selectChild(childId: number): void {
+    childrenExpanded.value = false;
 
-        const review = answer?.review;
-
-        myReview.value = review && typeof review === "object"
-            ? review as MyReview
-            : null;
-        myReviewOnModeration.value = answer.onModeration;
-    } catch (error) {
-        Utilities.log(error);
-        reviewError.value = true;
-        Utilities.showText(strings.errorReview);
-    } finally {
-        reviewLoading.value = false;
-    }
+    // ViewModel самостоятельно обработает совпадение ID,
+    // выполнит запрос и обновит настройки уведомлений.
+    settingsViewModel.setActiveChild(childId);
 }
 
 function openReviewEditor(): void {
@@ -1020,55 +975,20 @@ interface ReviewEditorResult {
     text: string | null;
 }
 
-async function submitReview(
-    review: ReviewEditorResult,
-): Promise<void> {
-    if (reviewActionBusy.value) {
+function submitReview(review: ReviewEditorResult): void {
+    if (settingsViewModel.reviewState.value.type === "loading") {
         return;
     }
 
-    reviewActionBusy.value = true;
-
-    try {
-        const response = await Reviews.createReview(
-            review.stars,
-            review.text,
-        );
-
-        getAnswer(response);
-
-        showMessageDialog.value = true;
-        messageDialogTitle.value = strings.titleDialogReviewSent;
-        messageDialogText.value = strings.messageDialogReviewSent;
-
-        await loadReview();
-    } catch (error) {
-        Utilities.log(error);
-        Utilities.showText(strings.errorReview);
-    } finally {
-        reviewActionBusy.value = false;
-    }
+    settingsViewModel.sendReview(review.stars, review.text);
 }
 
-async function deleteMyReview(): Promise<void> {
-    if (reviewActionBusy.value) {
+function deleteMyReview(): void {
+    if (settingsViewModel.reviewState.value.type === "loading") {
         return;
     }
 
-    reviewActionBusy.value = true;
-
-    try {
-        getAnswer(await Reviews.deleteReview());
-
-        showDeleteReviewDialog.value = false;
-        myReview.value = null;
-        myReviewOnModeration.value = null;
-    } catch (error) {
-        Utilities.log(error);
-        Utilities.showText(strings.errorReview);
-    } finally {
-        reviewActionBusy.value = false;
-    }
+    settingsViewModel.deleteReview();
 }
 
 function openAllReviews(): void {
@@ -1079,34 +999,17 @@ function openAllReviews(): void {
     );
 }
 
-async function loadReferral(): Promise<void> {
-    referralLoading.value = true;
-    referralError.value = false;
-
-    try {
-        referral.value = getAnswer<ReferralParams>(
-            await Settings.getReferralParams(),
-        );
-
-        if (!referral.value) {
-            throw new Error(strings.errorReferral);
-        }
-    } catch (error) {
-        Utilities.log(error);
-        referralError.value = true;
-        Utilities.showText(strings.errorReferral);
-    } finally {
-        referralLoading.value = false;
-    }
-}
-
 async function shareReferral(): Promise<void> {
-    if (!referral.value) {
+    const referral = settingsViewModel.referralState.value.type === "success"
+        ? settingsViewModel.referralState.value.data
+        : null;
+
+    if (!referral) {
         return;
     }
 
-    const url = referral.value.referralUrl;
-    const text = strings.shareText(referral.value.referralUrl);
+    const url = referral.referralUrl;
+    const text = strings.shareText(url);
 
     try {
         if (navigator.share) {
@@ -1116,9 +1019,15 @@ async function shareReferral(): Promise<void> {
 
         await navigator.clipboard.writeText(text);
 
-        showMessage(strings.share, strings.shareText);
-    } catch (error) {
-        Utilities.log(error);
+        Utilities.showText(strings.textCopied);
+    } catch (error: unknown) {
+        Utilities.log(
+            error instanceof Error
+                ? error
+                : new Error(String(error)),
+            "Ошибка при попытке поделиться ссылкой"
+        );
+
         if (error instanceof Error && error.name === "AbortError") {
             return;
         }
@@ -1139,16 +1048,6 @@ async function confirmLogout(): Promise<void> {
     showLogoutDialog.value = false;
     await logout();
 }
-
-onMounted(() => {
-    void Promise.all([
-        loadMarksNotifications(),
-        loadEaNotifications(),
-        loadChildren(),
-        loadReview(),
-        loadReferral(),
-    ]);
-});
 </script>
 
 <style scoped>
@@ -1434,28 +1333,6 @@ onMounted(() => {
     line-height: 1.4;
 }
 
-.section-heading-button {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    width: 100%;
-    padding: 0;
-    border: 0;
-    background: transparent;
-    color: inherit;
-    text-align: left;
-    cursor: pointer;
-}
-
-.section-heading-button .section-title {
-    margin-bottom: 0;
-}
-
-.section-chevron {
-    color: var(--text-secondary);
-    font-size: 24px;
-}
-
 .child-option {
     display: flex;
     align-items: center;
@@ -1488,6 +1365,71 @@ onMounted(() => {
     font-size: 12px;
 }
 
+.child-profile-trigger {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    width: 100%;
+    min-height: 46px;
+    margin-top: 12px;
+    padding: 12px;
+    border: 1px solid var(--stroke-bg);
+    border-radius: 12px;
+    background: var(--button-bg);
+    color: inherit;
+    font: inherit;
+    text-align: left;
+}
+
+button.child-profile-trigger {
+    cursor: pointer;
+}
+
+.child-profile-trigger-static {
+    cursor: default;
+}
+
+.child-profile-trigger-text {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.child-profile-chevron {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-secondary);
+    font-size: 20px;
+    line-height: 1;
+    transform: rotate(0deg);
+    transition: transform 200ms ease;
+}
+
+.child-profile-chevron-expanded {
+    transform: rotate(180deg);
+}
+
+.children-list {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    margin-top: 8px;
+}
+
+.child-option:focus-visible,
+.child-profile-trigger:focus-visible {
+    outline: 2px solid var(--slider-accent);
+    outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .child-profile-chevron {
+        transition: none;
+    }
+}
+
 .state-message {
     display: flex;
     align-items: center;
@@ -1495,15 +1437,6 @@ onMounted(() => {
     margin: 12px 0 0;
     color: var(--text-secondary);
     line-height: 1.4;
-}
-
-.text-button {
-    padding: 4px 0;
-    border: 0;
-    background: transparent;
-    color: var(--developer-text);
-    font: inherit;
-    cursor: pointer;
 }
 
 .action-button {
@@ -1524,10 +1457,6 @@ onMounted(() => {
 .action-button:disabled {
     cursor: wait;
     opacity: 0.6;
-}
-
-.action-button-secondary {
-    background: var(--button-bg);
 }
 
 .review-meta {
@@ -1562,45 +1491,76 @@ onMounted(() => {
     font-size: 15px;
 }
 
-.review-editor {
-    display: grid;
-    gap: 10px;
-    margin-top: 12px;
-}
-
-.review-editor-stars {
+.review-header {
     display: flex;
-    justify-content: center;
-    gap: 8px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    min-height: 32px;
+    margin-bottom: 12px;
 }
 
-.review-star-button {
-    padding: 0;
+.review-header .section-title {
+    min-width: 0;
+    margin: 0;
+}
+
+.review-header-action {
+    display: inline-flex;
+    flex: 0 0 32px;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    margin-left: auto;
+}
+
+.review-refresh-button {
+    padding: 6px;
     border: 0;
+    border-radius: 50%;
     background: transparent;
-    color: var(--text-secondary);
-    font-size: 34px;
     cursor: pointer;
 }
 
-.review-input {
-    box-sizing: border-box;
-    width: 100%;
-    min-height: 120px;
-    padding: 12px;
-    border: 1px solid var(--stroke-bg);
-    border-radius: 12px;
-    background: var(--bg-login-about);
-    color: var(--text-primary);
-    font: inherit;
-    resize: vertical;
+.review-refresh-button img {
+    display: block;
+    width: 20px;
+    height: 20px;
 }
 
-.review-counter {
+.review-refresh-button:focus-visible {
+    outline: 2px solid var(--slider-accent);
+    outline-offset: 2px;
+}
+
+.review-refresh-button:disabled {
+    cursor: wait;
+    opacity: 0.6;
+}
+
+.referral-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    min-height: 32px;
+    margin-bottom: 12px;
+}
+
+.referral-header .section-title {
+    min-width: 0;
     margin: 0;
-    color: var(--text-secondary);
-    font-size: 12px;
-    text-align: right;
+}
+
+.referral-header-action {
+    display: inline-flex;
+    flex: 0 0 32px;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    margin-left: auto;
 }
 
 .about-description {

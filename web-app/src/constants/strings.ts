@@ -8,6 +8,7 @@ export const strings = {
     errorServer: "Сервер в данное время недоступен",
     ok: "Ок",
     cancel: "Отмена",
+    textCopied: "Текст скопирован",
 
     notificationBroadcastTitle: "Фоновое действие",
     notificationBroadcastSuccessText: "Успешно выполнено",

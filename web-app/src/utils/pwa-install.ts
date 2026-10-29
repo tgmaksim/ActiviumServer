@@ -112,7 +112,9 @@ export async function promptPwaInstall():
         return choice.outcome;
     } catch (error) {
         Utilities.log(
-            error,
+            error instanceof Error
+                ? error
+                : new Error(String(error)),
             "Не удалось запустить установку PWA"
         );
 

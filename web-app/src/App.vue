@@ -197,7 +197,9 @@ async function handleNotificationAction(): Promise<void> {
 
             case "error":
                 Utilities.log(
-                    error,
+                    error instanceof Error
+                        ? error
+                        : new Error(String(error)),
                     "Не удалось включить уведомления",
                 );
                 showNotificationDialog.value = false;

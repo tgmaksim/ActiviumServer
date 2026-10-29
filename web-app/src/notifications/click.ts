@@ -37,7 +37,9 @@ self.addEventListener("notificationclick", (event: NotificationEvent) => {
                 }
             } catch (error) {
                 Utilities.log(
-                    error,
+                    error instanceof Error
+                        ? error
+                        : new Error(String(error)),
                     "Error at NotificationActionReceiver.onReceive",
                 );
             }

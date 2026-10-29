@@ -115,7 +115,9 @@ onBackgroundMessage(messaging, async (message) => {
         await NotificationManager.show(self.registration, payload);
     } catch (error) {
         Utilities.log(
-            error,
+            error instanceof Error
+                ? error
+                : new Error(String(error)),
             "Error at MessagingService.onMessageReceived",
         );
     }

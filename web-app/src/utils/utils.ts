@@ -17,7 +17,7 @@ function log(
 ): void {
     // Обычное информационное сообщение.
     if (tagOrContext !== undefined && !(value instanceof Error)) {
-        console.debug(`Activium.${tagOrContext}`, String(value));
+        console.debug(`Activium.${tagOrContext}`, value);
         return;
     }
 

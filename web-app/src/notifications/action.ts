@@ -72,7 +72,9 @@ export async function handleNotificationAction(
         }
     } catch (error) {
         Utilities.log(
-            error,
+            error instanceof Error
+                ? error
+                : new Error(String(error)),
             "Coroutine Error at NotificationActionReceiver.runAsyncAction",
         );
 
