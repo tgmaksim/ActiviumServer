@@ -23,15 +23,21 @@ import Toast from "@/components/Toast.vue";
 
 <style scoped>
 .app-layout {
-    min-height: 100vh;
-    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100vh;
+    height: 100dvh;
+    overflow: hidden;
     background: var(--main-bg);
 }
 
 .app-content {
+    flex: 1 1 0;
+    width: 100%;
     min-width: 0;
-    min-height: 100vh;
-    min-height: 100dvh;
+    min-height: 0;
+    overflow: hidden;
 }
 
 .app-footer {

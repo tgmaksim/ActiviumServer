@@ -348,9 +348,9 @@ export default class UiViewModel {
 
             try {
                 if (!(await Request.checkInternet())) {
-                    messageKey = strings.errorInternet;
+                    messageKey = "errorInternet" as StringResourceKey;
                 } else if (!(await Status.checkHealth())) {
-                    messageKey = strings.errorServer;
+                    messageKey = "errorServer" as StringResourceKey;
                 } else {
                     Utilities.log(
                         error instanceof Error

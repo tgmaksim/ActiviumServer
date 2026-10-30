@@ -599,7 +599,7 @@ import { logout } from "@/utils/logout";
 import { Utilities } from "@/utils/utils";
 import { SettingsViewModel } from "./settings-view-model";
 import { setShownError, setLoading, isLoadError } from "@/ui-core/state-utils";
-import ReviewEditorDialog from "@/components/ReviewEditorDialog.vue";
+import ReviewEditorDialog from "./ReviewEditorDialog.vue";
 
 import { getDeviceInfo } from "@/utils/device";
 import { APP_VERSION, APP_VERSION_CODE } from "@/constants/app";
@@ -1054,13 +1054,15 @@ async function confirmLogout(): Promise<void> {
 .settings-page {
     box-sizing: border-box;
     width: 100%;
+    height: 100%;
     max-width: 720px;
-    min-height: 100vh;
-    min-height: 100dvh;
+    min-height: 0;
     margin-inline: auto;
     padding: 16px 16px calc(112px + env(safe-area-inset-bottom));
+    overflow-x: hidden;
     overflow-y: auto;
     color: var(--text-primary);
+    scrollbar-width: none;
 }
 
 .settings-card {

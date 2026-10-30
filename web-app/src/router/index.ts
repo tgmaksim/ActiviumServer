@@ -6,7 +6,7 @@ import {
 import AppView from "@/views/AppView.vue";
 import LoginView from "@/views/LoginView.vue";
 
-import ScheduleView from "@/views/tabs/ScheduleView.vue";
+import ScheduleView from "@/views/tabs/schedule/ScheduleView.vue";
 import MarksView from "@/views/tabs/MarksView.vue";
 import SchoolView from "@/views/tabs/SchoolView.vue";
 import SettingsView from "@/views/tabs/settings/SettingsView.vue";

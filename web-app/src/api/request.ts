@@ -183,7 +183,7 @@ async function checkInternet(): Promise<boolean> {
             },
         );
 
-        return response.ok;
+        return true;
     } catch {
         return false;
     }
