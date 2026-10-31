@@ -1,3 +1,4 @@
+import { ref } from "vue";
 import { Utilities } from "./utils.ts";
 import { useSettingsStore } from "@/stores/settings";
 
@@ -22,6 +23,7 @@ interface BeforeInstallPromptEvent extends Event {
 
 let deferredInstallPrompt:
     BeforeInstallPromptEvent | null = null;
+export const pwaInstalled = ref(true);
 
 window.addEventListener(
     "beforeinstallprompt",
@@ -35,6 +37,7 @@ window.addEventListener(
 
 window.addEventListener("appinstalled", () => {
     deferredInstallPrompt = null;
+    pwaInstalled.value = true;
 });
 
 export function getPwaPlatform(): PwaPlatform {
@@ -74,6 +77,8 @@ export function isRunningAsInstalledPwa(): boolean {
             standalone?: boolean;
         }
     ).standalone === true;
+
+    pwaInstalled.value = isStandalone || isIosStandalone;
 
     return isStandalone || isIosStandalone;
 }

@@ -326,6 +326,9 @@ function onPagerDateChange(date: ScheduleDate): void {
     width: 100%;
     height: 100%;
 
+    max-width: 720px;
+    margin-inline: auto;
+
     min-width: 0;
     min-height: 0;
 

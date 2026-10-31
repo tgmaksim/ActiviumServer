@@ -217,6 +217,24 @@
             </div>
         </section>
 
+        <section v-if="!pwaInstalled" class="settings-card">
+            <h2 class="section-title">
+                {{ strings.titleDialogPwaInstall }}
+            </h2>
+
+            <p class="about-description">
+                {{ strings.pwaInstallAbout }}
+            </p>
+
+            <button
+                class="action-button"
+                type="button"
+                @click="settings.showInstallDialog = true"
+            >
+                {{ strings.buttonDialogPwaInstall }}
+            </button>
+        </section>
+
         <section class="settings-card">
             <h2 class="section-title">
                 {{ strings.activeProfile }}
@@ -603,6 +621,7 @@ import ReviewEditorDialog from "./ReviewEditorDialog.vue";
 
 import { getDeviceInfo } from "@/utils/device";
 import { APP_VERSION, APP_VERSION_CODE } from "@/constants/app";
+import { pwaInstalled } from "@/utils/pwa-install";
 
 const settingsViewModel = new SettingsViewModel();
 const settings = useSettingsStore();

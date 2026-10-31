@@ -2,7 +2,7 @@
     <RouterView />
 
     <AppDialog
-        :visible="showInstallDialog"
+        :visible="settings.showInstallDialog"
         :title="strings.titleDialogPwaInstall"
         :message="dialogMessage"
         :action-text="dialogActionText"
@@ -37,6 +37,8 @@ import { Utilities } from "@/utils/utils";
 import { routes } from "@/constants/routes"
 import { NotificationPermission } from "@/notifications/permission";
 
+import { useSettingsStore } from "@/stores/settings";
+
 import {
     getPwaPlatform,
     shouldShowInstallPrompt,
@@ -44,7 +46,8 @@ import {
     hideInstallPrompt,
 } from "@/utils/pwa-install";
 
-const showInstallDialog = ref(false);
+const settings = useSettingsStore();
+settings.showInstallDialog = false;
 const showManualInstructions = ref(false);
 
 const showNotificationDialog = ref(false);
@@ -80,7 +83,7 @@ watch(
     (path) => {
         if (path === routes.loginBase) {
             checksStarted = false;
-            showInstallDialog.value = false;
+            settings.showInstallDialog = false;
             showNotificationDialog.value = false;
             return;
         }
@@ -92,7 +95,7 @@ watch(
         checksStarted = true;
 
         if (shouldShowInstallPrompt()) {
-            showInstallDialog.value = true;
+            settings.showInstallDialog = true;
         } else {
             void checkNotifications();
         }
@@ -170,7 +173,7 @@ async function checkNotifications(): Promise<void> {
 }
 
 function finishInstallFlow(): void {
-    showInstallDialog.value = false;
+    settings.showInstallDialog = false;
     void checkNotifications();
 }
 

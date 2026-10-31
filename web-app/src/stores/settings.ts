@@ -18,6 +18,7 @@ export const useSettingsStore = defineStore("settings", () => {
     const studyMarkRating = ref(SettingsManager.getStudyMarkRating());
     const studySubjectRating = ref(SettingsManager.getStudySubjectRating());
     const lastStudy = ref(SettingsManager.getLastStudy());
+    const showInstallDialog = ref(false);
 
     let syncingFromStorage = false;
 
@@ -154,6 +155,9 @@ export const useSettingsStore = defineStore("settings", () => {
                 case settingsKeys.lastStudy:
                     lastStudy.value = SettingsManager.getLastStudy();
                     break;
+                case "showInstallDialog":
+                    showInstallDialog.value = false;
+                    break;
             }
         } finally {
             syncingFromStorage = false;
@@ -198,6 +202,7 @@ export const useSettingsStore = defineStore("settings", () => {
             studyMarkRating.value = settingsDefaults.studyMarkRating;
             studySubjectRating.value = settingsDefaults.studySubjectRating;
             lastStudy.value = getDefaultLastStudy();
+            showInstallDialog.value = false;
         } finally {
             syncingFromStorage = false;
         }
@@ -216,6 +221,7 @@ export const useSettingsStore = defineStore("settings", () => {
         studyMarkRating,
         studySubjectRating,
         lastStudy,
+        showInstallDialog,
         reset,
     };
 });
