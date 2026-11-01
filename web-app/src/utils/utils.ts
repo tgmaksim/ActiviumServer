@@ -66,8 +66,7 @@ function showUiMessage(
 
     if (typeof value !== "string") {
         log(
-            `Ресурс "${String(message.key)}" не вернул строку`,
-            "showUiMessage",
+            `Ресурс "${String(message.key)}" не вернул строку`
         );
         return;
     }

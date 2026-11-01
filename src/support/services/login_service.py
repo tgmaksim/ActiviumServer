@@ -649,7 +649,7 @@ class LoginService(BaseService[AppUnitOfWork]):
                 {
                     'key': 'authorized',
                     'value': "true",
-                    'path': '/app',
+                    'path': f'/{settings.API_PREFIX}',
                     'max_age': 90 * 24 * 60 * 60,  # 90 дней
                 }
             ]

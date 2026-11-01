@@ -35,14 +35,17 @@
                     v-if="lesson.logs.length > 0"
                     class="lesson-marks"
                 >
-                    <div
+                    <button
                         v-for="(mark, index) in lesson.logs"
                         :key="index"
                         class="lesson-mark"
                         :class="getMarkMoodClass(mark.mood)"
+                        type="button"
+                        :disabled="!canOpenRating"
+                        @click="onRatingClick"
                     >
                         {{ mark.value }}
-                    </div>
+                    </button>
                 </div>
 
                 <div
@@ -53,6 +56,8 @@
                         class="lesson-praise"
                         type="button"
                         aria-label="Похвала"
+                        :disabled="praiseLoading"
+                        @click="onPraiseClick"
                     >
                         <span
                             v-if="praiseLoading"
@@ -162,6 +167,8 @@ import {
     computed,
 } from "vue";
 
+import { isLoadError } from "@/ui-core/state-utils";
+
 import { strings } from "@/constants/strings";
 
 import type {
@@ -171,6 +178,11 @@ import type {
 const props = defineProps<{
     lesson: UiScheduleLesson;
     number: number;
+}>();
+
+const emit = defineEmits<{
+    praise: [lessonKey: string];
+    rating: [lessonKey: string];
 }>();
 
 interface HomeworkPart {
@@ -240,9 +252,16 @@ const homeworkParts = computed(() => {
 
 const showPraise = computed(() =>
     !props.lesson.isExtra &&
+    props.lesson.lessonKey !== null &&
     props.lesson.praiseState !== null &&
     props.lesson.logs.length > 0 &&
     props.lesson.praiseState.type !== "success",
+);
+
+const canOpenRating = computed(() =>
+    !props.lesson.isExtra &&
+    props.lesson.lessonKey !== null &&
+    props.lesson.ratingKey !== null,
 );
 
 const praiseLoading = computed(
@@ -250,8 +269,28 @@ const praiseLoading = computed(
 );
 
 const praiseError = computed(
-    () => props.lesson.praiseState?.type === "error",
+    () => isLoadError(props.lesson.praiseState),
 );
+
+function onPraiseClick(): void {
+    const lessonKey = props.lesson.lessonKey;
+
+    if (!lessonKey || praiseLoading.value) {
+        return;
+    }
+
+    emit("praise", lessonKey);
+}
+
+function onRatingClick(): void {
+    const lessonKey = props.lesson.lessonKey;
+
+    if (!canOpenRating.value || !lessonKey) {
+        return;
+    }
+
+    emit("rating", lessonKey);
+}
 
 const homeworkEmoji = strings.homeworkEmoji;
 const noteEmoji = strings.noteEmoji;
@@ -529,6 +568,27 @@ function getMarkMoodClass(mood: string): string {
 
 .lesson-praise-icon {
     line-height: 1;
+}
+
+.lesson-subject-button {
+    padding: 0;
+
+    border: 0;
+    background: transparent;
+    color: inherit;
+
+    font: inherit;
+    text-align: left;
+
+    cursor: pointer;
+}
+
+.lesson-subject-button:disabled {
+    cursor: default;
+}
+
+.lesson-mark:disabled {
+    cursor: default;
 }
 
 @keyframes lesson-loader {

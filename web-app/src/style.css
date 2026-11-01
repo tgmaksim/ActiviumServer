@@ -87,6 +87,9 @@
 
     --ad-label-bg: #0288D120;
     --ad-label-text: #0288D1;
+
+    --arrow-up: #4B9A25;
+    --arrow-down: #CF3838;
 }
 
 html.dark {
@@ -178,6 +181,9 @@ html.dark {
 
     --ad-label-bg: #4FC3F720;
     --ad-label-text: #4FC3F7;
+
+    --arrow-up: #4B9A25;
+    --arrow-down: #CF3838;
 }
 
 * {

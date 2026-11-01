@@ -25,6 +25,21 @@
             :selected-date="selectedDate"
             :loading="isLoading"
             @change="onPagerDateChange"
+            @praise="openPraiseDialog"
+            @rating="openRating"
+        />
+
+        <PraiseDialog
+            :visible="showPraiseDialog"
+            @close="showPraiseDialog = false"
+            @submit="submitPraise"
+        />
+
+        <RatingSheet
+            v-if="selectedRatingLesson"
+            v-model="showRatingSheet"
+            :lesson="selectedRatingLesson"
+            @praise="openPraiseDialog"
         />
     </div>
 </template>
@@ -44,6 +59,8 @@ import { setShownError } from "@/ui-core/state-utils";
 import CalendarStrip from "./components/CalendarStrip.vue";
 import DayPager from "./components/DayPager.vue";
 import CalendarSkeleton from "./skeleton/CalendarSkeleton.vue";
+import PraiseDialog from "@/components/PraiseDialog.vue";
+import RatingSheet from "./rating/RatingSheet.vue";
 
 import { ScheduleViewModel } from "./schedule-view-model";
 
@@ -59,6 +76,7 @@ import type {
     ScheduleDate,
     SchedulePagerDay,
     UiScheduleDay,
+    UiScheduleLesson,
 } from "./types";
 
 const settings = useSettingsStore();
@@ -137,6 +155,7 @@ const selectedDate = ref<ScheduleDate>(
  * для неё пока нет (null). Это необходимо для свайпов.
  */
 const scheduleDays = computed<SchedulePagerDay[]>(() => {
+    const praiseStates = scheduleViewModel.praiseStates.value;
     const byDate = new Map<ScheduleDate, UiScheduleDay>();
 
     for (const day of scheduleData.value?.schedule ?? []) {
@@ -145,11 +164,92 @@ const scheduleDays = computed<SchedulePagerDay[]>(() => {
         }
     }
 
-    return dates.value.map(date => ({
-        date,
-        data: byDate.get(date) ?? null,
-    }));
+    return dates.value.map((date) => {
+        const day = byDate.get(date);
+
+        if (!day) {
+            return {
+                date,
+                data: null,
+            };
+        }
+
+        return {
+            date,
+            data: {
+                ...day,
+                lessons: day.lessons.map((lesson) => {
+                    if (!lesson.lessonKey) {
+                        return lesson;
+                    }
+
+                    const praiseState = praiseStates.get(lesson.lessonKey);
+
+                    if (!praiseState) {
+                        return lesson;
+                    }
+
+                    return {
+                        ...lesson,
+                        praiseState: praiseState as UiScheduleDay["lessons"][number]["praiseState"],
+                    };
+                }),
+            },
+        };
+    });
 });
+
+const showPraiseDialog = ref(false);
+const selectedPraiseLessonKey = ref<string | null>(null);
+
+const showRatingSheet = ref(false);
+const selectedRatingLessonKey = ref<string | null>(null);
+
+const selectedRatingLesson = computed<UiScheduleLesson | null>(() => {
+    const lessonKey = selectedRatingLessonKey.value;
+
+    if (!lessonKey) {
+        return null;
+    }
+
+    for (const day of scheduleData.value?.schedule ?? []) {
+        const lesson = day?.lessons.find(
+            item => item.lessonKey === lessonKey,
+        );
+
+        if (!lesson) {
+            continue;
+        }
+
+        const praiseState = scheduleViewModel.praiseStates.value.get(
+            lessonKey,
+        );
+
+        if (!praiseState) {
+            return lesson;
+        }
+
+        return {
+            ...lesson,
+            praiseState: praiseState as UiScheduleLesson["praiseState"],
+        };
+    }
+
+    return null;
+});
+
+function openRating(lessonKey: string): void {
+    const lesson = scheduleData.value?.schedule
+        .flatMap(day => day?.lessons ?? [])
+        .find(item => item.lessonKey === lessonKey);
+
+    if (!lesson?.ratingKey) {
+        return;
+    }
+
+    selectedRatingLessonKey.value = lessonKey;
+    showRatingSheet.value = true;
+}
 
 /**
  * Получение часового пояса из ViewModel.
@@ -204,6 +304,9 @@ watch(
         [previousChildId, previousBefore, previousAfter],
     ) => {
         if (childId !== previousChildId) {
+            showRatingSheet.value = false;
+            selectedRatingLessonKey.value = null;
+
             selectedDate.value = defaultDate.value;
             scheduleViewModel.resetSchedule();
             return;
@@ -295,6 +398,30 @@ watch(
     },
 );
 
+watch(
+    () => scheduleViewModel.praiseStates.value,
+    (states) => {
+        for (const [lessonKey, state] of states) {
+            if (state.type !== "error") {
+                continue;
+            }
+
+            Utilities.showUiMessage(state.message);
+
+            const updatedStates = new Map(
+                scheduleViewModel.praiseStates.value,
+            );
+
+            updatedStates.set(
+                lessonKey,
+                setShownError(state),
+            );
+
+            scheduleViewModel.praiseStates.value = updatedStates;
+        }
+    },
+);
+
 /**
  * Выбор даты через календарь.
  */
@@ -315,6 +442,34 @@ function onPagerDateChange(date: ScheduleDate): void {
     }
 
     selectedDate.value = date;
+}
+
+function openPraiseDialog(lessonKey: string): void {
+    if (
+        scheduleViewModel.praiseStates.value.get(lessonKey)?.type === "loading"
+    ) {
+        return;
+    }
+
+    selectedPraiseLessonKey.value = lessonKey;
+    showPraiseDialog.value = true;
+}
+
+function submitPraise(text: string | null): void {
+    const lessonKey = selectedPraiseLessonKey.value;
+
+    if (!lessonKey) {
+        return;
+    }
+
+    if (
+        scheduleViewModel.praiseStates.value.get(lessonKey)?.type === "loading"
+    ) {
+        return;
+    }
+
+    showPraiseDialog.value = false;
+    scheduleViewModel.sendPraise(lessonKey, text);
 }
 </script>
 

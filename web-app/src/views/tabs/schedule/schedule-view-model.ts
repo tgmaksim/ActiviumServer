@@ -24,39 +24,6 @@ import { Utilities } from "@/utils/utils";
 
 import type { StringResourceKey } from "@/constants/strings";
 
-export interface UiScheduleResult {
-    schedule: (UiScheduleDay | null)[];
-    timezone: number;
-    hasAbilityPraise: boolean;
-}
-
-export interface UiScheduleDay {
-    date: string;
-    lessons: UiScheduleLesson[];
-    ea: ScheduleDay["ea"];
-    schoolPosts: SchoolPost[];
-}
-
-export interface UiScheduleLesson {
-    lessonKey: string | null;
-    number: number;
-    subject: string;
-    place: string;
-    hours: ScheduleLesson["hours"];
-    works: ScheduleLesson["works"];
-    logs: ScheduleLesson["logs"];
-    othersMarks: ScheduleLesson["othersMarks"];
-    avgGroupLessonMark: ScheduleLesson["avgGroupLessonMark"];
-    homework: string | null;
-    note: Note | null;
-    files: ScheduleLesson["files"];
-    ratingKey: string | null;
-    dnevnikruUrl: string | null;
-    praiseState: LoadState<never> | null;
-    noteState: LoadState<NoteResult> | null;
-    isExtra: boolean;
-}
-
 type PraiseData = Record<string, never>;
 
 export class ScheduleViewModel extends UiViewModel {

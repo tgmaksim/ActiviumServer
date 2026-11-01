@@ -1,6 +1,6 @@
 import { registerSW } from "virtual:pwa-register";
 
-const UPDATE_CHECK_INTERVAL = 5 * 60 * 1000;
+const UPDATE_CHECK_INTERVAL = 60 * 60 * 1000;
 
 export function initializeSW(): void {
     registerSW({

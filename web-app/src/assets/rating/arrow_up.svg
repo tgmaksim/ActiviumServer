@@ -1,0 +1,3 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:android="http://schemas.android.com/apk/res/android" height="24" viewportHeight="960" viewportWidth="960" width="24" viewBox="0 0 960 960">
+	<path fill="var(--arrow-up)" d="M440,720L440,352L296,496L240,440L480,200L720,440L664,496L520,352L520,720L440,720Z"/>
+</svg>

@@ -45,6 +45,8 @@
                             :key="item.key"
                             :lesson="item.lesson"
                             :number="item.number"
+                            @praise="emit('praise', $event)"
+                            @rating="emit('rating', $event)"
                         />
                     </div>
                 </div>
@@ -66,7 +68,7 @@ import type { Swiper as SwiperInstance } from "swiper";
 
 import "swiper/css";
 
-import weekendImage from "@/assets/weekend.png";
+import weekendImage from "@/assets/schedule/weekend.png";
 
 import DaySkeleton from "../skeleton/DaySkeleton.vue";
 import LessonCard from "./LessonCard.vue";
@@ -86,6 +88,8 @@ const props = defineProps<{
 
 const emit = defineEmits<{
     change: [date: ScheduleDate];
+    praise: [lessonKey: string];
+    rating: [lessonKey: string];
 }>();
 
 const swiperInstance = shallowRef<SwiperInstance | null>(null);
