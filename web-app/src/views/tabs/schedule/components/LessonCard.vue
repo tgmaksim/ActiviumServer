@@ -199,6 +199,8 @@ import type {
     UiScheduleLesson,
 } from "../types";
 
+import type { ConfettiOptions } from "@/utils/confetti/confetti-engine";
+
 const props = withDefaults(
     defineProps<{
         lesson: UiScheduleLesson;
@@ -217,7 +219,7 @@ const props = withDefaults(
 );
 
 const emit = defineEmits<{
-    praise: [lessonKey: string];
+    praise: [lessonKey: string, confettiOptions: ConfettiOptions];
     rating: [lessonKey: string];
     menu: [lessonKey: string];
 }>();
@@ -398,7 +400,7 @@ const praiseError = computed(
     () => isLoadError(props.lesson.praiseState),
 );
 
-function onPraiseClick(): void {
+function onPraiseClick(event: MouseEvent): void {
     const lessonKey = props.lesson.lessonKey;
 
     if (
@@ -409,7 +411,15 @@ function onPraiseClick(): void {
         return;
     }
 
-    emit("praise", lessonKey);
+    const rect = (
+        event.currentTarget as HTMLElement
+    ).getBoundingClientRect();
+    const confettiOptions = {
+        x: rect.left + rect.width / 2,
+        y: rect.top + rect.height / 2,
+    };
+
+    emit("praise", lessonKey, confettiOptions);
 }
 
 function onRatingClick(): void {

@@ -8,6 +8,8 @@
             </RouterView>
         </main>
 
+        <ConfettiCanvas />
+
         <Toast />
 
         <footer class="app-footer">
@@ -19,6 +21,7 @@
 <script setup lang="ts">
 import BottomNavigation from "@/components/BottomNavigation.vue";
 import Toast from "@/components/Toast.vue";
+import ConfettiCanvas from "@/components/ConfettiCanvas.vue"
 </script>
 
 <style scoped>

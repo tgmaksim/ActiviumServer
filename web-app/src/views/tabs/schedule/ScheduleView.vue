@@ -113,6 +113,15 @@ import type {
     UiScheduleLesson,
 } from "./types";
 
+import {
+    useConfetti,
+} from "@/composables/useConfetti";
+import type { ConfettiOptions } from "@/utils/confetti/confetti-engine";
+
+const {
+    startConfettiAnimation,
+} = useConfetti();
+
 const settings = useSettingsStore();
 const scheduleViewModel = new ScheduleViewModel();
 
@@ -241,6 +250,7 @@ const scheduleDays = computed<SchedulePagerDay[]>(() => {
 
 const showPraiseDialog = ref(false);
 const selectedPraiseLessonKey = ref<string | null>(null);
+const activeConfettiOptions = ref<ConfettiOptions | null>(null);
 
 const showRatingSheet = ref(false);
 const selectedRatingLessonKey = ref<string | null>(null);
@@ -365,7 +375,7 @@ function openMenuPraise(): void {
         return;
     }
 
-    openPraiseDialog(lessonKey);
+    openPraiseDialog(lessonKey, {});
     selectedLessonKey.value = null;
 }
 
@@ -592,6 +602,13 @@ watch(
     () => scheduleViewModel.praiseStates.value,
     (states) => {
         for (const [lessonKey, state] of states) {
+            if (state.type === "success") {
+                const confettiOptions = activeConfettiOptions.value ?? {};
+                activeConfettiOptions.value = null;
+                startConfettiAnimation(confettiOptions);
+                scheduleViewModel.praiseStates.value.delete(lessonKey);
+            }
+
             if (state.type !== "error") {
                 continue;
             }
@@ -658,7 +675,7 @@ function onPagerDateChange(date: ScheduleDate): void {
     selectedDate.value = date;
 }
 
-function openPraiseDialog(lessonKey: string): void {
+function openPraiseDialog(lessonKey: string, konfettiOptions: ConfettiOptions): void {
     if (
         scheduleViewModel.praiseStates.value.get(lessonKey)?.type === "loading"
     ) {
@@ -666,11 +683,13 @@ function openPraiseDialog(lessonKey: string): void {
     }
 
     selectedPraiseLessonKey.value = lessonKey;
+    activeConfettiOptions.value = konfettiOptions;
     showPraiseDialog.value = true;
 }
 
 function submitPraise(text: string | null): void {
     const lessonKey = selectedPraiseLessonKey.value;
+    const confettiOptions = activeConfettiOptions.value ?? {};
 
     if (!lessonKey) {
         return;

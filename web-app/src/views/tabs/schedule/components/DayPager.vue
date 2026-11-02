@@ -82,6 +82,8 @@ import type {
     UiScheduleLesson,
 } from "../types";
 
+import type { ConfettiOptions } from "@/utils/confetti/confetti-engine";
+
 const props = defineProps<{
     days: readonly SchedulePagerDay[];
     selectedDate: ScheduleDate;
@@ -90,7 +92,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
     change: [date: ScheduleDate];
-    praise: [lessonKey: string];
+    praise: [lessonKey: string, confettiOptions: ConfettiOptions];
     rating: [lessonKey: string];
     menu: [lessonKey: string];
 }>();

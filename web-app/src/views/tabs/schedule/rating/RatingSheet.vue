@@ -201,6 +201,8 @@ import { RatingViewModel } from "./rating-view-model";
 
 import type { UiScheduleLesson } from "../types";
 
+import type { ConfettiOptions } from "@/utils/confetti/confetti-engine";
+
 const props = withDefaults(
     defineProps<{
         modelValue: boolean;
@@ -214,7 +216,7 @@ const props = withDefaults(
 
 const emit = defineEmits<{
     "update:modelValue": [value: boolean];
-    praise: [lessonKey: string];
+    praise: [lessonKey: string, confettiOptions: ConfettiOptions];
 }>();
 
 const ratingViewModel = new RatingViewModel();
@@ -372,14 +374,22 @@ function showOldMarkInfo(): void {
     Utilities.showText(strings.oldMarkInfo, true);
 }
 
-function onPraiseClick(): void {
+function onPraiseClick(event: MouseEvent): void {
     const lessonKey = props.lesson.lessonKey;
 
     if (!lessonKey || praiseLoading.value) {
         return;
     }
 
-    emit("praise", lessonKey);
+    const rect = (
+        event.currentTarget as HTMLElement
+    ).getBoundingClientRect();
+    const confettiOptions = {
+        x: rect.left + rect.width / 2,
+        y: rect.top + rect.height / 2,
+    }
+
+    emit("praise", lessonKey, confettiOptions);
 }
 
 /**
