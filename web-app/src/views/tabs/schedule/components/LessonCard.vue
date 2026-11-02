@@ -4,6 +4,11 @@
         :class="{
             'schedule-lesson-extra': lesson.isExtra,
         }"
+        @pointerdown="onPointerDown"
+        @pointermove="onPointerMove"
+        @pointerup="onPointerUp"
+        @pointercancel="cancelLongPress"
+        @contextmenu.prevent
     >
         <div class="lesson-main">
             <div class="lesson-heading">
@@ -41,7 +46,7 @@
                         class="lesson-mark"
                         :class="getMarkMoodClass(mark.mood)"
                         type="button"
-                        :disabled="!canOpenRating"
+                        :disabled="!props.interactive || !canOpenRating"
                         @click="onRatingClick"
                     >
                         {{ mark.value }}
@@ -136,7 +141,7 @@
             </div>
 
             <div
-                v-if="!lesson.isExtra && lesson.files.length"
+                v-if="!lesson.isExtra && props.showFiles && lesson.files.length"
                 class="lesson-files"
             >
                 <div
@@ -159,12 +164,31 @@
                 </div>
             </div>
         </div>
+
+        <svg
+            v-if="isLongPressing"
+            class="lesson-long-press-border"
+            aria-hidden="true"
+        >
+            <rect
+                class="lesson-long-press-path"
+                x="1"
+                y="1"
+                width="calc(100% - 2px)"
+                height="calc(100% - 2px)"
+                rx="14"
+                pathLength="1"
+                vector-effect="non-scaling-stroke"
+                @animationend="onLongPressAnimationEnd"
+            />
+        </svg>
     </article>
 </template>
 
 <script setup lang="ts">
 import {
     computed,
+    ref,
 } from "vue";
 
 import { isLoadError } from "@/ui-core/state-utils";
@@ -175,15 +199,116 @@ import type {
     UiScheduleLesson,
 } from "../types";
 
-const props = defineProps<{
-    lesson: UiScheduleLesson;
-    number: number;
-}>();
+const props = withDefaults(
+    defineProps<{
+        lesson: UiScheduleLesson;
+        number: number;
+        interactive?: boolean;
+        showPraiseAction?: boolean;
+        showFiles?: boolean;
+        menuEnabled?: boolean;
+    }>(),
+    {
+        interactive: true,
+        showPraiseAction: true,
+        showFiles: true,
+        menuEnabled: true,
+    },
+);
 
 const emit = defineEmits<{
     praise: [lessonKey: string];
     rating: [lessonKey: string];
+    menu: [lessonKey: string];
 }>();
+
+const LONG_PRESS_DURATION = 300;
+const LONG_PRESS_MOVE_LIMIT = 10;
+
+const isLongPressing = ref(false);
+
+let longPressPointerId: number | null = null;
+let longPressStartX = 0;
+let longPressStartY = 0;
+
+function onPointerDown(event: PointerEvent): void {
+    if (
+        !props.interactive ||
+        !props.menuEnabled ||
+        props.lesson.isExtra ||
+        !props.lesson.lessonKey ||
+        event.button !== 0
+    ) {
+        return;
+    }
+
+    const target = event.target;
+
+    if (
+        target instanceof Element &&
+        target.closest(
+            "button, a, input, textarea, select, label",
+        )
+    ) {
+        return;
+    }
+
+    longPressPointerId = event.pointerId;
+    longPressStartX = event.clientX;
+    longPressStartY = event.clientY;
+
+    isLongPressing.value = true;
+
+    const currentTarget = event.currentTarget;
+
+    if (
+        currentTarget instanceof HTMLElement &&
+        currentTarget.hasPointerCapture(event.pointerId) === false
+    ) {
+        currentTarget.setPointerCapture(event.pointerId);
+    }
+}
+
+function onPointerMove(event: PointerEvent): void {
+    if (longPressPointerId !== event.pointerId) {
+        return;
+    }
+
+    const deltaX = event.clientX - longPressStartX;
+    const deltaY = event.clientY - longPressStartY;
+
+    if (
+        Math.hypot(deltaX, deltaY) > LONG_PRESS_MOVE_LIMIT
+    ) {
+        cancelLongPress();
+    }
+}
+
+function onPointerUp(event: PointerEvent): void {
+    if (longPressPointerId === event.pointerId) {
+        cancelLongPress();
+    }
+}
+
+function cancelLongPress(): void {
+    longPressPointerId = null;
+    isLongPressing.value = false;
+}
+
+function onLongPressAnimationEnd(): void {
+    const lessonKey = props.lesson.lessonKey;
+
+    if (
+        longPressPointerId === null ||
+        !lessonKey ||
+        !isLongPressing.value
+    ) {
+        return;
+    }
+
+    cancelLongPress();
+    emit("menu", lessonKey);
+}
 
 interface HomeworkPart {
     type: "text" | "link";
@@ -251,6 +376,7 @@ const homeworkParts = computed(() => {
 });
 
 const showPraise = computed(() =>
+    props.showPraiseAction &&
     !props.lesson.isExtra &&
     props.lesson.lessonKey !== null &&
     props.lesson.praiseState !== null &&
@@ -275,7 +401,11 @@ const praiseError = computed(
 function onPraiseClick(): void {
     const lessonKey = props.lesson.lessonKey;
 
-    if (!lessonKey || praiseLoading.value) {
+    if (
+        !props.interactive ||
+        !lessonKey ||
+        praiseLoading.value
+    ) {
         return;
     }
 
@@ -285,7 +415,11 @@ function onPraiseClick(): void {
 function onRatingClick(): void {
     const lessonKey = props.lesson.lessonKey;
 
-    if (!canOpenRating.value || !lessonKey) {
+    if (
+        !props.interactive ||
+        !canOpenRating.value ||
+        !lessonKey
+    ) {
         return;
     }
 
@@ -330,6 +464,42 @@ function getMarkMoodClass(mood: string): string {
 
     background: var(--lesson-bg);
     color: var(--lesson-subject);
+}
+
+.schedule-lesson {
+    position: relative;
+}
+
+.lesson-long-press-border {
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+
+    width: 100%;
+    height: 100%;
+
+    overflow: visible;
+
+    pointer-events: none;
+}
+
+.lesson-long-press-path {
+    fill: none;
+    stroke: #fff;
+    stroke-width: 2px;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+
+    animation: lesson-long-press 300ms linear forwards;
+}
+
+@keyframes lesson-long-press {
+    to {
+        stroke-dashoffset: 0;
+    }
 }
 
 .schedule-lesson-extra {

@@ -311,9 +311,6 @@ export const strings = {
     version: (version: string, versionCode: number) =>
         `Версия: ${version} (${versionCode})`,
     defaultVersion: "Версия: 0.0.1",
-    android: (version: string, api: number) =>
-        `Android ${version} (API ${api})`,
-    defaultAndroid: "Android",
     developer: "Разработчик: Максим Дрючин, 2026",
 
     studyLessonMenu:

@@ -45,8 +45,10 @@
                             :key="item.key"
                             :lesson="item.lesson"
                             :number="item.number"
+                            :menu-enabled="item.lesson.lessonKey !== null"
                             @praise="emit('praise', $event)"
                             @rating="emit('rating', $event)"
+                            @menu="emit('menu', $event)"
                         />
                     </div>
                 </div>
@@ -90,6 +92,7 @@ const emit = defineEmits<{
     change: [date: ScheduleDate];
     praise: [lessonKey: string];
     rating: [lessonKey: string];
+    menu: [lessonKey: string];
 }>();
 
 const swiperInstance = shallowRef<SwiperInstance | null>(null);

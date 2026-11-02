@@ -27,6 +27,7 @@
             @change="onPagerDateChange"
             @praise="openPraiseDialog"
             @rating="openRating"
+            @menu="openLessonMenu"
         />
 
         <PraiseDialog
@@ -40,6 +41,35 @@
             v-model="showRatingSheet"
             :lesson="selectedRatingLesson"
             @praise="openPraiseDialog"
+        />
+
+        <LessonMenu
+            v-if="selectedMenuLesson"
+            v-model="showLessonMenu"
+            :lesson="selectedMenuLesson"
+            @note="openNoteEditor"
+            @delete-note="openDeleteNoteDialog"
+            @praise="openMenuPraise"
+            @rating="openMenuRating"
+            @dnevnik="openLessonDnevnik"
+        />
+
+        <NoteEditorDialog
+            :visible="showNoteEditor"
+            :note="selectedMenuLesson?.note ?? null"
+            :timezone="scheduleData?.timezone ?? timezoneOffsetSeconds"
+            @close="closeNoteEditor"
+            @submit="submitLessonNote"
+        />
+
+        <AppDialog
+            :visible="showDeleteNoteDialog"
+            :title="strings.titleDialogDeleteNote"
+            :message="strings.messageDialogDeleteNote"
+            :action-text="strings.buttonDialogDeleteNote"
+            :cancel-text="strings.cancel"
+            @action="confirmDeleteNote"
+            @cancel="cancelDeleteNote"
         />
     </div>
 </template>
@@ -55,12 +85,16 @@ import { strings } from "@/constants/strings";
 import { Utilities } from "@/utils/utils";
 import { useSettingsStore } from "@/stores/settings";
 import { setShownError } from "@/ui-core/state-utils";
+import { LoadState } from "@/ui-core/load-state";
 
 import CalendarStrip from "./components/CalendarStrip.vue";
 import DayPager from "./components/DayPager.vue";
 import CalendarSkeleton from "./skeleton/CalendarSkeleton.vue";
 import PraiseDialog from "@/components/PraiseDialog.vue";
 import RatingSheet from "./rating/RatingSheet.vue";
+import AppDialog from "@/components/AppDialog.vue";
+import LessonMenu from "./components/LessonMenu.vue";
+import NoteEditorDialog from "./components/NoteEditorDialog.vue";
 
 import { ScheduleViewModel } from "./schedule-view-model";
 
@@ -184,14 +218,20 @@ const scheduleDays = computed<SchedulePagerDay[]>(() => {
                     }
 
                     const praiseState = praiseStates.get(lesson.lessonKey);
+                    const noteState = scheduleViewModel.noteStates.value.get(
+                        lesson.lessonKey,
+                    );
 
-                    if (!praiseState) {
+                    if (!praiseState && !noteState) {
                         return lesson;
                     }
 
                     return {
                         ...lesson,
-                        praiseState: praiseState as UiScheduleDay["lessons"][number]["praiseState"],
+                        praiseState: praiseState
+                            ? praiseState as UiScheduleLesson["praiseState"]
+                            : lesson.praiseState,
+                        noteState: noteState ?? lesson.noteState,
                     };
                 }),
             },
@@ -204,6 +244,151 @@ const selectedPraiseLessonKey = ref<string | null>(null);
 
 const showRatingSheet = ref(false);
 const selectedRatingLessonKey = ref<string | null>(null);
+
+const showLessonMenu = ref(false);
+const showNoteEditor = ref(false);
+const showDeleteNoteDialog = ref(false);
+
+const selectedLessonKey = ref<string | null>(null);
+
+const selectedMenuLesson = computed<UiScheduleLesson | null>(() => {
+    const lessonKey = selectedLessonKey.value;
+
+    if (!lessonKey) {
+        return null;
+    }
+
+    const lesson = scheduleData.value?.schedule
+        .flatMap(day => day?.lessons ?? [])
+        .find(item => item.lessonKey === lessonKey);
+
+    if (!lesson) {
+        return null;
+    }
+
+    const praiseState = scheduleViewModel.praiseStates.value.get(
+        lessonKey,
+    );
+
+    const noteState = scheduleViewModel.noteStates.value.get(
+        lessonKey,
+    );
+
+    return {
+        ...lesson,
+        praiseState: praiseState
+            ? praiseState as UiScheduleLesson["praiseState"]
+            : lesson.praiseState,
+        noteState: noteState ?? lesson.noteState,
+    };
+});
+
+function openLessonMenu(lessonKey: string): void {
+    const lesson = scheduleData.value?.schedule
+        .flatMap(day => day?.lessons ?? [])
+        .find(item => item.lessonKey === lessonKey);
+
+    if (!lesson || lesson.isExtra || !lesson.lessonKey) {
+        return;
+    }
+
+    selectedLessonKey.value = lessonKey;
+    showLessonMenu.value = true;
+}
+
+function openNoteEditor(): void {
+    if (!selectedMenuLesson.value) {
+        return;
+    }
+
+    showNoteEditor.value = true;
+}
+
+function closeNoteEditor(): void {
+    showNoteEditor.value = false;
+    selectedLessonKey.value = null;
+}
+
+function submitLessonNote(data: {
+    text: string;
+    public: boolean;
+    remindTime: string | null;
+}): void {
+    const lessonKey = selectedLessonKey.value;
+
+    if (!lessonKey) {
+        return;
+    }
+
+    showNoteEditor.value = false;
+
+    scheduleViewModel.createLessonNote(
+        lessonKey,
+        data.text,
+        data.public,
+        data.remindTime,
+    );
+
+    selectedLessonKey.value = null;
+}
+
+function openDeleteNoteDialog(): void {
+    if (!selectedMenuLesson.value?.note?.text.trim()) {
+        return;
+    }
+
+    showDeleteNoteDialog.value = true;
+}
+
+function cancelDeleteNote(): void {
+    showDeleteNoteDialog.value = false;
+    selectedLessonKey.value = null;
+}
+
+function confirmDeleteNote(): void {
+    const lessonKey = selectedLessonKey.value;
+
+    showDeleteNoteDialog.value = false;
+
+    if (!lessonKey) {
+        return;
+    }
+
+    scheduleViewModel.deleteLessonNote(lessonKey);
+    selectedLessonKey.value = null;
+}
+
+function openMenuPraise(): void {
+    const lessonKey = selectedLessonKey.value;
+
+    if (!lessonKey) {
+        return;
+    }
+
+    openPraiseDialog(lessonKey);
+    selectedLessonKey.value = null;
+}
+
+function openMenuRating(): void {
+    const lessonKey = selectedLessonKey.value;
+
+    if (!lessonKey) {
+        return;
+    }
+
+    openRating(lessonKey);
+    selectedLessonKey.value = null;
+}
+
+function openLessonDnevnik(): void {
+    const url = selectedMenuLesson.value?.dnevnikruUrl;
+
+    if (url) {
+        window.open(url, "_blank", "noopener,noreferrer");
+    }
+
+    selectedLessonKey.value = null;
+}
 
 const selectedRatingLesson = computed<UiScheduleLesson | null>(() => {
     const lessonKey = selectedRatingLessonKey.value;
@@ -309,6 +494,12 @@ watch(
 
             selectedDate.value = defaultDate.value;
             scheduleViewModel.resetSchedule();
+
+            showLessonMenu.value = false;
+            showNoteEditor.value = false;
+            showDeleteNoteDialog.value = false;
+            selectedLessonKey.value = null;
+
             return;
         }
 
@@ -384,8 +575,7 @@ watch(
             case "cloudError":
                 Utilities.showUiMessage(state.message);
 
-                scheduleViewModel.scheduleState.value =
-                    setShownError(state);
+                setShownError(scheduleViewModel.scheduleState);
 
                 break;
 
@@ -418,6 +608,30 @@ watch(
             );
 
             scheduleViewModel.praiseStates.value = updatedStates;
+        }
+    },
+);
+
+watch(
+    () => scheduleViewModel.noteStates.value,
+    (states) => {
+        for (const [lessonKey, state] of states) {
+            if (state.type !== "error") {
+                continue;
+            }
+
+            Utilities.showUiMessage(state.message);
+
+            const updatedStates = new Map(
+                scheduleViewModel.noteStates.value,
+            );
+
+            updatedStates.set(
+                lessonKey,
+                LoadState.shownError(),
+            );
+
+            scheduleViewModel.noteStates.value = updatedStates;
         }
     },
 );

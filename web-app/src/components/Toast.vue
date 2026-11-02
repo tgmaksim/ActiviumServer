@@ -54,7 +54,7 @@ onBeforeUnmount(() => {
 .toast {
     position: fixed;
     z-index: 10000;
-    bottom: calc(90px + env(safe-area-inset-bottom, 0px));
+    bottom: calc(120px + env(safe-area-inset-bottom, 0px));
     left: 50%;
     transform: translateX(-50%);
 

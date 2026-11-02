@@ -747,8 +747,7 @@ watch(
         if (state.type === "error") {
             Utilities.showUiMessage(state.message);
 
-            settingsViewModel.statusEANotificationsState.value =
-                setShownError(state);
+            setShownError(settingsViewModel.statusEANotificationsState);
         }
     },
     { immediate: true },
@@ -765,8 +764,7 @@ watch(
         if (state.type === "error") {
             Utilities.showUiMessage(state.message);
 
-            settingsViewModel.statusMarksNotificationsState.value =
-                setShownError(state);
+            setShownError(settingsViewModel.statusMarksNotificationsState);
         }
     },
     { immediate: true },
@@ -783,7 +781,7 @@ watch(
         if (state.type === "error") {
             Utilities.showUiMessage(state.message);
 
-            settingsViewModel.childrenState.value = setShownError(state);
+            setShownError(settingsViewModel.childrenState);
         }
     },
     { immediate: true },
@@ -804,7 +802,7 @@ watch(
             case "error":
                 Utilities.showUiMessage(state.message);
 
-                settingsViewModel.reviewState.value = setShownError(state);
+                setShownError(settingsViewModel.reviewState);
                 break;
 
             case "success":
@@ -839,7 +837,7 @@ watch(
         if (state.type === "error") {
             Utilities.showUiMessage(state.message);
 
-            settingsViewModel.referralState.value = setShownError(state);
+            setShownError(settingsViewModel.referralState);
         }
     },
     { immediate: true },
@@ -901,8 +899,7 @@ async function toggleMarksNotifications(event: Event): Promise<void> {
     const desired = (event.target as HTMLInputElement).checked;
 
     const previousState = settingsViewModel.statusMarksNotificationsState.value;
-    settingsViewModel.statusMarksNotificationsState.value =
-        setLoading(settingsViewModel.statusMarksNotificationsState);
+    setLoading(settingsViewModel.statusMarksNotificationsState);
 
     if (desired) {
         try {
@@ -934,8 +931,7 @@ async function toggleEaNotifications(event: Event): Promise<void> {
     const desired = (event.target as HTMLInputElement).checked;
 
     const previousState = settingsViewModel.statusEANotificationsState.value;
-    settingsViewModel.statusEANotificationsState.value =
-        setLoading(settingsViewModel.statusEANotificationsState);
+    setLoading(settingsViewModel.statusEANotificationsState);
 
     if (desired) {
         try {

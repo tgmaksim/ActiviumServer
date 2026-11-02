@@ -427,9 +427,7 @@ watch(
             case "cloudError":
                 Utilities.showUiMessage(state.message);
 
-                ratingViewModel.lessonRatingState.value = setShownCacheError(
-                    ratingViewModel.lessonRatingState,
-                );
+                setShownCacheError(ratingViewModel.lessonRatingState);
 
                 break;
         }
