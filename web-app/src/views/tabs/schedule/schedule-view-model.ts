@@ -20,6 +20,7 @@ import type {
 
 import { CacheManager } from "@/data/cache/cache-manager";
 import { useSettingsStore } from "@/stores/settings";
+
 import { Utilities } from "@/utils/utils";
 
 import type { StringResourceKey } from "@/constants/strings";

@@ -40,17 +40,15 @@
                     v-if="lesson.logs.length > 0"
                     class="lesson-marks"
                 >
-                    <button
+                    <MarkBadge
                         v-for="(mark, index) in lesson.logs"
                         :key="index"
-                        class="lesson-mark"
-                        :class="getMarkMoodClass(mark.mood)"
-                        type="button"
+                        :mark="mark"
+                        size="lesson"
+                        interactive
                         :disabled="!props.interactive || !canOpenRating"
                         @click="onRatingClick"
-                    >
-                        {{ mark.value }}
-                    </button>
+                    />
                 </div>
 
                 <div
@@ -200,6 +198,8 @@ import type {
 } from "../types";
 
 import type { ConfettiOptions } from "@/utils/confetti/confetti-engine";
+
+import MarkBadge from "@/components/MarkBadge.vue";
 
 const props = withDefaults(
     defineProps<{
@@ -439,23 +439,6 @@ function onRatingClick(): void {
 const homeworkEmoji = strings.homeworkEmoji;
 const noteEmoji = strings.noteEmoji;
 const homeworkDocumentEmoji = strings.homeworkDocumentEmoji;
-
-function getMarkMoodClass(mood: string): string {
-    switch (mood) {
-        case "good":
-            return "lesson-mark-good";
-
-        case "average":
-            return "lesson-mark-average";
-
-        case "bad":
-            return "lesson-mark-bad";
-
-        case "more":
-        default:
-            return "lesson-mark-more";
-    }
-}
 </script>
 
 <style scoped>
@@ -563,62 +546,6 @@ function getMarkMoodClass(mood: string): string {
     align-items: center;
     gap: 5px;
     margin-left: auto;
-}
-
-.lesson-mark {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    min-width: 32px;
-    height: 32px;
-    padding: 4px;
-
-    border: 1px solid var(--mark-log-bg);
-    border-radius: 5px;
-    background: var(--mark-log-bg);
-
-    color: #fff;
-    font-size: 20px;
-    font-family: sans-serif;
-    font-weight: 500;
-    line-height: 1;
-
-    cursor: pointer;
-}
-
-.lesson-mark-good {
-    background: var(--mark-log-good);
-}
-
-.lesson-mark-average {
-    background: var(--mark-log-average);
-}
-
-.lesson-mark-bad {
-    background: var(--mark-log-bad);
-}
-
-.lesson-mark-more {
-    background: var(--mark-log-more);
-}
-
-.lesson-mark:active {
-    background: var(--mark-log-pressed);
-}
-
-.lesson-mark {
-    position: relative;
-    isolation: isolate;
-}
-
-.lesson-mark:active::after {
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    background: var(--mark-log-pressed);
-    content: "";
-    pointer-events: none;
 }
 
 .lesson-works {

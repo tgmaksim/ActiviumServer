@@ -1,3 +1,13 @@
+import type {
+    ScheduleDay,
+    SchoolPost,
+    ScheduleLesson,
+} from "@/api/dnevnik";
+
+import type { Note, NoteResult } from "@/api/dtools";
+
+import { LoadState } from "@/ui-core/load-state";
+
 /**
  * Календарная дата в формате YYYY-MM-DD.
  */
@@ -46,9 +56,3 @@ export interface SchedulePagerDay {
     date: ScheduleDate;
     data: UiScheduleDay | null;
 }
-
-/**
- * Алиасы для совместимости с существующими компонентами.
- */
-export type ScheduleDay = UiScheduleDay;
-export type ScheduleLesson = UiScheduleLesson;
