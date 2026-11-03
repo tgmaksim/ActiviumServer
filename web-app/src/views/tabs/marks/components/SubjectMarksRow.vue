@@ -3,21 +3,40 @@
         v-if="mode === 'period'"
         class="subject-row subject-row-period"
     >
-        <div class="subject-name">
+        <button
+            class="subject-name subject-name-button"
+            type="button"
+            @click="openSubjectRating"
+        >
             {{ subject }}
-        </div>
+        </button>
 
         <div class="subject-marks">
             <MarkBadge
                 v-for="(mark, index) in marks"
                 :key="index"
                 :mark="mark"
+                :interactive="Boolean(mark?.ratingKey)"
+                :disabled="!mark?.ratingKey"
+                @click="mark && emit('mark-rating', mark, subject)"
             />
         </div>
 
-        <MarkBadge :mark="averageMark" />
+        <button
+            class="subject-rating-button"
+            type="button"
+            @click="openSubjectRating"
+        >
+            <MarkBadge :mark="averageMark" />
+        </button>
 
-        <MarkBadge :mark="periodMark" />
+        <button
+            class="subject-rating-button"
+            type="button"
+            @click="openSubjectRating"
+        >
+            <MarkBadge :mark="periodMark" />
+        </button>
     </div>
 
     <div
@@ -36,6 +55,9 @@
                 v-for="(mark, index) in marks"
                 :key="index"
                 :mark="mark"
+                :interactive="Boolean(mark?.ratingKey)"
+                :disabled="!mark?.ratingKey"
+                @click="mark && emit('mark-rating', mark, subject)"
             />
 
             <MarkBadge
@@ -44,7 +66,12 @@
             />
         </div>
 
-        <MarkBadge :mark="finalMark" />
+        <MarkBadge
+            :mark="finalMark"
+            :interactive="Boolean(finalMark?.ratingKey)"
+            :disabled="!finalMark?.ratingKey"
+            @click="finalMark && emit('mark-rating', finalMark, subject)"
+        />
     </div>
 </template>
 
@@ -53,21 +80,46 @@ import MarkBadge from "@/components/MarkBadge.vue";
 
 import type { MarkLog } from "@/api/dnevnik";
 
-withDefaults(
+const props = withDefaults(
     defineProps<{
         subject: string;
         mode: "period" | "year";
         marks: readonly (MarkLog | null)[];
+        ratingKey?: string;
         averageMark?: MarkLog | null;
         periodMark?: MarkLog | null;
         finalMark?: MarkLog | null;
     }>(),
     {
+        ratingKey: undefined,
         averageMark: null,
         periodMark: null,
         finalMark: null,
     },
 );
+
+const emit = defineEmits<{
+    "mark-rating": [
+        mark: MarkLog,
+        subject: string,
+    ];
+    "subject-rating": [
+        ratingKey: string,
+        subject: string,
+    ];
+}>();
+
+function openSubjectRating(): void {
+    if (!props.ratingKey) {
+        return;
+    }
+
+    emit(
+        "subject-rating",
+        props.ratingKey,
+        props.subject,
+    );
+}
 </script>
 
 <style scoped>
@@ -78,7 +130,7 @@ withDefaults(
     width: 100%;
     min-width: 0;
 
-    padding: 10px 8px;
+    padding: 5px 0;
 }
 
 .subject-row-period {
@@ -113,6 +165,17 @@ withDefaults(
     hyphens: auto;
 }
 
+.subject-name-button {
+    padding: 0;
+
+    border: 0;
+    background: transparent;
+
+    text-align: left;
+
+    cursor: pointer;
+}
+
 .subject-marks {
     display: flex;
     flex-wrap: wrap;
@@ -134,6 +197,20 @@ withDefaults(
     gap: 2px;
 
     min-width: 0;
+}
+
+.subject-rating-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    min-width: 0;
+    padding: 0;
+
+    border: 0;
+    background: transparent;
+
+    cursor: pointer;
 }
 
 .subject-row-year > :last-child,

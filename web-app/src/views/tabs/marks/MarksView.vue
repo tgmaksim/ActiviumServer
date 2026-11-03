@@ -30,6 +30,7 @@
                     v-for="(mark, index) in marksData?.recentMarks ?? []"
                     :key="mark.ratingKey || index"
                     :mark="mark"
+                    @rating="openRecentMarkRating"
                 />
             </div>
         </div>
@@ -88,10 +89,13 @@
                     v-for="subject in visiblePeriodMarks"
                     :key="subject.ratingKey"
                     :subject="subject.subject"
+                    :rating-key="subject.ratingKey"
                     mode="period"
                     :marks="subject.marks"
                     :average-mark="subject.averageMark"
                     :period-mark="subject.periodMark"
+                    @mark-rating="openMarkRating"
+                    @subject-rating="openSubjectRating"
                 />
             </template>
 
@@ -103,10 +107,27 @@
                     mode="year"
                     :marks="subject.marks"
                     :final-mark="subject.finalMark"
+                    @mark-rating="openMarkRating"
                 />
             </template>
         </div>
     </div>
+
+    <MarkRatingSheet
+        v-if="selectedMarkRating"
+        v-model="showMarkRating"
+        :rating-key="selectedMarkRating.ratingKey"
+        :subject="selectedMarkRating.subject"
+        :mark="selectedMarkRating.mark"
+    />
+
+    <SubjectRatingSheet
+        v-if="selectedSubjectRating"
+        v-model="showSubjectRating"
+        :rating-key="selectedSubjectRating.ratingKey"
+        :subject="selectedSubjectRating.subject"
+        :class-rating="selectedSubjectRating.classRating"
+    />
 </template>
 
 <script setup lang="ts">
@@ -132,12 +153,27 @@ import { MarksViewModel } from "./marks-view-model";
 import LastMarkCard from "./components/LastMarkCard.vue";
 import SubjectMarksRow from "./components/SubjectMarksRow.vue";
 import MarksSkeleton from "./skeleton/MarksSkeleton.vue";
+import MarkRatingSheet from "@/components/rating/MarkRatingSheet.vue";
+import SubjectRatingSheet from "./rating/SubjectRatingSheet.vue";
 
-import type { MarksSubjectPeriod, MarksSubjectFinal } from "@/api/dnevnik";
+import type {
+    MarkLog,
+    MarkLast,
+    MarksSubjectPeriod,
+    MarksSubjectFinal,
+} from "@/api/dnevnik";
 
-const emit = defineEmits<{
-    "class-rating": [ratingKey: string];
-}>();
+interface SelectedMarkRating {
+    ratingKey: string;
+    subject: string;
+    mark: MarkLog;
+}
+
+interface SelectedSubjectRating {
+    ratingKey: string;
+    subject: string | null;
+    classRating: boolean;
+}
 
 const settings = useSettingsStore();
 
@@ -174,6 +210,12 @@ const isRefreshing = computed(() =>
 type MarksTable = "period" | "year";
 
 const currentTable = ref<MarksTable>("period");
+
+const showMarkRating = ref(false);
+const selectedMarkRating = ref<SelectedMarkRating | null>(null);
+
+const showSubjectRating = ref(false);
+const selectedSubjectRating = ref<SelectedSubjectRating | null>(null);
 
 /**
  * Предметы фильтруются непосредственно по настройке.
@@ -337,6 +379,12 @@ watch(
 
         currentTable.value = "period";
 
+        showMarkRating.value = false;
+        selectedMarkRating.value = null;
+
+        showSubjectRating.value = false;
+        selectedSubjectRating.value = null;
+
         marksViewModel.resetMarks();
     },
 );
@@ -361,15 +409,71 @@ function selectTable(table: MarksTable): void {
 }
 
 /**
- * Кнопка сохраняется активной.
- * Сам рейтинг будет подключён отдельной реализацией.
+ * Рейтинг последней оценки.
+ */
+function openRecentMarkRating(mark: MarkLast): void {
+    selectedMarkRating.value = {
+        ratingKey: mark.ratingKey,
+        subject: mark.subject,
+        mark: mark.mark,
+    };
+
+    showMarkRating.value = true;
+}
+
+/**
+ * Рейтинг оценки из таблицы.
+ */
+function openMarkRating(
+    mark: MarkLog,
+    subject: string,
+): void {
+    if (!mark.ratingKey) {
+        return;
+    }
+
+    selectedMarkRating.value = {
+        ratingKey: mark.ratingKey,
+        subject,
+        mark,
+    };
+
+    showMarkRating.value = true;
+}
+
+/**
+ * Рейтинг конкретного предмета.
+ */
+function openSubjectRating(
+    ratingKey: string,
+    subject: string,
+): void {
+    selectedSubjectRating.value = {
+        ratingKey,
+        subject,
+        classRating: false,
+    };
+
+    showSubjectRating.value = true;
+}
+
+/**
+ * Общий рейтинг класса.
  */
 function onClassRatingClick(): void {
     const ratingKey = marksData.value?.ratingKey;
 
-    if (ratingKey) {
-        emit("class-rating", ratingKey);
+    if (!ratingKey) {
+        return;
     }
+
+    selectedSubjectRating.value = {
+        ratingKey,
+        subject: null,
+        classRating: true,
+    };
+
+    showSubjectRating.value = true;
 }
 
 /**

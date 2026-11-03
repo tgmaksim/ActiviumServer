@@ -1,5 +1,10 @@
 <template>
-    <div class="last-mark-card">
+    <button
+        class="last-mark-card"
+        type="button"
+        :aria-label="strings.openRating"
+        @click="emit('rating', mark)"
+    >
         <MarkBadge
             :mark="mark.mark"
             size="large"
@@ -12,7 +17,7 @@
         <div class="last-mark-detail">
             {{ detail }}
         </div>
-    </div>
+    </button>
 </template>
 
 <script setup lang="ts">
@@ -26,6 +31,10 @@ import type { MarkLast } from "@/api/dnevnik";
 
 const props = defineProps<{
     mark: MarkLast;
+}>();
+
+const emit = defineEmits<{
+    rating: [mark: MarkLast];
 }>();
 
 const detail = computed(() => {
@@ -56,6 +65,18 @@ const detail = computed(() => {
     min-width: 0;
 
     padding: 4px;
+
+    border: 0;
+    background: transparent;
+    color: inherit;
+
+    text-align: left;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.last-mark-card:active {
+    opacity: 0.75;
 }
 
 .last-mark-subject {
@@ -74,6 +95,7 @@ const detail = computed(() => {
 .last-mark-detail {
     color: var(--text-secondary);
     font-size: 11px;
+    margin-top: 5px;
 
     overflow-wrap: anywhere;
 }

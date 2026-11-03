@@ -35,7 +35,7 @@ import type { MarkLog } from "@/api/dnevnik";
 const props = withDefaults(
     defineProps<{
         mark: MarkLog | null;
-        size?: "compact" | "lesson" | "large";
+        size?: "compact" | "lesson" | "large" | "rating";
         interactive?: boolean;
         disabled?: boolean;
     }>(),
@@ -80,6 +80,7 @@ const moodClass = computed(() => {
     padding: 0 3px;
 
     border-radius: 5px;
+    border: 0;
 
     background: var(--mark-log-bg);
     color: #FFFFFF;
@@ -119,6 +120,15 @@ const moodClass = computed(() => {
 
     font-size: 22px;
     font-weight: bold;
+}
+
+.mark-badge-rating {
+    min-width: 32px;
+    height: 32px;
+
+    padding: 4px;
+
+    font-size: 20px;
 }
 
 .mark-badge-good {

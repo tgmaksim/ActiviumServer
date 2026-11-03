@@ -11,6 +11,7 @@ import type {
     ScheduleLesson,
 } from "@/api/dnevnik";
 import { DnevnikTools } from "@/api/dtools";
+import { Praise } from "@/api/praise";
 import type { Note, NoteResult } from "@/api/dtools";
 import { School } from "@/api/school";
 import type {
@@ -308,7 +309,7 @@ export class ScheduleViewModel extends UiViewModel {
             lessonKey,
             "praise",
             "errorPraise" as StringResourceKey,
-            () => DnevnikTools.sendPraise(lessonKey, null, text),
+            () => Praise.sendForLesson(lessonKey, text),
             () => ({}),
         );
     }

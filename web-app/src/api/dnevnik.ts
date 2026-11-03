@@ -208,9 +208,10 @@ export interface MarksRatingStatsApiResponse
  * Результат общего или предметного рейтинга.
  */
 export interface MarksSubjectRatingResult extends ApiBase {
-    classId: 0x1C;
+    classId: 0x59;
     rating: MarksOther[];
     oldMark: MarksOther | null;
+    isRatingUp: boolean | null;
 }
 
 /**
@@ -218,7 +219,7 @@ export interface MarksSubjectRatingResult extends ApiBase {
  */
 export interface MarksSubjectRatingApiResponse
     extends ApiResponse<MarksSubjectRatingResult | null> {
-    classId: 0x1D | 0x2;
+    classId: 0x5A | 0x2;
 }
 
 /**
@@ -261,7 +262,7 @@ const SCHEDULE_VERSION = 1;
 const LESSON_RATING_STATS_VERSION = 0;
 const MARKS_VERSION = 0;
 const MARK_RATING_STATS_VERSION = 1;
-const MARKS_SUBJECT_RATING_VERSION = 0;
+const MARKS_SUBJECT_RATING_VERSION = 1;
 const FINAL_MARKS_VERSION = 0;
 
 /**

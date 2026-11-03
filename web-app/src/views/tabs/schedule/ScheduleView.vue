@@ -36,7 +36,7 @@
             @submit="submitPraise"
         />
 
-        <RatingSheet
+        <LessonRatingSheet
             v-if="selectedRatingLesson"
             v-model="showRatingSheet"
             :lesson="selectedRatingLesson"
@@ -91,7 +91,7 @@ import CalendarStrip from "./components/CalendarStrip.vue";
 import DayPager from "./components/DayPager.vue";
 import CalendarSkeleton from "./skeleton/CalendarSkeleton.vue";
 import PraiseDialog from "@/components/PraiseDialog.vue";
-import RatingSheet from "./rating/RatingSheet.vue";
+import LessonRatingSheet from "./rating/LessonRatingSheet.vue";
 import AppDialog from "@/components/AppDialog.vue";
 import LessonMenu from "./components/LessonMenu.vue";
 import NoteEditorDialog from "./components/NoteEditorDialog.vue";
