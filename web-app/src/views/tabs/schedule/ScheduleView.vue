@@ -6,6 +6,12 @@
             aria-label="Загрузка расписания"
         ></span>
 
+        <AdBanner
+            v-if="ad"
+            :ad="ad"
+            @click="(adId) => appViewModel.clickAd(adId)"
+        />
+
         <div class="schedule-calendar-container">
             <CalendarSkeleton
                 v-if="isLoading"
@@ -76,6 +82,7 @@
 
 <script setup lang="ts">
 import {
+    inject,
     computed,
     ref,
     watch,
@@ -95,8 +102,10 @@ import LessonRatingSheet from "./rating/LessonRatingSheet.vue";
 import AppDialog from "@/components/AppDialog.vue";
 import LessonMenu from "./components/LessonMenu.vue";
 import NoteEditorDialog from "./components/NoteEditorDialog.vue";
+import AdBanner from "@/components/AdBanner.vue";
 
 import { ScheduleViewModel } from "./schedule-view-model";
+import { appViewModelKey } from "@/views/app/app-view-model";
 
 import {
     addDays,
@@ -112,6 +121,7 @@ import type {
     UiScheduleDay,
     UiScheduleLesson,
 } from "./types";
+import type { Ad } from "@/api/ads";
 
 import {
     useConfetti,
@@ -123,7 +133,11 @@ const {
 } = useConfetti();
 
 const settings = useSettingsStore();
+
 const scheduleViewModel = new ScheduleViewModel();
+const appViewModel = inject(appViewModelKey);
+
+const ad = ref<Ad | null>(null);
 
 const scheduleData = computed(
     () => scheduleViewModel.scheduleData.value,
@@ -444,6 +458,18 @@ function openRating(lessonKey: string): void {
 
     selectedRatingLessonKey.value = lessonKey;
     showRatingSheet.value = true;
+}
+
+if (appViewModel) {
+    watch(
+        () => appViewModel.adState.value,
+        (state) => {
+            ad.value = state.type === "success"
+                ? state.data.ad
+                : null;
+        },
+        { immediate: true },
+    );
 }
 
 /**

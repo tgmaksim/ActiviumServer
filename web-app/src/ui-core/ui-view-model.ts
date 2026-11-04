@@ -219,13 +219,19 @@ export default class UiViewModel {
             mapSuccess = arg6 as SuccessMapper<ApiResponseLike, unknown>;
             onSuccess = arg7 as SuccessCallback<unknown> | undefined;
             options = arg8 as RequestOptions | undefined;
-        } else {
+        } else if (typeof arg6 === "function") {
             apiName = arg2 as string;
             errorRes = arg3 as StringResourceKey;
             request = arg4 as RequestFunction<ApiResponseLike>;
             mapSuccess = arg5 as SuccessMapper<ApiResponseLike, unknown>;
             onSuccess = arg6 as SuccessCallback<unknown> | undefined;
             options = arg7 as RequestOptions | undefined;
+        } else {
+            apiName = arg2 as string;
+            errorRes = arg3 as StringResourceKey;
+            request = arg4 as RequestFunction<ApiResponseLike>;
+            mapSuccess = arg5 as SuccessMapper<ApiResponseLike, unknown>;
+            options = arg6 as RequestOptions | undefined;
         }
 
         const requestId = ++this.nextRequestId;

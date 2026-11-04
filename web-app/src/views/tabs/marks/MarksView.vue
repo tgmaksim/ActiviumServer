@@ -7,6 +7,12 @@
         @touchend="onTouchEnd"
         @touchcancel="onTouchEnd"
     >
+        <AdBanner
+            v-if="ad"
+            :ad="ad"
+            @click="(adId) => appViewModel.clickAd(adId)"
+        />
+
         <span
             v-if="isRefreshing"
             class="marks-refresh-loader"
@@ -132,6 +138,7 @@
 
 <script setup lang="ts">
 import {
+    inject,
     computed,
     ref,
     watch,
@@ -149,12 +156,14 @@ import {
 import { CacheDataLoadState } from "@/ui-core/cache-data-load-state";
 
 import { MarksViewModel } from "./marks-view-model";
+import { appViewModelKey } from "@/views/app/app-view-model";
 
 import LastMarkCard from "./components/LastMarkCard.vue";
 import SubjectMarksRow from "./components/SubjectMarksRow.vue";
 import MarksSkeleton from "./skeleton/MarksSkeleton.vue";
 import MarkRatingSheet from "@/components/rating/MarkRatingSheet.vue";
 import SubjectRatingSheet from "./rating/SubjectRatingSheet.vue";
+import AdBanner from "@/components/AdBanner.vue";
 
 import type {
     MarkLog,
@@ -162,6 +171,7 @@ import type {
     MarksSubjectPeriod,
     MarksSubjectFinal,
 } from "@/api/dnevnik";
+import type { Ad } from "@/api/ads";
 
 interface SelectedMarkRating {
     ratingKey: string;
@@ -178,6 +188,9 @@ interface SelectedSubjectRating {
 const settings = useSettingsStore();
 
 const marksViewModel = new MarksViewModel();
+const appViewModel = inject(appViewModelKey);
+
+const ad = ref<Ad | null>(null);
 
 const marksData = computed(
     () => marksViewModel.marksData.value,
@@ -265,6 +278,18 @@ function filterYearMarks(
     return marks.filter(subject =>
         subject.marks.some(mark => mark !== null) ||
         subject.finalMark !== null,
+    );
+}
+
+if (appViewModel) {
+    watch(
+        () => appViewModel.adState.value,
+        (state) => {
+            ad.value = state.type === "success"
+                ? state.data.ad
+                : null;
+        },
+        { immediate: true },
     );
 }
 

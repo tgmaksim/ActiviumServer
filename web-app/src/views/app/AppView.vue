@@ -19,9 +19,51 @@
 </template>
 
 <script setup lang="ts">
+import { onBeforeUnmount, onMounted, provide } from "vue";
+
 import BottomNavigation from "@/components/BottomNavigation.vue";
 import Toast from "@/components/Toast.vue";
-import ConfettiCanvas from "@/components/ConfettiCanvas.vue"
+import ConfettiCanvas from "@/components/ConfettiCanvas.vue";
+
+import { AppViewModel, appViewModelKey } from "@/views/app/app-view-model";
+
+// Единый экземпляр ViewModel для всего приложения
+const appViewModel = new AppViewModel();
+
+provide(appViewModelKey, appViewModel);
+
+// Отслеживание возвращения приложения из фонового режима
+let wasHidden = false;
+
+function handleVisibilityChange(): void {
+    if (document.visibilityState === "hidden") {
+        wasHidden = true;
+        return;
+    }
+
+    if (wasHidden) {
+        wasHidden = false;
+
+        appViewModel.checkAccessibleAd();
+    }
+}
+
+onMounted(() => {
+    document.addEventListener(
+        "visibilitychange",
+        handleVisibilityChange,
+    );
+
+    // Первоначальная проверка рекламы
+    appViewModel.checkAccessibleAd();
+});
+
+onBeforeUnmount(() => {
+    document.removeEventListener(
+        "visibilitychange",
+        handleVisibilityChange,
+    );
+});
 </script>
 
 <style scoped>

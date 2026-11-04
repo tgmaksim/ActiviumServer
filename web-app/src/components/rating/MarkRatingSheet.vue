@@ -230,7 +230,7 @@ watch(
             return;
         }
 
-        Utilities.showUiMessage(strings.praiseSent);
+        Utilities.showText(strings.praiseSent);
 
         ratingViewModel.resetPraise();
 

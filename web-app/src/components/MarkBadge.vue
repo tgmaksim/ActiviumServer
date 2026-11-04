@@ -91,6 +91,7 @@ const moodClass = computed(() => {
 
     white-space: nowrap;
     user-select: none;
+    cursor: pointer;
 }
 
 .mark-badge-compact {

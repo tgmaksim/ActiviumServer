@@ -3,7 +3,7 @@ import {
     createWebHistory,
 } from "vue-router";
 
-import AppView from "@/views/AppView.vue";
+import AppView from "@/views/app/AppView.vue";
 import LoginView from "@/views/LoginView.vue";
 
 import ScheduleView from "@/views/tabs/schedule/ScheduleView.vue";
