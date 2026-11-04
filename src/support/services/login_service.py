@@ -641,7 +641,7 @@ class LoginService(BaseService[AppUnitOfWork]):
                 {
                     'key': 'webSessionId',
                     'value': web_session.web_session_id,
-                    'path': '/app',
+                    'path': settings.API_PREFIX,
                     'max_age': 90 * 24 * 60 * 60,  # 90 дней
                     'httponly': True,
                     'secure': True
@@ -649,7 +649,7 @@ class LoginService(BaseService[AppUnitOfWork]):
                 {
                     'key': 'authorized',
                     'value': "true",
-                    'path': f'/{settings.API_PREFIX}',
+                    'path': '/app',
                     'max_age': 90 * 24 * 60 * 60,  # 90 дней
                 }
             ]
