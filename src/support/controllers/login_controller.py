@@ -56,7 +56,7 @@ async def _authSession(
 ) -> HTMLResponse:
     request.state.session_id = state
 
-    referral_token = request.cookies.get('referral_token')
+    referral_token = request.cookies.get('referral')
 
     if access_token is not None and state is not None:
         template_params = await service.secondAuthSession(access_token, state, referral_token)
@@ -122,7 +122,7 @@ async def _auth(
         access_token: Annotated[Optional[str], Query(description="Токен для взаимодействия с дневником.ру от имени пользователя", min_length=1, max_length=64)] = None,
         service: LoginService = Depends(get_login_service)
 ) -> HTMLResponse:
-    referral_token = request.cookies.get('referral_token')
+    referral_token = request.cookies.get('referral')
 
     if access_token is not None:
         template_params = await service.secondWebAuth(access_token, referral_token)
