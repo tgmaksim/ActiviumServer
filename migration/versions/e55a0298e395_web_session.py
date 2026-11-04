@@ -1,7 +1,7 @@
 """Web session
 
 Revision ID: e55a0298e395
-Revises: fb0b496e76fa
+Revises: a730ae145e65
 Create Date: 2026-09-26 08:17:00.335791+00:00
 
 """
@@ -13,7 +13,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision: str = 'e55a0298e395'
-down_revision: Union[str, Sequence[str], None] = 'fb0b496e76fa'
+down_revision: Union[str, Sequence[str], None] = 'a730ae145e65'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
