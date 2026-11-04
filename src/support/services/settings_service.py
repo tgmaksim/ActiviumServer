@@ -145,7 +145,7 @@ class SettingsService(BaseService[AppUnitOfWork]):
 
             # Если ребенок (профиль) еще не добавлен
             if child is None:
-                children = await dnr.get_children(parent.parent_id)
+                info = await dnr.get_info()
                 schools = context['schools']
 
                 for context_child in context['children']:
@@ -161,8 +161,6 @@ class SettingsService(BaseService[AppUnitOfWork]):
                     group: dict = next(filter(lambda g: g['type'] == 'Group' and g['id'] in groups_id, groups))
                     group_id = int(group['id'])
 
-                    user_child: dict = next(filter(lambda c: c['id'] == child_id, children))
-                    info = await dnr.get_user_info(user_child['userId'])
                     hours, minutes = map(int, info['timezone'].split(':'))
                     timezone = (hours * 60 + minutes) * 60
 

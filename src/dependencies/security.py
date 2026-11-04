@@ -19,4 +19,4 @@ def check_api_key(
         return  # Для web session пропускается любой API-ключ - он не является секретом
 
     if apiKey != settings.API_KEY:
-        raise ApiKeyError(api_key=apiKey)
+        raise ApiKeyError(api_key=apiKey, web_unauthorized=apiKey == "web")

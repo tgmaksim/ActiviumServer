@@ -236,6 +236,7 @@ class LoginService(BaseService[AppUnitOfWork]):
         dnr = AioDnevnikruApi(self.httpx_client, dnevnik_token)
 
         context: dict = await dnr.get_context()
+        info: dict = await dnr.get_info()
 
         person_id = int(context['personId'])
         parent_name = context['shortName']
@@ -250,7 +251,6 @@ class LoginService(BaseService[AppUnitOfWork]):
 
         # Если пользователь является ребенком
         if 'EduStudent' in roles:
-            info = await dnr.get_info()
             hours, minutes = map(int, info['timezone'].split(':'))
             timezone = (hours * 60 + minutes) * 60
 
@@ -274,9 +274,6 @@ class LoginService(BaseService[AppUnitOfWork]):
             children_data: list[AuthData] = []
             children: list[dict] = context['children']
 
-            users_children = await dnr.get_children(person_id)
-            infos: tuple[dict] = await gather(*[dnr.get_user_info(child['userId']) for child in users_children])
-
             # Возвращается информация о каждом ребенке
             for child in children:
                 schools_id: list[int] = child['schoolIds']
@@ -288,7 +285,6 @@ class LoginService(BaseService[AppUnitOfWork]):
                 group: dict = next(filter(lambda g: g['type'] == 'Group' and g['id'] in groups_id, groups))
                 group_id = int(group['id'])
 
-                info: dict = next(filter(lambda i: i['personId'] == child['personId'], infos))
                 hours, minutes = map(int, info['timezone'].split(':'))
                 timezone = (hours * 60 + minutes) * 60
 

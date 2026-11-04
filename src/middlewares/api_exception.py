@@ -21,11 +21,16 @@ async def api_exception_handler(request: Request, exc: BaseApiException) -> Resp
     if isinstance(exc, ApiKeyError):
         request.state.error = 'ApiKeyError\n' + format_exception(exc)  # Для логирования ошибки
 
+        if exc.web_unauthorized:
+            error_message = "Авторизуйтесь еще раз (см. настройки) или очистите данные сайта"
+        else:
+            error_message = "Данное приложение не имеет прав на получение данных"
+
         return JSONResponse(ApiResponse(
             status=False,
             error=ApiError(
                 type="ApiKeyError",
-                errorMessage="Данное приложение не имеет прав на получение данных"
+                errorMessage=error_message
             )
         ).model_dump(by_alias=True), status_code=403)
 
