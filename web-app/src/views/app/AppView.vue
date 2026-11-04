@@ -12,6 +12,14 @@
 
         <Toast />
 
+        <AppDialog
+            :visible="currentInfo !== null"
+            :title="currentInfo?.title ?? ''"
+            :message="currentInfo?.text ?? ''"
+            :action-text="strings.ok"
+            @action="showNextInfo"
+        />
+
         <footer class="app-footer">
             <BottomNavigation />
         </footer>
@@ -19,14 +27,25 @@
 </template>
 
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, provide } from "vue";
+import {
+    computed,
+    onBeforeUnmount,
+    onMounted,
+    provide,
+    ref,
+    watch,
+} from "vue";
 import { useRoute } from "vue-router";
 
 import BottomNavigation from "@/components/BottomNavigation.vue";
 import Toast from "@/components/Toast.vue";
 import ConfettiCanvas from "@/components/ConfettiCanvas.vue";
+import AppDialog from "@/components/AppDialog.vue";
 
 import { AppViewModel, appViewModelKey } from "@/views/app/app-view-model";
+
+import { LoadState } from "@/ui-core/load-state";
+import { strings } from "@/constants/strings";
 
 // Единый экземпляр ViewModel для всего приложения.
 const appViewModel = new AppViewModel();
@@ -34,6 +53,60 @@ const appViewModel = new AppViewModel();
 provide(appViewModelKey, appViewModel);
 
 const route = useRoute();
+
+// Очередь информационных оповещений.
+const infoMessages = ref<
+    Array<{ title: string; text: string }>
+>([]);
+
+const infoIndex = ref(0);
+
+// Текущее информационное оповещение.
+const currentInfo = computed(
+    () => infoMessages.value[infoIndex.value] ?? null,
+);
+
+// Отслеживание получения информационных оповещений.
+watch(
+    () => appViewModel.infoState.value,
+    (state) => {
+        // Обрабатываем только успешный ответ.
+        if (!("data" in state)) {
+            return;
+        }
+
+        infoMessages.value = state.data.messages.map(
+            ({ title, text }) => ({
+                title,
+                text,
+            }),
+        );
+
+        infoIndex.value = 0;
+
+        // Если сообщений нет, сразу сбрасываем состояние.
+        if (infoMessages.value.length === 0) {
+            appViewModel.infoState.value = LoadState.empty();
+        }
+    },
+);
+
+/**
+ * Показывает следующее информационное оповещение.
+ */
+function showNextInfo(): void {
+    if (infoIndex.value + 1 < infoMessages.value.length) {
+        infoIndex.value++;
+
+        return;
+    }
+
+    // Все оповещения показаны.
+    infoMessages.value = [];
+    infoIndex.value = 0;
+
+    appViewModel.infoState.value = LoadState.empty();
+}
 
 // Отслеживание возвращения приложения из фонового режима.
 let wasHidden = false;
@@ -66,6 +139,9 @@ onMounted(() => {
 
     // Первоначальная проверка рекламы.
     appViewModel.checkAccessibleAd();
+
+    // Первоначальная проверка информационных оповещений.
+    appViewModel.checkInfoNotifications();
 
     // Первоначальная проверка обучающих подсказок.
     appViewModel.checkStudy(() => route.name);

@@ -78,7 +78,6 @@ async function setAnalyticsDefaultEventParameters(
         return;
     }
 
-    console.log("analytics");
     setDefaultEventParameters(parameters);
 }
 
