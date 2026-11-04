@@ -11,6 +11,9 @@ import { createPinia } from "pinia";
 import { useSettingsStore } from "@/stores/settings";
 import { initializeTheme } from "@/theme/theme-manager";
 
+import { Analytics } from "@/firebase/analytics";
+import { APP_VERSION } from "@/constants/app";
+
 const initialRoute = launch();
 
 initializeSW();
@@ -20,6 +23,17 @@ const app = createApp(App);
 const pinia = createPinia();
 app.use(pinia);
 useSettingsStore(pinia);
+
+void Analytics.isAnalyticsSupported().then((supported) => {
+    if (!supported) {
+        return;
+    }
+
+    void Analytics.setAnalyticsDefaultEventParameters({
+        app_platform: "web",
+        activium_version: APP_VERSION,
+    });
+});
 
 initializeTheme();
 

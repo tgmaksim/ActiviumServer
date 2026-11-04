@@ -3,30 +3,36 @@ import {
     isSupported,
     logEvent,
     setAnalyticsCollectionEnabled,
+    setDefaultEventParameters,
     setUserId,
     setUserProperties,
-    type Analytics as FCMAnalytics,
+    type Analytics as FirebaseAnalyticsType,
 } from "firebase/analytics";
 
 import { firebaseApp } from "./app";
 
-let analyticsPromise: Promise<FCMAnalytics | null> | null = null;
+let analyticsPromise: Promise<FirebaseAnalyticsType | null> | null = null;
 
 /**
  * Получение экземпляра Firebase Analytics.
  */
-async function getAnalyticsInstance(): Promise<FCMAnalytics | null> {
+async function getAnalyticsInstance(): Promise<FirebaseAnalyticsType | null> {
     if (typeof window === "undefined") {
         return null;
     }
 
     if (analyticsPromise === null) {
         analyticsPromise = (async () => {
-            if (!await isSupported()) {
+            try {
+                if (!await isSupported()) {
+                    return null;
+                }
+
+                return getAnalytics(firebaseApp);
+            } catch (error) {
+                console.warn("Firebase Analytics initialization failed:", error);
                 return null;
             }
-
-            return getAnalytics(firebaseApp);
         })();
     }
 
@@ -58,6 +64,22 @@ async function logAnalyticsEvent(
     }
 
     logEvent(analytics, eventName, params);
+}
+
+/**
+ * Установка общих параметров событий.
+ */
+async function setAnalyticsDefaultEventParameters(
+    parameters: Record<string, string | number | boolean>,
+): Promise<void> {
+    const analytics = await getAnalyticsInstance();
+
+    if (analytics === null) {
+        return;
+    }
+
+    console.log("analytics");
+    setDefaultEventParameters(parameters);
 }
 
 /**
@@ -118,4 +140,5 @@ export const Analytics = {
     setAnalyticsEnabled,
     setAnalyticsUserId,
     setAnalyticsUserProperties,
+    setAnalyticsDefaultEventParameters,
 };

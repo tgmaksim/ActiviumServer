@@ -13,6 +13,8 @@ import SettingsView from "@/views/tabs/settings/SettingsView.vue";
 
 import { routes } from "@/constants/routes";
 
+import { Analytics } from "@/firebase/analytics";
+
 const router = createRouter({
     history: createWebHistory(import.meta.env.BASE_URL),
 
@@ -25,21 +27,33 @@ const router = createRouter({
                     path: "",
                     name: "schedule",
                     component: ScheduleView,
+                    meta: {
+                        analyticsName: "schedule",
+                    },
                 },
                 {
                     path: "marks",
                     name: "marks",
                     component: MarksView,
+                    meta: {
+                        analyticsName: "marks",
+                    },
                 },
                 {
                     path: "school",
                     name: "school",
                     component: SchoolView,
+                    meta: {
+                        analyticsName: "school",
+                    },
                 },
                 {
                     path: "settings",
                     name: "settings",
                     component: SettingsView,
+                    meta: {
+                        analyticsName: "settings",
+                    },
                 },
             ],
         },
@@ -47,8 +61,23 @@ const router = createRouter({
             path: routes.loginBase,
             name: "login",
             component: LoginView,
+            meta: {
+                analyticsName: "login",
+            },
         }
     ],
+});
+
+router.afterEach((to, from, failure) => {
+    if (failure) {
+        return;
+    }
+
+    const screenName = String(
+        to.meta.analyticsName ?? to.name ?? to.path,
+    );
+
+    void Analytics.logScreenView(screenName);
 });
 
 export default router;
