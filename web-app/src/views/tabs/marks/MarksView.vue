@@ -444,6 +444,8 @@ function openRecentMarkRating(mark: MarkLast): void {
     };
 
     showMarkRating.value = true;
+
+    marksViewModel.doneStudyMarkRating();
 }
 
 /**
@@ -464,6 +466,8 @@ function openMarkRating(
     };
 
     showMarkRating.value = true;
+
+    marksViewModel.doneStudyMarkRating();
 }
 
 /**
@@ -480,6 +484,8 @@ function openSubjectRating(
     };
 
     showSubjectRating.value = true;
+
+    marksViewModel.doneStudySubjectRating();
 }
 
 /**

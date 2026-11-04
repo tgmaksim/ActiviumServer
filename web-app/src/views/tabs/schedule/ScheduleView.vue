@@ -318,6 +318,8 @@ function openLessonMenu(lessonKey: string): void {
 
     selectedLessonKey.value = lessonKey;
     showLessonMenu.value = true;
+
+    scheduleViewModel.doneStudyLessonMenu();
 }
 
 function openNoteEditor(): void {

@@ -10,7 +10,10 @@ import { Status, type InformationResult } from "@/api/status";
 import { School, type SchoolPostsWithoutVisionResult } from "@/api/school";
 import { Ads, type AdResult } from "@/api/ads";
 
-import type { StringResourceKey } from "@/constants/strings";
+import { strings, type StringResourceKey } from "@/constants/strings";
+
+import { useSettingsStore } from "@/stores/settings";
+import { Utilities } from "@/utils/utils";
 
 export class AppViewModel extends UiViewModel {
     readonly infoState: Ref<LoadState<InformationResult>> = ref(
@@ -28,6 +31,10 @@ export class AppViewModel extends UiViewModel {
     readonly clickAdState: Ref<LoadState<never>> = ref(
         LoadState.empty(),
     );
+
+    private studyTimer: ReturnType<typeof setTimeout> | null = null;
+
+    private readonly settings = useSettingsStore();
 
     checkInfoNotifications(): void {
         void this.executeRequest(
@@ -83,6 +90,81 @@ export class AppViewModel extends UiViewModel {
                 cancelPrevious: true,
             },
         );
+    }
+
+    /**
+     * Запускает проверку обучающих подсказок через 10 секунд.
+     */
+    checkStudy(
+        getCurrentRouteName: () => string | symbol | null | undefined,
+    ): void {
+        if (this.studyTimer !== null) {
+            return;
+        }
+
+        this.studyTimer = setTimeout(() => {
+            this.studyTimer = null;
+
+            this.showStudy(getCurrentRouteName());
+        }, 10_000);
+    }
+
+    /**
+     * Отменяет ожидающую проверку подсказок.
+     */
+    pauseStudy(): void {
+        if (this.studyTimer === null) {
+            return;
+        }
+
+        clearTimeout(this.studyTimer);
+        this.studyTimer = null;
+    }
+
+    /**
+     * Проверяет необходимость показа обучающей подсказки.
+     */
+    private showStudy(
+        routeName: string | symbol | null | undefined,
+    ): void {
+        const nowSeconds = Math.floor(Date.now() / 1000);
+        const lastStudySeconds = Number(this.settings.lastStudy);
+
+        // С предыдущей подсказки прошло меньше суток.
+        if (
+            !Number.isFinite(lastStudySeconds) ||
+            nowSeconds - lastStudySeconds < 60 * 60 * 24
+        ) {
+            return;
+        }
+
+        let studyText: string | null = null;
+
+        // Страница расписания.
+        if (routeName === "schedule") {
+            if (!this.settings.studyLessonMenu) {
+                studyText = strings.studyLessonMenu;
+            }
+        }
+
+        // Страница оценок.
+        if (routeName === "marks") {
+            if (!this.settings.studyMarkRating) {
+                studyText = strings.studyMarkRating;
+            } else if (!this.settings.studySubjectRating) {
+                studyText = strings.studySubjectRating;
+            }
+        }
+
+        // Подходящей подсказки нет.
+        if (studyText === null) {
+            return;
+        }
+
+        Utilities.showText(studyText, true);
+
+        // Сохраняем время только после показа подсказки.
+        this.settings.lastStudy = String(nowSeconds);
     }
 }
 

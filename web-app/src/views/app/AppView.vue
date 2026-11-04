@@ -20,6 +20,7 @@
 
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, provide } from "vue";
+import { useRoute } from "vue-router";
 
 import BottomNavigation from "@/components/BottomNavigation.vue";
 import Toast from "@/components/Toast.vue";
@@ -27,17 +28,25 @@ import ConfettiCanvas from "@/components/ConfettiCanvas.vue";
 
 import { AppViewModel, appViewModelKey } from "@/views/app/app-view-model";
 
-// Единый экземпляр ViewModel для всего приложения
+// Единый экземпляр ViewModel для всего приложения.
 const appViewModel = new AppViewModel();
 
 provide(appViewModelKey, appViewModel);
 
-// Отслеживание возвращения приложения из фонового режима
+const route = useRoute();
+
+// Отслеживание возвращения приложения из фонового режима.
 let wasHidden = false;
 
+/**
+ * Обрабатывает изменение видимости приложения.
+ */
 function handleVisibilityChange(): void {
     if (document.visibilityState === "hidden") {
         wasHidden = true;
+
+        appViewModel.pauseStudy();
+
         return;
     }
 
@@ -45,6 +54,7 @@ function handleVisibilityChange(): void {
         wasHidden = false;
 
         appViewModel.checkAccessibleAd();
+        appViewModel.checkStudy(() => route.name);
     }
 }
 
@@ -54,8 +64,11 @@ onMounted(() => {
         handleVisibilityChange,
     );
 
-    // Первоначальная проверка рекламы
+    // Первоначальная проверка рекламы.
     appViewModel.checkAccessibleAd();
+
+    // Первоначальная проверка обучающих подсказок.
+    appViewModel.checkStudy(() => route.name);
 });
 
 onBeforeUnmount(() => {
@@ -63,6 +76,8 @@ onBeforeUnmount(() => {
         "visibilitychange",
         handleVisibilityChange,
     );
+
+    appViewModel.pauseStudy();
 });
 </script>
 

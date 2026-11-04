@@ -151,10 +151,17 @@ export const SettingsManager = {
     },
 
     getLastStudy(): string {
-        return readValue(
+        let lastStudy = readValue(
             settingsKeys.lastStudy,
-            getDefaultLastStudy(),
+            null,
         );
+
+        if (lastStudy === null) {
+            lastStudy = getDefaultLastStudy();
+            writeValue(settingsKeys.lastStudy, lastStudy);
+        }
+
+        return lastStudy;
     },
 
     setLastStudy(value: string): void {
