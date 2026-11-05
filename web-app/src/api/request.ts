@@ -158,12 +158,6 @@ async function del<TRes extends ApiResponse>(
 async function parseResponse<TRes>(
     response: Response,
 ): Promise<TRes> {
-    if (!response.ok) {
-        throw new Error(
-            `API request failed: ${response.status}`,
-        );
-    }
-
     return await response.json() as TRes;
 }
 

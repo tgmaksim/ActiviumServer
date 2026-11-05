@@ -66,8 +66,8 @@ export default defineConfig({
                 start_url: base,
                 scope: base,
                 display: "standalone",
-                theme_color: "#ffffff",
-                background_color: "#ffffff",
+                theme_color: "#B3E5FC",
+                background_color: "#B3E5FC",
                 lang: "ru",
 
                 icons: [
@@ -80,6 +80,7 @@ export default defineConfig({
                         src: "/assets/icons/android-chrome-512x512.png",
                         sizes: "512x512",
                         type: "image/png",
+                        purpose: "any maskable",
                     },
                     {
                         src: "/assets/icons/apple-touch-icon.png",

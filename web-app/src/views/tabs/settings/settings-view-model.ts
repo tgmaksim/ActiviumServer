@@ -110,7 +110,10 @@ export class SettingsViewModel extends UiViewModel {
         void this.updateFirebaseToken();
     }
 
-    setActiveChild(childId: number): void {
+    setActiveChild(
+        childId: number,
+        onSuccess?: (result: ChildrenData) => void,
+    ): void {
         if (this.settingsStore.activeChildId === childId) {
             return;
         }
@@ -121,11 +124,13 @@ export class SettingsViewModel extends UiViewModel {
             "errorChildren" as StringResourceKey,
             () => Settings.setActiveChild(childId),
             (response) => response.answer,
-            () => {
+            (result) => {
                 this.settingsStore.activeChildId = childId;
 
                 this.loadMarksNotifications();
                 this.loadEANotifications();
+
+                onSuccess?.(result);
             },
         );
     }

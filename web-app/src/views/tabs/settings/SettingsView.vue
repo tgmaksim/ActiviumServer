@@ -608,6 +608,7 @@ import {
     ref,
     watch,
 } from "vue";
+import { useRoute, useRouter } from "vue-router";
 
 import AppDialog from "@/components/AppDialog.vue";
 import { strings } from "@/constants/strings";
@@ -615,7 +616,7 @@ import { NotificationPermission } from "@/notifications/permission";
 import { useSettingsStore } from "@/stores/settings";
 import { logout } from "@/utils/logout";
 import { Utilities } from "@/utils/utils";
-import { SettingsViewModel } from "./settings-view-model";
+import type { SettingsViewModel } from "./settings-view-model";
 import { setShownError, setLoading, isLoadError } from "@/ui-core/state-utils";
 import ReviewEditorDialog from "./ReviewEditorDialog.vue";
 
@@ -623,7 +624,14 @@ import { getDeviceInfo } from "@/utils/device";
 import { APP_VERSION, APP_VERSION_CODE } from "@/constants/app";
 import { pwaInstalled } from "@/utils/pwa-install";
 
-const settingsViewModel = new SettingsViewModel();
+const props = defineProps<{
+    settingsViewModel: SettingsViewModel;
+}>();
+const settingsViewModel = props.settingsViewModel;
+
+const route = useRoute();
+const router = useRouter();
+
 const settings = useSettingsStore();
 const deviceInfo = getDeviceInfo();
 
@@ -735,6 +743,23 @@ const showLogoutDialog = ref(false);
 const showMessageDialog = ref(false);
 const messageDialogTitle = ref("");
 const messageDialogText = ref("");
+
+watch(
+    () => route.query.notificationPageAction,
+    async (action) => {
+        if (action !== "update_review") return;
+
+        settingsViewModel.loadReview();
+
+        await router.replace({
+            query: {
+                ...route.query,
+                notificationPageAction: undefined,
+            },
+        });
+    },
+    { immediate: true },
+);
 
 watch(
     () => settingsViewModel.statusEANotificationsState.value,

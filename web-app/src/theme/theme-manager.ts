@@ -15,6 +15,11 @@ export function initializeTheme(): void {
         () => settingsStore.darkTheme,
         (isDark) => {
             document.documentElement.classList.toggle("dark", isDark);
+
+            const metaThemeColor = document.querySelector('meta[name="theme-color"]');
+            if (metaThemeColor) {
+                metaThemeColor.setAttribute('content', isDark ? "#001C38" : "#B3E5FC");
+            }
         },
         {
             immediate: true,

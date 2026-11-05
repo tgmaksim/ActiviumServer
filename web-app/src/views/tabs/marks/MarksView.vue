@@ -143,6 +143,7 @@ import {
     ref,
     watch,
 } from "vue";
+import { useRoute, useRouter } from "vue-router";
 
 import { strings } from "@/constants/strings";
 import { Utilities } from "@/utils/utils";
@@ -186,6 +187,9 @@ interface SelectedSubjectRating {
 }
 
 const settings = useSettingsStore();
+
+const route = useRoute();
+const router = useRouter();
 
 const marksViewModel = new MarksViewModel();
 const appViewModel = inject(appViewModelKey);
@@ -280,6 +284,23 @@ function filterYearMarks(
         subject.finalMark !== null,
     );
 }
+
+watch(
+    () => route.query.notificationPageAction,
+    async (action) => {
+        if (action !== "update") return;
+
+        marksViewModel.loadCloudMarks();
+
+        await router.replace({
+            query: {
+                ...route.query,
+                notificationPageAction: undefined,
+            },
+        });
+    },
+    { immediate: true },
+);
 
 if (appViewModel) {
     watch(

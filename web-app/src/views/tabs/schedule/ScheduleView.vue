@@ -87,6 +87,7 @@ import {
     ref,
     watch,
 } from "vue";
+import { useRoute, useRouter } from "vue-router";
 
 import { strings } from "@/constants/strings";
 import { Utilities } from "@/utils/utils";
@@ -133,6 +134,9 @@ const {
 } = useConfetti();
 
 const settings = useSettingsStore();
+
+const route = useRoute();
+const router = useRouter();
 
 const scheduleViewModel = new ScheduleViewModel();
 const appViewModel = inject(appViewModelKey);
@@ -461,6 +465,26 @@ function openRating(lessonKey: string): void {
     selectedRatingLessonKey.value = lessonKey;
     showRatingSheet.value = true;
 }
+
+watch(
+    () => route.query.notificationPageAction,
+    async (action) => {
+        if (action !== "today") return;
+
+        const newDate = dates.find(date => date === today.value);
+        if (newDate) {
+            selectedDate.value = newDate;
+        }
+
+        await router.replace({
+            query: {
+                ...route.query,
+                notificationPageAction: undefined,
+            },
+        });
+    },
+    { immediate: true },
+);
 
 if (appViewModel) {
     watch(

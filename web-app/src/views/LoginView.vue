@@ -110,6 +110,8 @@ async function login() {
     min-height: 100vh;
     min-height: 100dvh;
 
+    margin-top: env(safe-area-inset-top, 0);
+
     background: var(--main-bg);
     color: var(--text-primary);
 
