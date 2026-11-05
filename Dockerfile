@@ -19,7 +19,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip \
     && pip install --no-cache-dir -r requirements.txt
 
-# Копируются все файлы и директории в app, кроме статических файлов в www (из-за dockerignore)
+# Копируются все файлы и директории в app кроме статических файлов в www
 COPY . .
 RUN rm -rf www
 

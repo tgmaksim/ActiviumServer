@@ -24,6 +24,9 @@ __pycache__/
 www/google*.html
 www/yandex_*.html
 
+www/app
+templates/app.html
+
 log/debug.log
 
 build

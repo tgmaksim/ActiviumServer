@@ -1,8 +1,8 @@
 {
     "version": "0.0.1",
     "versionCode": 1,
-    "API_DOMAIN": "https://example.com",
-    "CHECK_INTERNET_DOMAIN": "https://google.com",
+    "API_DOMAIN": "http://localhost:8000",
+    "CHECK_INTERNET_DOMAIN": "http://localhost:8000",
     "firebase": {
         "apiKey": "apiKey",
         "authDomain": "project-1.firebaseapp.com",
