@@ -16,10 +16,95 @@ export type EnableNotificationsResult =
     | "unavailable"
     | "error";
 
+let unsubscribeRegistration: (() => void) | undefined;
+
+let registrationPromise: Promise<void> | null = null;
+
+function syncRegistrationInBackground(): void {
+    if (registrationPromise !== null) {
+        return;
+    }
+
+    registrationPromise = (async () => {
+        await ensureRegistrationListener();
+        await Messaging.registerForNotifications();
+    })()
+        .catch((error) => {
+            Utilities.log(
+                error instanceof Error
+                    ? error
+                    : new Error(String(error)),
+                "Не удалось синхронизировать регистрацию Firebase",
+            );
+        })
+        .finally(() => {
+            registrationPromise = null;
+        });
+}
+
+/**
+ * Синхронизация Firebase Installation ID с сервером.
+ */
+async function saveFirebaseInstallationId(fid: string): Promise<void> {
+    const response = await Settings.updateFirebase(fid);
+
+    if (!response.status) {
+        throw new Error(
+            response.error?.errorMessage ??
+                "Не удалось зарегистрировать уведомления",
+        );
+    }
+
+    useSettingsStore().firebaseInstallationId = fid;
+}
+
+/**
+ * Установка подписки на события регистрации Firebase.
+ *
+ * Подписка устанавливается один раз и сохраняется
+ * на протяжении работы PWA.
+ */
+async function ensureRegistrationListener(): Promise<void> {
+    if (unsubscribeRegistration) {
+        return;
+    }
+
+    const unsubscribe = await Messaging.subscribeToRegistration(
+        async (fid) => {
+            try {
+                await saveFirebaseInstallationId(fid);
+            } catch (error) {
+                Utilities.log(
+                    error instanceof Error
+                        ? error
+                        : new Error(String(error)),
+                    "Не удалось синхронизировать Firebase Installation ID",
+                );
+            }
+        },
+        (fid) => {
+            const settingsStore = useSettingsStore();
+
+            if (settingsStore.firebaseInstallationId === fid) {
+                settingsStore.firebaseInstallationId = null;
+            }
+        },
+    );
+
+    if (unsubscribe === null) {
+        throw new Error(
+            "Firebase Messaging недоступен",
+        );
+    }
+
+    unsubscribeRegistration = unsubscribe;
+}
+
 /**
  * Проверка поддержки уведомлений и текущего разрешения браузера.
  *
- * Если разрешение уже выдано, синхронизирует Firebase-токен с сервером.
+ * Если разрешение уже выдано, регистрирует экземпляр
+ * PWA и синхронизирует FID с сервером.
  */
 async function checkPermission(): Promise<NotificationPermissionState> {
     if (
@@ -36,7 +121,7 @@ async function checkPermission(): Promise<NotificationPermissionState> {
 
         switch (Notification.permission) {
             case "granted":
-                await syncFirebaseToken();
+                syncRegistrationInBackground();
                 return "granted";
 
             case "denied":
@@ -61,26 +146,23 @@ async function checkPermission(): Promise<NotificationPermissionState> {
 }
 
 /**
- * Запрашивает разрешение браузера и регистрирует Firebase-токен на сервере.
+ * Запрос разрешения и регистрация экземпляра PWA.
  */
 async function enableNotifications(): Promise<EnableNotificationsResult> {
     try {
-        const token = await Messaging.enableNotifications();
+        const permission = await Messaging.requestNotificationPermission();
 
-        if (token === null) {
-            if (
-                "Notification" in window &&
-                Notification.permission === "denied"
-            ) {
-                return "denied";
-            }
-
-            return "unavailable";
+        if (permission !== "granted") {
+            return permission === "denied"
+                ? "denied"
+                : "unavailable";
         }
 
-        await saveFirebaseToken(token);
+        await ensureRegistrationListener();
 
-        return "enabled";
+        const registered = await Messaging.registerForNotifications();
+
+        return registered ? "enabled" : "unavailable";
     } catch (error) {
         Utilities.log(
             error instanceof Error
@@ -91,35 +173,6 @@ async function enableNotifications(): Promise<EnableNotificationsResult> {
 
         return "error";
     }
-}
-
-/**
- * Получает текущий Firebase-токен и синхронизирует его с сервером.
- */
-async function syncFirebaseToken(): Promise<void> {
-    const token = await Messaging.getFcmToken();
-
-    if (token === null) {
-        return;
-    }
-
-    await saveFirebaseToken(token);
-}
-
-/**
- * Сохраняет токен на сервере и обновляет локальное состояние.
- */
-async function saveFirebaseToken(token: string): Promise<void> {
-    const response = await Settings.updateFirebase(token);
-
-    if (!response.status) {
-        throw new Error(
-            response.error?.errorMessage ??
-                "Не удалось зарегистрировать уведомления",
-        );
-    }
-
-    useSettingsStore().firebaseMessagingToken = token;
 }
 
 export const NotificationPermission = {

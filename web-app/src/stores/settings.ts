@@ -7,7 +7,7 @@ import { settingsKeys } from "@/data/settings/settings-keys";
 
 export const useSettingsStore = defineStore("settings", () => {
     const installPromptHiddenKey = ref(SettingsManager.getInstallPromptHiddenKey());
-    const firebaseMessagingToken = ref(SettingsManager.getFirebaseMessagingToken());
+    const firebaseInstallationId = ref(SettingsManager.getFirebaseMessagingToken());
     const activeChildId = ref(SettingsManager.getActiveChildId());
     const darkTheme = ref(SettingsManager.getDarkTheme());
     const beforeSchedule = ref(SettingsManager.getBeforeSchedule());
@@ -28,7 +28,7 @@ export const useSettingsStore = defineStore("settings", () => {
         }
     }, { flush: "sync" });
 
-    watch(firebaseMessagingToken, (value) => {
+    watch(firebaseInstallationId, (value) => {
         if (!syncingFromStorage) {
             SettingsManager.setFirebaseMessagingToken(value);
         }
@@ -96,7 +96,7 @@ export const useSettingsStore = defineStore("settings", () => {
 
     function loadAllFromStorage(): void {
         installPromptHiddenKey.value = SettingsManager.getInstallPromptHiddenKey();
-        firebaseMessagingToken.value = SettingsManager.getFirebaseMessagingToken();
+        firebaseInstallationId.value = SettingsManager.getFirebaseMessagingToken();
         activeChildId.value = SettingsManager.getActiveChildId();
         darkTheme.value = SettingsManager.getDarkTheme();
         beforeSchedule.value = SettingsManager.getBeforeSchedule();
@@ -122,8 +122,8 @@ export const useSettingsStore = defineStore("settings", () => {
                 case settingsKeys.installPromptHiddenKey:
                     installPromptHiddenKey.value = SettingsManager.getInstallPromptHiddenKey();
                     break;
-                case settingsKeys.firebaseMessagingToken:
-                    firebaseMessagingToken.value = SettingsManager.getFirebaseMessagingToken();
+                case settingsKeys.firebaseInstallationId:
+                    firebaseInstallationId.value = SettingsManager.getFirebaseMessagingToken();
                     break;
                 case settingsKeys.activeChildId:
                     activeChildId.value = SettingsManager.getActiveChildId();
@@ -191,7 +191,7 @@ export const useSettingsStore = defineStore("settings", () => {
             SettingsManager.clearAll();
 
             installPromptHiddenKey.value = settingsDefaults.installPromptHiddenKey;
-            firebaseMessagingToken.value = null;
+            firebaseInstallationId.value = null;
             activeChildId.value = settingsDefaults.activeChildId;
             darkTheme.value = settingsDefaults.darkTheme;
             beforeSchedule.value = settingsDefaults.beforeSchedule;
@@ -210,7 +210,7 @@ export const useSettingsStore = defineStore("settings", () => {
 
     return {
         installPromptHiddenKey,
-        firebaseMessagingToken,
+        firebaseInstallationId,
         activeChildId,
         darkTheme,
         beforeSchedule,

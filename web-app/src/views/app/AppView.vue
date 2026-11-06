@@ -40,6 +40,8 @@ import {
 } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
+import { subscribeToMessages } from "@/notifications/messaging-service";
+
 import BottomNavigation from "@/components/BottomNavigation.vue";
 import Toast from "@/components/Toast.vue";
 import ConfettiCanvas from "@/components/ConfettiCanvas.vue";
@@ -70,6 +72,9 @@ provide(appViewModelKey, appViewModel);
 
 const route = useRoute();
 const router = useRouter();
+
+let unsubscribeMessages: (() => void) | undefined;
+let isUnmounted = false;
 
 type NotificationPageAction =
     | "update"
@@ -296,6 +301,24 @@ async function handleOpenWithAction() {
 }
 
 onMounted(() => {
+    void subscribeToMessages()
+        .then((unsubscribe) => {
+            if (isUnmounted) {
+                unsubscribe?.();
+                return;
+            }
+
+            unsubscribeMessages = unsubscribe ?? undefined;
+        })
+        .catch((error: unknown) => {
+            Utilities.log(
+                error instanceof Error
+                    ? error
+                    : new Error(String(error)),
+                "Не удалось подписаться на FCM-сообщения",
+            );
+        });
+
     document.addEventListener(
         "visibilitychange",
         handleVisibilityChange,
@@ -319,6 +342,11 @@ onMounted(() => {
 });
 
 onBeforeUnmount(() => {
+    isUnmounted = true;
+
+    unsubscribeMessages?.();
+    unsubscribeMessages = undefined;
+
     document.removeEventListener(
         "visibilitychange",
         handleVisibilityChange,

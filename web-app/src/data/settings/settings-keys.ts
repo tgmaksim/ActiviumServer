@@ -2,7 +2,7 @@ const SETTINGS_PREFIX = "activium:settings:";
 
 export const settingsKeys = {
     installPromptHiddenKey: `${SETTINGS_PREFIX}installPromptHiddenKey`,
-    firebaseMessagingToken: `${SETTINGS_PREFIX}firebaseMessagingToken`,
+    firebaseInstallationId: `${SETTINGS_PREFIX}firebaseInstallationId`,
     activeChildId: `${SETTINGS_PREFIX}activeChildId`,
     darkTheme: `${SETTINGS_PREFIX}darkTheme`,
     beforeSchedule: `${SETTINGS_PREFIX}beforeSchedule`,

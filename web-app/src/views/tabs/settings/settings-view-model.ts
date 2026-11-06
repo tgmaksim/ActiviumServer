@@ -180,7 +180,7 @@ export class SettingsViewModel extends UiViewModel {
 
     private async updateFirebaseToken(): Promise<void> {
         try {
-            const token = this.settingsStore.firebaseMessagingToken;
+            const token = this.settingsStore.firebaseInstallationId;
 
             if (token) {
                 await Settings.updateFirebase(token);

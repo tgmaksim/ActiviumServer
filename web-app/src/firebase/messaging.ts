@@ -1,15 +1,17 @@
 import {
-    deleteToken,
     getMessaging,
-    getToken,
     isSupported,
     onMessage,
+    onRegistered,
+    onUnregistered,
+    register,
+    unregister,
     type MessagePayload,
     type Messaging as FCMMessaging,
 } from "firebase/messaging";
 
 import { firebaseApp } from "./app";
-import { FIREBASE_VAPID_KEY } from "../constants/firebase"
+import { FIREBASE_VAPID_KEY } from "../constants/firebase";
 
 const VAPID_KEY = FIREBASE_VAPID_KEY;
 
@@ -31,6 +33,27 @@ async function getMessagingInstance(): Promise<FCMMessaging | null> {
     }
 
     return messagingPromise;
+}
+
+/**
+ * Получение активной регистрации Service Worker.
+ */
+async function getServiceWorkerRegistration(): Promise<ServiceWorkerRegistration | null> {
+    if (!("serviceWorker" in navigator)) {
+        return null;
+    }
+
+    const registration = await navigator.serviceWorker.getRegistration(
+        import.meta.env.BASE_URL,
+    );
+
+    if (!registration?.active) {
+        throw new Error(
+            "Не найден активный Service Worker для PWA",
+        );
+    }
+
+    return registration;
 }
 
 /**
@@ -57,59 +80,89 @@ async function requestNotificationPermission(): Promise<NotificationPermission> 
 }
 
 /**
- * Получение FCM-токена текущего браузера.
- * Не запрашивает разрешение автоматически.
+ * Подписка на изменение состояния регистрации FCM.
+ *
+ * onRegistered вызывается при регистрации и обновлении FID.
+ * onUnregistered вызывается при удалении регистрации.
+ *
+ * Возвращает функцию отмены обеих подписок.
  */
-async function getFcmToken(): Promise<string | null> {
-    if (typeof window === "undefined" || !("Notification" in window)) {
-        return null;
-    }
-
-    if (Notification.permission !== "granted") {
-        return null;
-    }
-
-    if (!("serviceWorker" in navigator)) {
-        return null;
-    }
-
+async function subscribeToRegistration(
+    onFidRegistered: (fid: string) => void,
+    onFidUnregistered?: (fid: string) => void,
+): Promise<(() => void) | null> {
     const messaging = await getMessagingInstance();
 
     if (messaging === null) {
         return null;
     }
 
-    const registration = await navigator.serviceWorker.getRegistration(
-        import.meta.env.BASE_URL,
+    const unsubscribeRegistered = onRegistered(
+        messaging,
+        onFidRegistered,
     );
 
-    if (!registration?.active) {
-        throw new Error(
-            "Не найден активный Service Worker для PWA",
-        );
+    const unsubscribeUnregistered = onUnregistered(
+        messaging,
+        (fid) => onFidUnregistered?.(fid),
+    );
+
+    return () => {
+        unsubscribeRegistered();
+        unsubscribeUnregistered();
+    };
+}
+
+/**
+ * Регистрация экземпляра PWA в Firebase Cloud Messaging.
+ *
+ * FID передаётся через onRegistered(), а не возвращается
+ * из этой функции.
+ */
+async function registerForNotifications(): Promise<boolean> {
+    if (
+        typeof window === "undefined" ||
+        !("Notification" in window) ||
+        Notification.permission !== "granted"
+    ) {
+        return false;
     }
 
-    return getToken(messaging, {
+    const messaging = await getMessagingInstance();
+
+    if (messaging === null) {
+        return false;
+    }
+
+    const registration = await getServiceWorkerRegistration();
+
+    if (registration === null) {
+        return false;
+    }
+
+    await register(messaging, {
         vapidKey: VAPID_KEY,
         serviceWorkerRegistration: registration,
     });
+
+    return true;
 }
 
 /**
- * Запрос разрешения и получение FCM-токена.
+ * Запрос разрешения и регистрация экземпляра PWA.
  */
-async function enableNotifications(): Promise<string | null> {
+async function enableNotifications(): Promise<boolean> {
     const permission = await requestNotificationPermission();
 
     if (permission !== "granted") {
-        return null;
+        return false;
     }
 
-    return getFcmToken();
+    return registerForNotifications();
 }
 
 /**
- * Удаление FCM-токена этого браузера.
+ * Отмена регистрации экземпляра PWA в FCM.
  */
 async function disableNotifications(): Promise<boolean> {
     const messaging = await getMessagingInstance();
@@ -118,7 +171,9 @@ async function disableNotifications(): Promise<boolean> {
         return false;
     }
 
-    return deleteToken(messaging);
+    await unregister(messaging);
+
+    return true;
 }
 
 /**
@@ -140,7 +195,8 @@ async function subscribeToMessages(
 export const Messaging = {
     isMessagingSupported,
     requestNotificationPermission,
-    getFcmToken,
+    subscribeToRegistration,
+    registerForNotifications,
     enableNotifications,
     disableNotifications,
     subscribeToMessages,

@@ -42,13 +42,13 @@ export const SettingsManager = {
 
     getFirebaseMessagingToken(): string | null {
         return readValue<string | null>(
-            settingsKeys.firebaseMessagingToken,
+            settingsKeys.firebaseInstallationId,
             null,
         );
     },
 
     setFirebaseMessagingToken(value: string | null): void {
-        writeValue(settingsKeys.firebaseMessagingToken, value);
+        writeValue(settingsKeys.firebaseInstallationId, value);
     },
 
     getActiveChildId(): number {
