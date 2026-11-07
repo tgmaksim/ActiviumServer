@@ -33,7 +33,7 @@ class AppNotificationChannel(Enum):
 class Notification(BaseModel):
     """Уведомление с требуемыми параметрами"""
 
-    firebase_token: str
+    firebase_token: Optional[str]
     """Firebase-токен для отправки уведомления на конкретное устройство"""
     image: Optional[HttpUrl] = None
     """Ссылка на картинку для показа в уведомлении"""
@@ -80,7 +80,7 @@ async def send_notifications(notifications: list[Notification]) -> FCMResult:
             time=str(int(time() * 1000)),  # Время, которое будет указано в уведомлении
             imageUrl=str(notification.image) if notification.image else None,  # Ссылка на картинку, загрузится клиентом
         ) or data
-    ) for notification in notifications]
+    ) for notification in notifications if notification.firebase_token is not None]
 
     try:
         response = await client.send_each(messages)
