@@ -1,4 +1,6 @@
 User-agent: *
 Disallow: /api/
+Disallow: /app
+Disallow: /apk
 
 Sitemap: https://activium.tgmaksim.ru/sitemap.xml

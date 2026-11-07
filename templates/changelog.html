@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title>История обновлений — {{ project_name }}</title>
+    <meta name="description" content="История обновлений {{ project_name }}: новые возможности, улучшения и исправления Android- и Web-приложения для учеников и их родителей.">
+
+    <link rel="canonical" href="{{ project_url }}/changelog">
+
+    <meta property="og:type" content="website">
+    <meta property="og:locale" content="ru_RU">
+    <meta property="og:site_name" content="{{ project_name }}">
+    <meta property="og:title" content="История обновлений — {{ project_name }}">
+    <meta property="og:description" content="Что нового в {{ project_name }}: история версий Android- и Web-приложения, новые функции, улучшения и исправления.">
+    <meta property="og:url" content="{{ project_url }}/changelog">
+    <meta property="og:image" content="{{ project_url }}/assets/icons/preview.png?v=3">
+    <meta name="twitter:card" content="summary_large_image">
+
+    <link rel="manifest" href="/site.webmanifest?v=2">
+    <link rel="apple-touch-icon" sizes="180x180" href="/assets/icons/apple-touch-icon.png?v=2">
+    <link rel="icon" type="image/png" sizes="16x16" href="/assets/icons/favicon-16x16.png?v=2">
+    <link rel="icon" type="image/png" sizes="32x32" href="/assets/icons/favicon-32x32.png?v=2">
+    <link rel="icon" type="image/png" sizes="192x192" href="/assets/icons/android-chrome-192x192.png?v=2">
+    <link rel="icon" type="image/png" sizes="512x512" href="/assets/icons/android-chrome-512x512.png?v=2">
+    <link rel="icon" type="image/x-icon" sizes="32x32" href="/assets/icons/favicon.ico?v=2">
+
+    <link href="/css/main.css?v=19" rel="stylesheet">
+    <link href="/css/changelog.css?v=2" rel="stylesheet">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "WebPage",
+        "name": "История обновлений — {{ project_name }}",
+        "description": "История обновлений {{ project_name }}: новые возможности, улучшения и исправления Android- и Web-приложения",
+        "url": "{{ project_url }}/changelog",
+        "isPartOf": {
+            "@type": "WebSite",
+            "name": "{{ project_name }}",
+            "url": "{{ project_url }}/"
+        }
+    }
+    </script>
+</head>
+<body>
+<div class="wrap changelog-page">
+    <header class="site-header changelog-header">
+        <a class="brand changelog-brand" href="/" aria-label="На главную страницу {{ project_name }}">
+            <img src="/assets/icons/preview.png?v=3" alt="" class="logo">
+            <div>
+                <div class="brand-title">{{ project_name }}</div>
+                <p>История обновлений</p>
+            </div>
+        </a>
+
+        <nav class="header-nav changelog-nav" aria-label="Навигация">
+            <a href="/">О проекте</a>
+            <a href="/teacher">Помощник учителю</a>
+        </nav>
+
+        <div class="header-actions">
+            <button class="theme-toggle" id="themeToggle" aria-label="Переключить тему" type="button">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true">
+                    <path id="themeSvg" fill="black" d="M 11 0 L 11 3 L 13 3 L 13 0 L 11 0 z M 4.2226562 2.8085938 L 2.8085938 4.2226562 L 4.9296875 6.34375 L 6.34375 4.9296875 L 4.2226562 2.8085938 z M 19.777344 2.8085938 L 17.65625 4.9296875 L 19.070312 6.34375 L 21.191406 4.2226562 L 19.777344 2.8085938 z M 12 5 C 8.1458514 5 5 8.1458514 5 12 C 5 15.854149 8.1458514 19 12 19 C 15.854149 19 19 15.854149 19 12 C 19 8.1458514 15.854149 5 12 5 z M 12 7 C 14.773268 7 17 9.2267316 17 12 C 17 14.773268 14.773268 17 12 17 C 9.2267316 17 7 14.773268 7 12 C 7 9.2267316 9.2267316 7 12 7 z M 0 11 L 0 13 L 3 13 L 3 11 L 0 11 z M 21 11 L 21 13 L 24 13 L 24 11 L 21 11 z M 4.9296875 17.65625 L 2.8085938 19.777344 L 4.2226562 21.191406 L 6.34375 19.070312 L 4.9296875 17.65625 z M 19.070312 17.65625 L 17.65625 19.070312 L 19.777344 21.191406 L 21.191406 19.777344 L 19.070312 17.65625 z M 11 21 L 11 24 L 13 24 L 13 21 L 11 21 z"/>
+                </svg>
+            </button>
+        </div>
+    </header>
+
+    <main class="changelog-main">
+        <section class="changelog-hero" aria-labelledby="changelog-title">
+            <div class="changelog-hero-copy">
+                <span class="kicker">Развитие проекта</span>
+                <h1 id="changelog-title">История обновлений</h1>
+                <p>
+                    {{ project_name }} развивается сразу на нескольких платформах.
+                    Мы добавляем новые возможности, совершенствуем интерфейс,
+                    улучшаем существующие инструменты и исправляем обнаруженные ошибки.
+                    Здесь собраны изменения, которые вошли в опубликованные версии
+                    Android- и Web-приложения.
+                </p>
+                <div class="changelog-hero-meta">
+                    <span class="changelog-meta-icon" aria-hidden="true">↗</span>
+                    <span>
+                        {{ previous_versions|length + previous_web_versions|length }}
+                        записей об обновлениях
+                    </span>
+                </div>
+            </div>
+
+            <div class="changelog-hero-art" aria-hidden="true">
+                <div class="changelog-art-window">
+                    <div class="changelog-art-top">
+                        <span></span><span></span><span></span>
+                    </div>
+                    <div class="changelog-art-line changelog-art-line-long"></div>
+                    <div class="changelog-art-line"></div>
+                    <div class="changelog-art-item"><span>✓</span><i></i></div>
+                    <div class="changelog-art-item"><span>+</span><i></i></div>
+                    <div class="changelog-art-item"><span>↗</span><i></i></div>
+                </div>
+                <div class="changelog-art-caption">Каждое обновление — шаг вперёд</div>
+            </div>
+        </section>
+
+        <section class="changelog-note">
+            <div class="changelog-note-icon" aria-hidden="true">💡</div>
+            <div>
+                <h2>Две платформы — одна история развития</h2>
+                <p>
+                    {{ project_name }} доступен в виде Android-приложения и Web-приложения,
+                    которое можно открыть в браузере и установить на устройство.
+                    У каждой платформы собственные версии и история изменений:
+                    обновления могут выходить независимо друг от друга.
+                </p>
+                <p>
+                    Поэтому ниже изменения разделены на два списка.
+                    Выбирайте нужную платформу, чтобы посмотреть её версии,
+                    даты выпуска и подробное описание изменений.
+                </p>
+            </div>
+        </section>
+
+        <!-- Android -->
+        <section class="box changelog-list-section" aria-labelledby="android-versions-title">
+            <div class="changelog-section-heading">
+                <div>
+                    <span class="kicker">Мобильное приложение</span>
+                    <h2 id="android-versions-title">
+                        <span class="changelog-platform-icon" aria-hidden="true">🤖</span>
+                        Android
+                    </h2>
+                    <p class="muted">
+                        Обновления приложения для устройств на Android.
+                        Здесь собраны новые функции, изменения интерфейса,
+                        улучшения производительности и исправления.
+                    </p>
+                </div>
+                <span class="changelog-count">{{ previous_versions|length }}</span>
+            </div>
+
+            {% if previous_versions %}
+                <div class="changelog-versions">
+                    {% for v in previous_versions %}
+                        <details class="changelog-version" {% if loop.first %}open{% endif %}>
+                            <summary class="changelog-version-summary">
+                                <span class="changelog-version-main">
+                                    <span class="changelog-version-label">Версия</span>
+                                    <strong class="changelog-version-number">{{ v.version }}</strong>
+                                    <span class="changelog-version-date">{{ v.date }}</span>
+                                </span>
+                                <span class="changelog-version-side">
+                                    <span class="pill changelog-status">{{ v.status }}</span>
+                                    <span class="changelog-chevron" aria-hidden="true"></span>
+                                </span>
+                            </summary>
+
+                            <div class="changelog-version-content" id="android-{{ v.version_number }}">
+                                {% for item in v.update_log %}
+                                    {% if item %}
+                                        <div class="changelog-entry">{{ item }}</div>
+                                    {% else %}
+                                        <div class="changelog-entry changelog-entry-empty" aria-hidden="true"></div>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                        </details>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="changelog-empty">
+                    <span aria-hidden="true">🗂️</span>
+                    <h3>История пока пуста</h3>
+                    <p class="muted">
+                        Когда появятся опубликованные обновления Android-приложения,
+                        они будут собраны здесь.
+                    </p>
+                </div>
+            {% endif %}
+        </section>
+
+        <!-- Web / PWA -->
+        <section class="box changelog-list-section" aria-labelledby="web-versions-title">
+            <div class="changelog-section-heading">
+                <div>
+                    <span class="kicker">Кроссплатформенное Web-приложение</span>
+                    <h2 id="web-versions-title">
+                        <span class="changelog-platform-icon" aria-hidden="true">🌐</span>
+                        Web
+                    </h2>
+                    <p class="muted">
+                        Обновления Web-приложения {{ project_name }}.
+                        Оно работает в браузере, поддерживает установку на устройство
+                        и развивается независимо от Android-версии.
+                    </p>
+                </div>
+                <span class="changelog-count">{{ previous_web_versions|length }}</span>
+            </div>
+
+            {% if previous_web_versions %}
+                <div class="changelog-versions">
+                    {% for v in previous_web_versions %}
+                        <details class="changelog-version" {% if loop.first %}open{% endif %}>
+                            <summary class="changelog-version-summary">
+                                <span class="changelog-version-main">
+                                    <span class="changelog-version-label">Версия</span>
+                                    <strong class="changelog-version-number">{{ v.version }}</strong>
+                                    <span class="changelog-version-date">{{ v.date }}</span>
+                                </span>
+                                <span class="changelog-version-side">
+                                    <span class="pill changelog-status">{{ v.status }}</span>
+                                    <span class="changelog-chevron" aria-hidden="true"></span>
+                                </span>
+                            </summary>
+
+                            <div class="changelog-version-content" id="web-{{ v.version_number }}">
+                                {% for item in v.update_log %}
+                                    {% if item %}
+                                        <div class="changelog-entry">{{ item }}</div>
+                                    {% else %}
+                                        <div class="changelog-entry changelog-entry-empty" aria-hidden="true"></div>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                        </details>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="changelog-empty">
+                    <span aria-hidden="true">🗂️</span>
+                    <h3>История пока пуста</h3>
+                    <p class="muted">
+                        Когда появятся опубликованные обновления Web-приложения,
+                        они будут собраны здесь.
+                    </p>
+                </div>
+            {% endif %}
+        </section>
+    </main>
+
+    <footer class="site-footer changelog-footer">
+        <div class="footer-bottom">
+            <span>{{ project_name }}</span>
+            <span>
+                <a href="/">Главная страница</a>
+                <span aria-hidden="true"> · </span>
+                <a href="/teacher">Помощник учителю</a>
+            </span>
+        </div>
+    </footer>
+</div>
+
+<script src="/js/theme.js"></script>
+</body>
+</html>

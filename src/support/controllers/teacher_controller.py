@@ -34,6 +34,11 @@ async def _root(
     return template_params.to_response(request)
 
 
+@public_router.head("/teacher", include_in_schema=False)
+async def _head_root():
+    return HTMLResponse()
+
+
 @public_router.get(
     "/auth",
     summary="Первичное и вторичное получение параметров от дневника.ру. Авторизация учителя",

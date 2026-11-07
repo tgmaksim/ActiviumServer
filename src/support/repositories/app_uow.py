@@ -17,6 +17,7 @@ from .ad_viewing_repository import AdViewingRepository
 from .school_post_repository import SchoolPostRepository
 from .lesson_note_repository import LessonNoteRepository
 from .web_session_repository import WebSessionRepository
+from .web_version_repository import WebVersionRepository
 from ...repositories.log_repository import LogRepository
 from .review_likes_repository import ReviewLikeRepository
 from .information_repository import InformationRepository
@@ -75,6 +76,7 @@ class AppUnitOfWork(SqlAlchemyUnitOfWork):
         self._teacher_repository: Optional[TeacherRepository] = None
         self._teacher_session_repository: Optional[TeacherSessionRepository] = None
         self._web_session_repository: Optional[WebSessionRepository] = None
+        self._web_version_repository: Optional[WebVersionRepository] = None
 
     @property
     def log_repository(self) -> LogRepository:
@@ -261,3 +263,9 @@ class AppUnitOfWork(SqlAlchemyUnitOfWork):
         if self._web_session_repository is None:
             self._web_session_repository = WebSessionRepository(self.queue)
         return self._web_session_repository
+
+    @property
+    def web_version_repository(self) -> WebVersionRepository:
+        if self._web_version_repository is None:
+            self._web_version_repository = WebVersionRepository(self.queue)
+        return self._web_version_repository

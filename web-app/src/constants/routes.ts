@@ -4,4 +4,6 @@ export const routes = {
     login: `${import.meta.env.BASE_URL}login`,
     loginBase: "/login",
     loginUrl: `${import.meta.env.BASE_URL}loginUrl`,
+    privacy: "/privacy",
+    terms: "/terms",
 };

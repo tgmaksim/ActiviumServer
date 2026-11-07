@@ -35,3 +35,4 @@ from .tgbot_callback_data_model import TgbotCallbackData
 from .tgbot_state_model import TgbotState
 from .version_model import Version
 from .web_session_model import WebSession
+from .web_version_model import WebVersion

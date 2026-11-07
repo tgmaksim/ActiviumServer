@@ -25,7 +25,7 @@ class SiteService(BaseService[AppUnitOfWork]):
 
             # Версии приложения
             latest_version = await uow.version_repository.get_latest_version()
-            previous_versions = await uow.version_repository.get_all_versions(only_generic=False)
+            latest_web_version = await uow.web_version_repository.get_latest_version()
 
             # Режим сортировки отзывов
             mode = 'likes'
@@ -48,7 +48,7 @@ class SiteService(BaseService[AppUnitOfWork]):
                 {
                     'key': 'csrf_token',
                     'value': csrf_token,
-                    'max_age': 30 * 24 * 60 * 60,  # 30 дней
+                    'max_age': 5 * 60,  # 5 минут
                     'httponly': False,
                     'samesite': 'lax'
                 },
@@ -67,17 +67,16 @@ class SiteService(BaseService[AppUnitOfWork]):
                 name='main.html',
                 context={
                     'project_name': settings.PROJECT_NAME_RU,
+                    'project_url': settings.URL,
+                    'server_version': settings.VERSION,
                     'version': "0.0.1" if latest_version is None else latest_version.version,
                     'date': '' if latest_version is None else latest_version.date,
                     'version_status': "Небольшие улучшения" if latest_version is None else latest_version.status,
                     'update_log': [] if latest_version is None else latest_version.logs.split('\n'),
-                    'previous_versions': [{
-                        'version': v.version,
-                        'version_number': v.number,
-                        'date': v.date,
-                        'status': v.status,
-                        'update_log': v.logs.split('\n'),
-                    } for v in previous_versions],
+                    'web_version': "0.0.1" if latest_web_version is None else latest_web_version.version,
+                    'web_date': '' if latest_web_version is None else latest_web_version.date,
+                    'web_version_status': "Небольшие улучшения" if latest_web_version is None else latest_web_version.status,
+                    'web_update_log': [] if latest_web_version is None else latest_web_version.logs.split('\n'),
                     'reviews': [{
                         'id': review.parent_id,
                         'author': review.name,
@@ -95,4 +94,92 @@ class SiteService(BaseService[AppUnitOfWork]):
                     'github_server': settings.GITHUB_SERVER,
                 },
                 cookies=cookies
+            )
+
+    async def get_changelog(self, session_id: Optional[str]) -> HtmlResponse:
+        async with self.uow_factory() as uow:
+            session = None
+            if isinstance(session_id, str):
+                session = await uow.session_repository.get_session(session_id)  # Получение сессии без проверки авторизации
+
+            # Версии приложения
+            previous_versions = await uow.version_repository.get_all_versions(only_generic=False)
+            previous_web_versions = await uow.web_version_repository.get_all_versions(only_generic=False)
+
+            csrf_token = secrets.token_urlsafe(32)
+
+            cookies = [
+                {
+                    'key': 'csrf_token',
+                    'value': csrf_token,
+                    'max_age': 5 * 60,  # 5 минут
+                    'httponly': False,
+                    'samesite': 'lax'
+                },
+                {
+                    'key': 'session_id',
+                    'value': session_id,
+                    'max_age': 30 * 24 * 60 * 60,  # 30 дней
+                    'httponly': False,
+                    'secure': True
+                }
+            ]
+
+            await uow.statistic_repository.add_statistic(session and session.parent_id, StatName.siteChangelog)
+
+            return HtmlResponse(
+                name='changelog.html',
+                context={
+                    'project_name': settings.PROJECT_NAME_RU,
+                    'project_url': settings.URL,
+                    'server_version': settings.VERSION,
+                    'previous_versions': [{
+                        'version': v.version,
+                        'version_number': v.number,
+                        'date': v.date,
+                        'status': v.status,
+                        'update_log': v.logs.split('\n'),
+                    } for v in previous_versions],
+                    'previous_web_versions': [{
+                        'version': v.version,
+                        'version_number': v.number,
+                        'date': v.date,
+                        'status': v.status,
+                        'update_log': v.logs.split('\n'),
+                    } for v in previous_web_versions],
+                    'csrf_token': csrf_token
+                },
+                cookies=cookies
+            )
+
+    async def get_privacy(self, session_id: Optional[str]) -> HtmlResponse:
+        async with self.uow_factory() as uow:
+            session = None
+            if isinstance(session_id, str):
+                session = await uow.session_repository.get_session(session_id)  # Получение сессии без проверки авторизации
+
+            await uow.statistic_repository.add_statistic(session and session.parent_id, StatName.sitePrivacy)
+
+            return HtmlResponse(
+                name="privacy.html",
+                context={
+                    'project_name': settings.PROJECT_NAME_RU,
+                    'project_url': settings.URL
+                }
+            )
+
+    async def get_terms(self, session_id: Optional[str]) -> HtmlResponse:
+        async with self.uow_factory() as uow:
+            session = None
+            if isinstance(session_id, str):
+                session = await uow.session_repository.get_session(session_id)  # Получение сессии без проверки авторизации
+
+            await uow.statistic_repository.add_statistic(session and session.parent_id, StatName.siteTerms)
+
+            return HtmlResponse(
+                name="terms.html",
+                context={
+                    'project_name': settings.PROJECT_NAME_RU,
+                    'project_url': settings.URL
+                }
             )

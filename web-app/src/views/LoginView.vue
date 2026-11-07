@@ -35,11 +35,31 @@
                 </div>
             </div>
 
+            <!-- Согласие с документами -->
+            <label class="login-consent">
+                <input
+                    v-model="acceptedDocuments"
+                    type="checkbox"
+                    class="login-consent-checkbox"
+                />
+
+                <span>
+                    Я согласен с
+                    <a :href="routes.privacy" target="_blank" rel="noopener noreferrer">
+                        Политикой конфиденциальности
+                    </a>
+                    и
+                    <a :href="routes.terms" target="_blank" rel="noopener noreferrer">
+                        Условиями пользования
+                    </a>
+                </span>
+            </label>
+
             <!-- Кнопка -->
             <button
                 class="login-button"
                 type="button"
-                :disabled="loading"
+                :disabled="loading || !acceptedDocuments"
                 @click="login"
             >
                 <img
@@ -84,10 +104,11 @@ const appVersionCode = ref(APP_VERSION_CODE);
 const deviceInfo = getDeviceInfo();
 
 const loading = ref(false);
+const acceptedDocuments = ref(true);
 const error = ref<string | null>(null);
 
 async function login() {
-    if (loading.value) {
+    if (loading.value || !acceptedDocuments.value) {
         return;
     }
 
@@ -195,6 +216,48 @@ async function login() {
     line-height: 1.4;
 }
 
+.login-consent {
+    width: 100%;
+
+    margin-top: 20px;
+    padding: 0 4px;
+
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+
+    color: var(--text-secondary);
+
+    font-size: 13px;
+    line-height: 1.5;
+
+    cursor: pointer;
+}
+
+.login-consent-checkbox {
+    width: 18px;
+    height: 18px;
+
+    margin: 1px 0 0;
+
+    flex: 0 0 18px;
+
+    accent-color: var(--accent);
+    cursor: pointer;
+}
+
+.login-consent a {
+    color: var(--accent);
+
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 2px;
+}
+
+.login-consent a:hover {
+    opacity: 0.8;
+}
+
 .login-button {
     width: 100%;
     min-height: 52px;
@@ -221,7 +284,7 @@ async function login() {
 
 .login-button:disabled {
     cursor: default;
-    opacity: 0.75;
+    opacity: 0.5;
 }
 
 .dnevnik-logo {

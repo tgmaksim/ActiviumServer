@@ -1,16 +1,24 @@
 <!doctype html>
 <html lang="ru">
 <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
 
     <meta name="csrf-token" content="{{ csrf_token }}">
 
-    <title>{{ project_name }} — Помощник учителю</title>
-    <meta property="og:title" content="{{ project_name }} — Помощник учителю">
-    <meta property="og:description" content="Помощник {{ project_name }} автоматизирует составление отчетов об успеваемости">
-    <meta property="og:image" content="/assets/icons/preview.png?v=3">
-    <meta name="description" content="Помощник {{ project_name }} автоматизирует составление отчетов об успеваемости">
+    <title>Отчёт об оценках класса — помощник учителю | {{ project_name }}</title>
+    <meta name="description" content="Сформируйте PDF-отчёт с оценками учеников выбранного класса, средним баллом и рейтингом. Помощник учителю {{ project_name }} получает доступные данные через Дневник.ру.">
+
+    <link rel="canonical" href="{{ project_url }}/teacher">
+
+    <meta property="og:type" content="website">
+    <meta property="og:locale" content="ru_RU">
+    <meta property="og:site_name" content="{{ project_name }}">
+    <meta property="og:title" content="Отчёт об оценках класса — помощник учителю | {{ project_name }}">
+    <meta property="og:description" content="Создавайте компактные PDF-отчёты об оценках, средних баллах и рейтинге учащихся.">
+    <meta property="og:url" content="{{ project_url }}/teacher">
+    <meta property="og:image" content="{{ project_url }}/assets/icons/preview.png?v=3">
+    <meta name="twitter:card" content="summary_large_image">
 
     <link rel="manifest" href="/site.webmanifest?v=2">
     <link rel="apple-touch-icon" sizes="180x180" href="/assets/icons/apple-touch-icon.png?v=2">
@@ -20,160 +28,126 @@
     <link rel="icon" type="image/png" sizes="512x512" href="/assets/icons/android-chrome-512x512.png?v=2">
     <link rel="icon" type="image/x-icon" sizes="32x32" href="/assets/icons/favicon.ico?v=2">
 
-    <link href="/css/teacher.css?v=4" rel="stylesheet">
-    <link href="/css/main.css?v=14" rel="stylesheet">
+    <link href="/css/main.css?v=19" rel="stylesheet">
+    <link href="/css/teacher.css?v=5" rel="stylesheet">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "WebPage",
+        "name": "Помощник учителю — отчёты об оценках",
+        "description": "Формирование PDF-отчётов об оценках учащихся класса на основе данных «Дневника.ру».",
+        "url": "{{ project_url }}/teacher",
+        "isPartOf": {
+            "@type": "WebSite",
+            "name": "{{ project_name }}",
+            "url": "{{ project_url }}/"
+        }
+    }
+    </script>
 </head>
 <body>
 <div class="wrap teacher-page" id="page">
-    <header>
-        <a class="teacher-brand" href="/" aria-label="На главную страницу Активиум">
-            <img src="/assets/icons/preview.png?v=3" alt="Активиум" class="logo">
-
-            <div>
-                <h1>Активиум</h1>
-                <p>Помощник учителю</p>
-            </div>
+    <header class="teacher-header">
+        <a class="teacher-brand" href="/" aria-label="{{ project_name }} — главная страница">
+            <img src="/assets/icons/preview.png?v=3" alt="" class="logo">
+            <span class="teacher-brand-copy">
+                <strong>{{ project_name }}</strong>
+                <span>Помощник учителю</span>
+            </span>
         </a>
 
         <div class="header-actions">
-            <a class="teacher-home-link" href="/">
-                На главную
-            </a>
-
+            <a class="teacher-home-link" href="/">О проекте</a>
             <button class="theme-toggle" id="themeToggle" aria-label="Переключить тему" type="button">
-                <svg xmlns="http://www.w3.org/2000/svg"
-                     width="24"
-                     height="24"
-                     viewBox="0 0 24 24">
-                    <path id="themeSvg" fill="black" d="M 11 0 L 11 3 L 13 3 L 13 0 L 11 0 z M 4.2226562 2.8085938 L 2.8085938 4.2226562 L 4.9296875 6.34375 L 6.34375 4.9296875 L 4.2226562 2.8085938 z M 19.777344 2.8085938 L 17.65625 4.9296875 L 19.070312 6.34375 L 21.191406 4.2226562 L 19.777344 2.8085938 z M 12 5 C 8.1458514 5 5 8.1458514 5 12 C 5 15.854149 8.1458514 19 12 19 C 15.854149 19 19 15.854149 19 12 C 19 8.1458514 15.854149 5 12 5 z M 12 7 C 14.773268 7 17 9.2267316 17 12 C 17 14.773268 14.773268 17 12 17 C 9.2267316 17 7 14.773268 7 12 C 7 9.2267316 9.2267316 7 12 7 z M 0 11 L 0 13 L 3 13 L 3 11 L 0 11 z M 21 11 L 21 13 L 24 13 L 24 11 L 21 11 z M 4.9296875 17.65625 L 2.8085938 19.777344 L 4.2226562 21.191406 L 6.34375 19.070312 L 4.9296875 17.65625 z M 19.070312 17.65625 L 17.65625 19.070312 L 19.777344 21.191406 L 21.191406 19.777344 L 19.070312 17.65625 z M 11 21 L 11 24 L 13 24 L 13 21 L 11 21 z" />
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true">
+                    <path id="themeSvg" fill="currentColor" d="M 11 0 L 11 3 L 13 3 L 13 0 L 11 0 z M 4.2226562 2.8085938 L 2.8085938 4.2226562 L 4.9296875 6.34375 L 6.34375 4.9296875 L 4.2226562 2.8085938 z M 19.777344 2.8085938 L 17.65625 4.9296875 L 19.070312 6.34375 L 21.191406 4.2226562 L 19.777344 2.8085938 z M 12 5 C 8.1458514 5 5 8.1458514 5 12 C 5 15.854149 8.1458514 19 12 19 C 15.854149 19 19 15.854149 19 12 C 19 8.1458514 15.854149 5 12 5 z M 12 7 C 14.773268 7 17 9.2267316 17 12 C 17 14.773268 14.773268 17 12 17 C 9.2267316 17 7 14.773268 7 12 C 7 9.2267316 9.2267316 7 12 7 z M 0 11 L 0 13 L 3 13 L 3 11 L 0 11 z M 21 11 L 21 13 L 24 13 L 24 11 L 21 11 z M 4.9296875 17.65625 L 2.8085938 19.777344 L 4.2226562 21.191406 L 6.34375 19.070312 L 4.9296875 17.65625 z M 19.070312 17.65625 L 17.65625 19.070312 L 19.777344 21.191406 L 21.191406 19.777344 L 19.070312 17.65625 z M 11 21 L 11 24 L 13 24 L 13 21 L 11 21 z"/>
                 </svg>
             </button>
         </div>
     </header>
 
-
-    <!-- Информация о помощнике остаётся в обоих состояниях -->
-    <section class="teacher-intro">
-        <div class="teacher-intro-content">
-            <span class="kicker">Помощник учителю</span>
-
-            <h2>Удобные инструменты для работы с классом</h2>
-
-            <p>
-                Помощник учителю — часть Активиум, которая помогает быстро получать и оформлять информацию об учебном процессе для учителей и классных руководителей. Автоматизация поможет выделить время на более важные дела
-            </p>
-        </div>
-
-        <div class="teacher-intro-mark" aria-hidden="true">
-            <div class="teacher-mark-icon">✓</div>
-            <span>Активиум</span>
-        </div>
-    </section>
-
-
-    {% if not authorized %}
-
-        <!-- Вариант для неавторизованного пользователя -->
-        <section class="teacher-auth-section">
-            <div class="teacher-auth-card box">
-                <div class="teacher-auth-icon" aria-hidden="true">
-                    🔐
+    <main class="teacher-main">
+        <section class="teacher-hero" aria-labelledby="teacher-title">
+            <div class="teacher-hero-copy">
+                <span class="kicker">Инструмент для учителей и классных руководителей</span>
+                <h1 id="teacher-title">Отчёт об оценках класса — в одном PDF-документе</h1>
+                <p class="teacher-hero-lead">
+                    Помощник учителю {{ project_name }} собирает оценки учеников выбранного класса
+                    в компактные таблицы. В документе также отображаются средний балл
+                    и рейтинг в том виде, в каком его видят пользователи приложения.
+                </p>
+                <div class="teacher-hero-points" aria-label="Основные свойства отчёта">
+                    <span><span aria-hidden="true">✓</span> Данные из «Дневника.ру»</span>
+                    <span><span aria-hidden="true">✓</span> Формат PDF</span>
+                    <span><span aria-hidden="true">✓</span> Для просмотра и печати</span>
                 </div>
-
-                <div class="teacher-auth-content">
-                    <h3>Войдите через Дневник.ру</h3>
-
-                    <p class="muted">
-                        Авторизуйтесь, чтобы получить доступ к инструментам
-                        помощника учителя и данным ваших классов.
-                    </p>
-
-                    <a class="btn-primary teacher-login-button" href="{{ login_url }}">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                            <path d="M5 12h14M13 5l7 7-7 7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
-                        </svg>
-
-                        Войти через Дневник.ру
-                    </a>
+            </div>
+            <div class="teacher-hero-visual" aria-hidden="true">
+                <div class="teacher-document">
+                    <div class="teacher-document-top">
+                        <span class="teacher-document-mark"></span>
+                        <span class="teacher-document-lines">
+                            <i></i><i></i>
+                        </span>
+                    </div>
+                    <div class="teacher-document-title"></div>
+                    <div class="teacher-document-table">
+                        <span></span><span></span><span></span>
+                        <span></span><span></span><span></span>
+                        <span></span><span></span><span></span>
+                        <span></span><span></span><span></span>
+                    </div>
+                    <div class="teacher-document-summary">
+                        <i></i><i></i><i></i>
+                    </div>
+                    <span class="teacher-pdf-label">PDF</span>
                 </div>
             </div>
         </section>
 
-
-        <section class="teacher-features" aria-label="Возможности помощника">
-            <div class="teacher-feature box">
-                <div class="teacher-feature-icon">📊</div>
-
-                <div>
-                    <h3>Отчёт по классу</h3>
-
-                    <p class="muted">
-                        Сформируйте документ с оценками учеников выбранного
-                        класса, чтобы распечатать его и раздать ученикам.
-                    </p>
+        <section class="teacher-workspace box" aria-labelledby="workspace-title">
+            {% if not authorized %}
+                <div class="teacher-workspace-content">
+                    <div class="teacher-section-icon" aria-hidden="true">🔐</div>
+                    <div class="teacher-workspace-copy">
+                        <span class="kicker">Начало работы</span>
+                        <h2 id="workspace-title">Войдите через «Дневник.ру»</h2>
+                        <p>
+                            После авторизации {{ project_name }} получит доступ к тем классам
+                            и учебным данным, которые доступны вашей учётной записи.
+                            Затем вы сможете выбрать класс и сформировать PDF-отчёт.
+                        </p>
+                        <a class="btn-primary teacher-login-button" href="{{ login_url }}">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                <path d="M5 12h14M13 5l7 7-7 7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            Войти через «Дневник.ру»
+                        </a>
+                    </div>
                 </div>
-            </div>
-
-            <div class="teacher-feature box teacher-feature-muted">
-                <div class="teacher-feature-icon">⚡</div>
-
-                <div>
-                    <h3>Больше инструментов — позже</h3>
-
-                    <p class="muted">
-                        Помощник будет постепенно расширяться новыми
-                        инструментами для учителей.
-                    </p>
-                </div>
-            </div>
-        </section>
-
-    {% else %}
-
-        <!-- Вариант для авторизованного пользователя -->
-        <section class="teacher-tools box">
-            <div class="teacher-tools-header">
-                <div>
-                    <span class="kicker">Инструменты</span>
-                    <h2>Помощник учителю</h2>
-                    <p class="muted">
-                        Выберите класс и сформируйте нужный документ.
-                    </p>
-                </div>
-            </div>
-
-
-            <div class="teacher-tool">
-                <div class="teacher-tool-icon" aria-hidden="true">
-                    📊
-                </div>
-
-                <div class="teacher-tool-info">
-                    <h3>Отчёт по успеваемости класса</h3>
-
-                    <p class="muted">
-                        Сформируйте документ с оценками учеников выбранного класса для печати и раздачи.
-                    </p>
+            {% else %}
+                <div class="teacher-workspace-heading">
+                    <div>
+                        <span class="kicker">Формирование документа</span>
+                        <h2 id="workspace-title">Выберите класс</h2>
+                        <p>Укажите один из доступных классов, чтобы подготовить отчёт.</p>
+                    </div>
+                    <span class="teacher-ready-label"><span></span> Доступ открыт</span>
                 </div>
 
                 <form id="reportForm" class="teacher-report-form" action="/teacher/report" method="post">
-                    <label for="classSelect">
-                        Класс
-                    </label>
-
-                    <select id="classSelect" name="groupId" required>
-                        <option value="" selected disabled>
-                            Выберите класс
-                        </option>
-
-                        {% for class in classes %}
-                            <option value="{{ class.groupId }}">
-                                {{ class.name }}
-                            </option>
-                        {% endfor %}
-                    </select>
+                    <div class="teacher-select-wrap">
+                        <label for="classSelect">Класс</label>
+                        <select id="classSelect" name="groupId" required>
+                            <option value="" selected disabled>Выберите класс</option>
+                            {% for class in classes %}
+                                <option value="{{ class.groupId }}">{{ class.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
 
                     <button type="submit" class="btn-primary teacher-report-button" id="reportButton">
                         <span class="button-content">
@@ -181,23 +155,155 @@
                                 <path d="M6 3h9l4 4v14H6V3z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>
                                 <path d="M14 3v5h5M9 13h6M9 17h6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
                             </svg>
-
-                            Составить отчёт
+                            Сформировать PDF-отчёт
                         </span>
-
                         <span class="button-loading" aria-hidden="true">
                             <span class="teacher-spinner"></span>
-                            Формирование...
+                            Формирование отчёта…
                         </span>
                     </button>
                 </form>
-            </div>
+            {% endif %}
 
             <div class="teacher-report-status" id="reportStatus" role="status" aria-live="polite" hidden></div>
         </section>
 
-    {% endif %}
+        <section class="teacher-section" aria-labelledby="how-title">
+            <div class="teacher-section-heading">
+                <span class="kicker">Три шага</span>
+                <h2 id="how-title">Как работает помощник учителю</h2>
+                <p>От авторизации до готового документа — без ручного переноса оценок в таблицу.</p>
+            </div>
 
+            <div class="teacher-steps">
+                <article class="teacher-step">
+                    <span class="teacher-step-number">01</span>
+                    <div class="teacher-step-icon" aria-hidden="true">🔐</div>
+                    <h3>Авторизуйтесь</h3>
+                    <p>Войдите через «Дневник.ру». Помощник использует данные, доступные вашей учётной записи.</p>
+                </article>
+                <article class="teacher-step">
+                    <span class="teacher-step-number">02</span>
+                    <div class="teacher-step-icon" aria-hidden="true">🏫</div>
+                    <h3>Выберите класс</h3>
+                    <p>В списке появятся доступные вам классы. Выберите тот, по которому нужен документ.</p>
+                </article>
+                <article class="teacher-step">
+                    <span class="teacher-step-number">03</span>
+                    <div class="teacher-step-icon" aria-hidden="true">📄</div>
+                    <h3>Получите PDF</h3>
+                    <p>Сформируйте отчёт, откройте его для просмотра, сохраните или распечатайте.</p>
+                </article>
+            </div>
+        </section>
+
+        <section class="teacher-details-grid" aria-label="Содержание и назначение отчёта">
+            <article class="teacher-info-card box">
+                <div class="teacher-info-heading">
+                    <span class="teacher-info-icon" aria-hidden="true">📋</span>
+                    <div>
+                        <span class="kicker">Содержание документа</span>
+                        <h2>Что входит в отчёт</h2>
+                    </div>
+                </div>
+                <p>PDF содержит компактные таблицы с учебными результатами выбранного класса:</p>
+                <ul class="teacher-check-list">
+                    <li>имена учащихся;</li>
+                    <li>предметы и оценки по каждому ученику;</li>
+                    <li>средний балл;</li>
+                    <li>рейтинг в представлении приложения {{ project_name }}.</li>
+                </ul>
+                <p class="teacher-note">
+                    Это сводный документ с оценками, а не самостоятельное педагогическое
+                    заключение: он помогает быстро просмотреть собранные данные и подготовить их к печати.
+                </p>
+            </article>
+
+            <article class="teacher-info-card box">
+                <div class="teacher-info-heading">
+                    <span class="teacher-info-icon" aria-hidden="true">🎯</span>
+                    <div>
+                        <span class="kicker">Для повседневной работы</span>
+                        <h2>Кому и когда пригодится</h2>
+                    </div>
+                </div>
+                <p>
+                    Помощник предназначен для учителей и классных руководителей,
+                    которым нужно получить общую таблицу оценок класса в удобном формате.
+                </p>
+                <ul class="teacher-check-list">
+                    <li>посмотреть оценки класса в одном документе;</li>
+                    <li>распечатать таблицы и раздать их ученикам;</li>
+                    <li>сохранить PDF для дальнейшего использования;</li>
+                    <li>сопоставить средние баллы и рейтинг с отображением в {{ project_name }}.</li>
+                </ul>
+            </article>
+        </section>
+
+        <section class="teacher-data-section box" aria-labelledby="data-title">
+            <div class="teacher-data-icon" aria-hidden="true">🔗</div>
+            <div>
+                <span class="kicker">Источник информации</span>
+                <h2 id="data-title">Данные электронного журнала</h2>
+                <p>
+                    Для формирования отчёта используется авторизация через «Дневник.ру».
+                    Класс выбирается из списка, доступного вошедшему учителю, а оценки
+                    берутся из доступных учебных данных этого класса. Это избавляет
+                    от необходимости вручную собирать оценки по отдельным страницам журнала
+                    и переносить их в документ.
+                </p>
+            </div>
+        </section>
+
+        <section class="teacher-faq-section" aria-labelledby="faq-title">
+            <div class="teacher-section-heading">
+                <span class="kicker">Частые вопросы</span>
+                <h2 id="faq-title">О помощнике учителю</h2>
+            </div>
+            <div class="teacher-faq">
+                <details>
+                    <summary>Какие данные будут в PDF?</summary>
+                    <p>В документе представлены имена учащихся, предметы, оценки, средний балл и рейтинг в том виде, в каком он отображается пользователям {{ project_name }}.</p>
+                </details>
+                <details>
+                    <summary>Откуда берутся оценки?</summary>
+                    <p>Помощник работает с учебными данными «Дневника.ру», доступными авторизованному учителю для выбранного класса.</p>
+                </details>
+                <details>
+                    <summary>Как формируется рейтинг в классе?</summary>
+                    <p>Общий рейтинг по классу учитывает средние баллы по всем предметам с оценками и считает между ними новое среднее — это и будет значение ученика в рейтинге. Далее формируется список, отсортированный и пронумерованный на основе получившегося балла.</p>
+                </details>
+                <details>
+                    <summary>Можно ли распечатать отчёт?</summary>
+                    <p>Да. Отчёт формируется в формате PDF, поэтому его можно просмотреть, сохранить и распечатать.</p>
+                </details>
+                <details>
+                    <summary>Заменяет ли отчёт электронный журнал?</summary>
+                    <p>Нет. Это компактная сводка оценок для просмотра и печати. Для работы с электронным журналом и исходными данными по-прежнему используется «Дневник.ру».</p>
+                </details>
+            </div>
+        </section>
+
+        <section class="teacher-about box">
+            <div>
+                <span class="kicker">Часть проекта {{ project_name }}</span>
+                <h2>Инструменты для школьной жизни в одном проекте</h2>
+                <p>
+                    Помощник учителю — отдельный инструмент проекта {{ project_name }}.
+                    Само приложение помогает ученикам и родителям следить за расписанием,
+                    оценками и школьными событиями, а учителям — быстрее подготовить
+                    компактный документ с оценками класса.
+                </p>
+                <a class="btn-outline teacher-about-link" href="/">Перейти на главную страницу {{ project_name }}</a>
+            </div>
+            <div class="teacher-about-mark" aria-hidden="true">А</div>
+        </section>
+    </main>
+
+    <footer class="teacher-footer">
+        <a href="/">{{ project_name }}</a>
+        <span>Помощник учителю · PDF-отчёты по оценкам класса</span>
+    </footer>
 </div>
 
 <script src="/js/theme.js"></script>

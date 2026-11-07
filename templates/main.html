@@ -1,16 +1,24 @@
 <!doctype html>
 <html lang="ru">
 <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
 
     <meta name="csrf-token" content="{{ csrf_token }}">
 
-    <title>{{ project_name }} — Мобильное приложение</title>
-    <meta property="og:title" content="{{ project_name }} — Мобильное приложение">
-    <meta property="og:description" content="Официальный сайт приложения {{ project_name }} — расписание, оценки, мероприятия, рейтинг и статистика — все под рукой!">
-    <meta property="og:image" content="/assets/icons/preview.png?v=3">
-    <meta name="description" content="Официальный сайт приложения {{ project_name }} — расписание, оценки, мероприятия, рейтинг и статистика — все под рукой!">
+    <title>{{ project_name }} — расписание, оценки, школьные события и инструменты для учителя</title>
+    <meta name="description" content="{{ project_name }} — сервис для учеников, их родителей с инструментами для учителей. Расписание, оценки, домашние задания, школьные события и уведомления. Android и Web">
+
+    <link rel="canonical" href="{{ project_url }}/">
+
+    <meta property="og:type" content="website">
+    <meta property="og:locale" content="ru_RU">
+    <meta property="og:site_name" content="{{ project_name }}">
+    <meta property="og:title" content="{{ project_name }} — расписание, оценки, школьные события и инструменты для учителя">
+    <meta property="og:description" content="Расписание, оценки, домашние задания и школьные события в одном приложении. Для учеников и их родителей. Помощник с отчетностью учителям">
+    <meta property="og:url" content="{{ project_url }}/">
+    <meta property="og:image" content="{{ project_url }}/assets/icons/preview.png?v=3">
+    <meta name="twitter:card" content="summary_large_image">
 
     <link rel="manifest" href="/site.webmanifest?v=2">
     <link rel="apple-touch-icon" sizes="180x180" href="/assets/icons/apple-touch-icon.png?v=2">
@@ -20,201 +28,670 @@
     <link rel="icon" type="image/png" sizes="512x512" href="/assets/icons/android-chrome-512x512.png?v=2">
     <link rel="icon" type="image/x-icon" sizes="32x32" href="/assets/icons/favicon.ico?v=2">
 
-    <link href="/css/main.css?v=14" rel="stylesheet">
+    <link href="/css/main.css?v=19" rel="stylesheet">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "{{ project_name }}",
+        "applicationCategory": "EducationalApplication",
+        "operatingSystem": ["Android", "Web browser"],
+        "description": "Приложение для учеников и их родителей: расписание, оценки, домашние задания и школьные события. Помощник с отчетностью учителям",
+        "url": "{{ project_url }}/",
+        "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "RUB"
+        },
+        "softwareVersion": "{{ server_version }}"
+    }
+    </script>
 </head>
 <body>
-    <div class="wrap" id="page">
-        <header>
-            <div class="brand">
-                <img src="/assets/icons/preview.png?v=3" alt="logo" class="logo" aria-hidden="true">
-                <div>
-                    <h1>{{ project_name }}</h1>
-                    <p>Для учеников и их родителей, а также для учителей</p>
-                </div>
-            </div>
+<div class="wrap" id="page">
 
-            <div class="header-actions">
-                <button class="theme-toggle" id="themeToggle" aria-label="Переключить тему">
-                    <svg xmlns="http://www.w3.org/2000/svg" x="0px" y="0px" width="24" height="24" viewBox="0 0 24 24">
-                        <path id="themeSvg" fill="black" d="M 11 0 L 11 3 L 13 3 L 13 0 L 11 0 z M 4.2226562 2.8085938 L 2.8085938 4.2226562 L 4.9296875 6.34375 L 6.34375 4.9296875 L 4.2226562 2.8085938 z M 19.777344 2.8085938 L 17.65625 4.9296875 L 19.070312 6.34375 L 21.191406 4.2226562 L 19.777344 2.8085938 z M 12 5 C 8.1458514 5 5 8.1458514 5 12 C 5 15.854149 8.1458514 19 12 19 C 15.854149 19 19 15.854149 19 12 C 19 8.1458514 15.854149 5 12 5 z M 12 7 C 14.773268 7 17 9.2267316 17 12 C 17 14.773268 14.773268 17 12 17 C 9.2267316 17 7 14.773268 7 12 C 7 9.2267316 9.2267316 7 12 7 z M 0 11 L 0 13 L 3 13 L 3 11 L 0 11 z M 21 11 L 21 13 L 24 13 L 24 11 L 21 11 z M 4.9296875 17.65625 L 2.8085938 19.777344 L 4.2226562 21.191406 L 6.34375 19.070312 L 4.9296875 17.65625 z M 19.070312 17.65625 L 17.65625 19.070312 L 19.777344 21.191406 L 21.191406 19.777344 L 19.070312 17.65625 z M 11 21 L 11 24 L 13 24 L 13 21 L 11 21 z"></path>
-                    </svg>
-                </button>
-            </div>
-        </header>
+    <!-- Шапка -->
+    <header class="site-header">
+        <div class="brand">
+            <img src="/assets/icons/preview.png?v=3"
+                 alt=""
+                 class="logo"
+                 aria-hidden="true">
 
-        <section class="hero" role="region" aria-label="Приложение">
+            <div>
+                <div class="brand-title">{{ project_name }}</div>
+                <p>Для учеников, их родителей и учителей</p>
+            </div>
+        </div>
+
+        <nav class="header-nav" aria-label="Основная навигация">
+            <a href="#features">Возможности</a>
+            <a href="#screenshotsBox">Скриншоты</a>
+            <a href="#teacher">Учителям</a>
+            <a href="#reviews">Отзывы</a>
+            <a href="#support">Поддержка</a>
+        </nav>
+
+        <div class="header-actions">
+            <button class="theme-toggle"
+                    id="themeToggle"
+                    aria-label="Переключить тему">
+                <svg xmlns="http://www.w3.org/2000/svg"
+                     width="24"
+                     height="24"
+                     viewBox="0 0 24 24">
+                    <path id="themeSvg"
+                          fill="black"
+                          d="M 11 0 L 11 3 L 13 3 L 13 0 L 11 0 z M 4.2226562 2.8085938 L 2.8085938 4.2226562 L 4.9296875 6.34375 L 6.34375 4.9296875 L 4.2226562 2.8085938 z M 19.777344 2.8085938 L 17.65625 4.9296875 L 19.070312 6.34375 L 21.191406 4.2226562 L 19.777344 2.8085938 z M 12 5 C 8.1458514 5 5 8.1458514 5 12 C 5 15.854149 8.1458514 19 12 19 C 15.854149 19 19 15.854149 19 12 C 19 8.1458514 15.854149 5 12 5 z M 12 7 C 14.773268 7 17 9.2267316 17 12 C 17 14.773268 14.773268 17 12 17 C 9.2267316 17 7 14.773268 7 12 C 7 9.2267316 9.2267316 7 12 7 z M 0 11 L 0 13 L 3 13 L 3 11 L 0 11 z M 21 11 L 21 13 L 24 13 L 24 11 L 21 11 z M 4.9296875 17.65625 L 2.8085938 19.777344 L 4.2226562 21.191406 L 6.34375 19.070312 L 4.9296875 17.65625 z M 19.070312 17.65625 L 17.65625 19.070312 L 19.777344 21.191406 L 21.191406 19.777344 L 19.070312 17.65625 z M 11 21 L 11 24 L 13 24 L 13 21 L 11 21 z">
+                    </path>
+                </svg>
+            </button>
+        </div>
+    </header>
+
+    <main>
+        <!-- Первый экран -->
+        <section class="hero" aria-labelledby="hero-title">
             <div class="hero-left">
-                <span class="kicker">Приложение</span>
-                <h2>Расписание, оценки и школьные события в одном приложении</h2>
-                <p>Удобный интерфейс: актуальное расписание, уведомления о событиях и мероприятиях, домашние задания, внеурочные занятия и оценки — всё под рукой.</p>
+                <span class="kicker">Учебная жизнь — под рукой</span>
+
+                <h1 id="hero-title">
+                    {{ project_name }} — всё важное об учебе в одном приложении
+                </h1>
+
+                <p>
+                    {{ project_name }} помогает ученикам следить
+                    за учёбой, родителям быть в курсе учебной жизни детей,
+                    а учителям — пользоваться дополнительными инструментами
+                    для работы с классом.
+                </p>
 
                 <div class="download-actions">
-                    <a class="btn-primary" id="downloadApk" href="/apk/activium_v{{ version }}.apk">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                            <path d="M12 3v12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-                            <path d="M8 11l4 4 4-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-                            <rect x="3" y="17" width="18" height="4" rx="1" stroke="currentColor" stroke-width="1.6"/>
+                    <a class="btn-primary"
+                       id="downloadApk"
+                       href="/apk/activium_v{{ version }}.apk">
+                        <svg width="18"
+                             height="18"
+                             viewBox="0 0 24 24"
+                             fill="none"
+                             aria-hidden="true">
+                            <path d="M12 3v12"
+                                  stroke="currentColor"
+                                  stroke-width="1.6"
+                                  stroke-linecap="round"
+                                  stroke-linejoin="round"/>
+                            <path d="M8 11l4 4 4-4"
+                                  stroke="currentColor"
+                                  stroke-width="1.6"
+                                  stroke-linecap="round"
+                                  stroke-linejoin="round"/>
+                            <rect x="3"
+                                  y="17"
+                                  width="18"
+                                  height="4"
+                                  rx="1"
+                                  stroke="currentColor"
+                                  stroke-width="1.6"/>
                         </svg>
-                        Android
+                        Скачать для Android
                     </a>
 
-                    <a class="btn-outline" href="/app/" target="_blank">
-                        <img src="/assets/icons/apple.png" alt="iOS" style="width:16px;height:16px;">
-                        iOS
-                    </a>
-
-                    <a class="btn-outline btn-teacher" href="/teacher">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                            <path d="M5 12h14M13 5l7 7-7 7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                    <a class="btn-outline"
+                       href="/app/"
+                       target="_blank"
+                       rel="noopener">
+                        <svg width="18"
+                             height="18"
+                             viewBox="0 0 24 24"
+                             fill="none"
+                             aria-hidden="true">
+                            <rect x="3"
+                                  y="4"
+                                  width="18"
+                                  height="16"
+                                  rx="2"
+                                  stroke="currentColor"
+                                  stroke-width="1.6"/>
+                            <path d="M3 9h18"
+                                  stroke="currentColor"
+                                  stroke-width="1.6"/>
+                            <path d="M7 6.5h.01M10 6.5h.01"
+                                  stroke="currentColor"
+                                  stroke-width="2"
+                                  stroke-linecap="round"/>
                         </svg>
-                        Помощник учителю
-                    </a>
-
-                    <a class="btn-outline open-app-btn" href="tgm://activium/open">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                            <path d="M5 12h14M13 5l7 7-7 7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-                        </svg>
-                        Открыть приложение
+                        Открыть Web-приложение
                     </a>
                 </div>
 
-                <div class="meta">
+                <div class="meta hero-meta">
                     <div class="pill">Android 10+</div>
                     <div class="small">{{ version }}</div>
                     <div class="small">{{ date }}</div>
                 </div>
 
+                <p class="hero-platform-note small muted">
+                    Web-версия доступна на компьютерах, планшетах и смартфонах.
+                </p>
             </div>
 
-            <aside id="qrCard" class="hero-card" aria-hidden="true">
-                <h3 style="justify-self:center">Скачать и установить</h3>
-                <div style="margin-top:8px; justify-self:center">
-                    <img src="/assets/index/qr-code.png?v=3" alt="QR - скачать" class="qr">
+            <aside id="qrCard" class="hero-card">
+                <h3>Скачать {{ project_name }}</h3>
+
+                <div class="qr-container">
+                    <img src="/assets/index/qr-code.png?v=3"
+                         alt="QR-код для открытия данной страницы"
+                         class="qr"
+                         width="200"
+                         height="200">
                 </div>
+
+                <p class="small muted">
+                    Наведите камеру смартфона, чтобы открыть данную страницу
+                </p>
             </aside>
         </section>
 
-        <section aria-label="Функции">
+        <!-- Возможности -->
+        <section id="features"
+                 class="content-section"
+                 aria-labelledby="features-title">
+            <div class="section-heading">
+                <span class="kicker">Возможности</span>
+                <h2 id="features-title">Всё необходимое для учёбы</h2>
+                <p class="muted">
+                    Основные инструменты для учеников и родителей собраны
+                    в одном приложении.
+                </p>
+            </div>
+
             <div class="features">
-                <article class="card" role="article" aria-labelledby="f1">
+                <article class="card" aria-labelledby="feature-schedule">
                     <div class="icon" aria-hidden="true">📅</div>
-                    <h4 id="f1">Расписание</h4>
-                    <p>Быстрый доступ к расписанию на весь день и текущий месяц даже без интернета. Просмотр домашних заданий, прикрепленных файлов и уведомления о внеурочных занятиях.</p>
+                    <h3 id="feature-schedule">Расписание и домашние задания</h3>
+                    <p>
+                        Просматривайте расписание уроков, домашние задания
+                        и прикреплённые к ним файлы. Данные расписания
+                        доступны в сохранённом виде даже без интернета.
+                        Внеурочные занятия также могут отображаться
+                        в расписании после подключения школой
+                    </p>
                 </article>
 
-                <article class="card" role="article" aria-labelledby="f2">
+                <article class="card" aria-labelledby="feature-marks">
                     <div class="icon" aria-hidden="true">📝</div>
-                    <h4 id="f2">Оценки</h4>
-                    <p>Просмотр оценок за урок в расписании, последних оценок и общей картины по предметам, а также уведомления о выставлении новых.</p>
+                    <h3 id="feature-marks">Оценки и успеваемость</h3>
+                    <p>
+                        Следите за оценками по предметам, просматривайте
+                        последние результаты, средний и итоговый балл.
+                        Получайте уведомления о новых оценках.
+                    </p>
                 </article>
 
-                <article class="card" role="article" aria-labelledby="f3">
+                <article class="card" aria-labelledby="feature-activities">
                     <div class="icon" aria-hidden="true">🎫</div>
-                    <h4 id="f3">Мероприятия</h4>
-                    <p>Список внеучебных событий и мероприятий, просмотр новостей и вся жизнь образовательной организации.</p>
+                    <h3 id="feature-activities">Школьные новости и события</h3>
+                    <p>
+                        Читайте публикации в разделе «Актив», узнавайте
+                        о мероприятиях и важных событиях образовательной
+                        организации, реагируйте на записи.
+                    </p>
                 </article>
 
-                <article class="card" role="article" aria-labelledby="f4">
+                <article class="card" aria-labelledby="feature-parents">
+                    <div class="icon" aria-hidden="true">👨‍👩‍👧</div>
+                    <h3 id="feature-parents">Возможности для родителей</h3>
+                    <p>
+                        Переключайтесь между профилями детей, просматривайте
+                        их расписание и оценки, следите за школьной жизнью
+                        и отправляйте слова поддержки за хорошую учебу.
+                    </p>
+                </article>
+
+                <article class="card" aria-labelledby="feature-notifications">
+                    <div class="icon" aria-hidden="true">🔔</div>
+                    <h3 id="feature-notifications">Уведомления и напоминания</h3>
+                    <p>
+                        Получайте уведомления о новых оценках и важных
+                        событиях. Используйте напоминания, чтобы не забывать
+                        о школьных делах и внеурочных занятиях.
+                    </p>
+                </article>
+
+                <article class="card" aria-labelledby="feature-statistics">
                     <div class="icon" aria-hidden="true">🏅</div>
-                    <h4 id="f4">Статистика и рейтинг</h4>
-                    <p>Просмотр оценок в классе за любую работу или урок и подсчет статистики группы и ученика по предметам.</p>
+                    <h3 id="feature-statistics">Статистика и рейтинг</h3>
+                    <p>
+                        Изучайте статистику успеваемости, следите за
+                        результатами по предметам и изменением положения
+                        в рейтинге класса.
+                    </p>
                 </article>
             </div>
         </section>
 
-        <div id="screenshotsBox" class="box">
-            <h3>Скриншоты приложения</h3>
-            <div id="screenshots" class="screenshots">
-                <img src="/assets/screenshots/screen31.jpg" alt="Скриншот экрана">
-                <img src="/assets/screenshots/screen43.jpg" alt="Скриншот экрана">
-                <img src="/assets/screenshots/screen50.jpg" alt="Скриншот экрана">
-                <img src="/assets/screenshots/screen33.jpg" alt="Скриншот экрана">
-                <img src="/assets/screenshots/screen34.jpg" alt="Скриншот экрана">
-                <img src="/assets/screenshots/screen35.jpg" alt="Скриншот экрана">
-                <img src="/assets/screenshots/screen54.jpg" alt="Скриншот экрана">
-                <img src="/assets/screenshots/screen36.jpg" alt="Скриншот экрана">
-                <img src="/assets/screenshots/screen52.jpg" alt="Скриншот экрана">
-
-                <img src="/assets/screenshots/screen37.jpg" alt="Скриншот экрана">
-                <img src="/assets/screenshots/screen42.jpg" alt="Скриншот экрана">
-                <img src="/assets/screenshots/screen51.jpg" alt="Скриншот экрана">
-                <img src="/assets/screenshots/screen39.jpg" alt="Скриншот экрана">
-                <img src="/assets/screenshots/screen40.jpg" alt="Скриншот экрана">
-                <img src="/assets/screenshots/screen48.jpg" alt="Скриншот экрана">
-                <img src="/assets/screenshots/screen55.jpg" alt="Скриншот экрана">
-                <img src="/assets/screenshots/screen41.jpg" alt="Скриншот экрана">
-                <img src="/assets/screenshots/screen53.jpg" alt="Скриншот экрана">
-            </div>
-        </div>
-
-        <section class="columns" aria-label="О приложении и разработчике">
-            <div class="box">
-                <h3>О приложении</h3>
-                <p class="muted">Приложение {{ project_name }} — это не просто мобильная версия dnevnik.ru, это удобный доступ к учебной информации в своем телефоне даже без интернета: расписанию, оценкам, мероприятиям и домашним заданиям — все под рукой. Синхронизация и безопасная авторизация происходит при запуске с помощью портала dnevnik.ru.</p>
-
-                <h4 style="margin:0">Ключевые особенности</h4>
-                <ul>
-                    <li>Расписание и домашнее всегда под рукой даже без интернета</li>
-                    <li>Внеурочные занятия встроены в расписание</li>
-                    <li>Напоминания о внеурочных занятиях</li>
-                    <li>Уведомления о выставлении новых оценок</li>
-                    <li>Удобный просмотр прикреплённых файлов к домашнему</li>
-                    <li>Оценки, статистика и рейтинг в классе</li>
-                    <li>Актуальные мероприятия и события</li>
-                </ul>
-
-                <h4>Безопасность и открытость</h4>
-                <p class="muted">Код открыт на GitHub: <a href="{{ github }}" target="_blank">Actvium</a>, <a href="{{ github_server }}" target="_blank">ActviumServer</a>. Можно посмотреть реализацию авторизации, хранения данных, отправки уведомлений и в целом безопасности использования.</p>
+        <!-- Как начать пользоваться -->
+        <section class="box content-section" id="how-to-start">
+            <div class="section-heading">
+                <span class="kicker">Начало работы</span>
+                <h2>Как начать пользоваться {{ project_name }}</h2>
+                <p class="muted">
+                    Для работы понадобится учётная запись в «Дневнике.ру».
+                </p>
             </div>
 
-            <aside>
-                <div id="developer" class="box dev-card">
-                    <img src="/assets/index/avatar.jpg?v=3" alt="ДМ" class="avatar" aria-hidden="true">
-                    <div>
-                        <h4 style="margin:0">Дрючин Максим</h4>
-                        <p class="muted">Разработчик</p>
-                        <p class="small muted">Контакт: <a href="https://t.me/tgmaksim_company" target="_blank">@tgmaksim_company</a></p>
-                    </div>
-                </div>
+            <div class="steps">
+                <article class="step-card">
+                    <div class="step-number">1</div>
+                    <h3>Выберите платформу</h3>
+                    <p class="muted">
+                        Установите приложение на Android или откройте
+                        Web-версию в браузере, которую также можно установить.
+                    </p>
+                </article>
 
-                <div style="height:12px"></div>
+                <article class="step-card">
+                    <div class="step-number">2</div>
+                    <h3>Авторизуйтесь</h3>
+                    <p class="muted">
+                        Войдите через «Дневник.ру» и предоставьте необходимые
+                        разрешения для получения учебной информации.
+                    </p>
+                </article>
 
-                <div class="box" id="update">
-                    <h4>Информация об обновлении</h4>
-
-                    <p class="small muted">Версия: <strong>{{ version }}</strong></p>
-                    <p class="small muted">Дата: <strong>{{ date }}</strong></p>
-                    <p class="small muted">Статус: <strong>{{ version_status }}</strong></p>
-
-                    <h5 style="margin-top:10px; margin-bottom:6px">Изменения</h5>
-                    <div class="small muted" style="margin:0">
-                        <p>{% for item in update_log %}
-                            {{ item }}<br>
-                        {% endfor %}</p>
-                    </div>
-                </div>
-            </aside>
+                <article class="step-card">
+                    <div class="step-number">3</div>
+                    <h3>Используйте возможности</h3>
+                    <p class="muted">
+                        Просматривайте расписание, оценки, домашние задания
+                        и школьные события в {{ project_name }}.
+                    </p>
+                </article>
+            </div>
         </section>
 
-        <section class="box" id="reviews" style="margin-top:28px">
-            <div class="reviews-header">
-                <h3>Отзывы</h3>
+        <!-- Скриншоты -->
+        <section id="screenshotsBox"
+                 class="box content-section"
+                 aria-labelledby="screenshots-title">
+            <div class="section-heading">
+                <h2 id="screenshots-title">Посмотрите, как выглядит {{ project_name }}</h2>
+                <p class="muted">
+                    Основные разделы приложения — от расписания и оценок
+                    до школьных публикаций и статистики.
+                </p>
+            </div>
 
-                <select id="reviewSort" onchange="changeSort(this.value)">
-                    <option value="likes" {% if likes_sort == 'likes' %}selected{% endif %}>По популярности</option>
-                    <option value="max_stars" {% if likes_sort == 'max_stars' %}selected{% endif %}>Сначала лучшие</option>
-                    <option value="min_stars" {% if likes_sort == 'min_stars' %}selected{% endif %}>Сначала худшие</option>
+            <div id="screenshots" class="screenshots">
+                <img src="/assets/screenshots/screen31.jpg"
+                     class="screenshot-light"
+                     alt="Главный экран расписания"
+                     loading="lazy"
+                     decoding="async">
+
+                <img src="/assets/screenshots/screen37.jpg"
+                     class="screenshot-dark"
+                     alt="Главный экран расписания"
+                     loading="lazy"
+                     decoding="async">
+
+                <img src="/assets/screenshots/screen43.jpg"
+                     class="screenshot-light"
+                     alt="Статистика по уроку с оценками класса"
+                     loading="lazy"
+                     decoding="async">
+
+                <img src="/assets/screenshots/screen42.jpg"
+                     class="screenshot-dark"
+                     alt="Статистика по уроку с оценками класса"
+                     loading="lazy"
+                     decoding="async">
+
+                <img src="/assets/screenshots/screen50.jpg"
+                     class="screenshot-light"
+                     alt="Меню урока для управления заметками и открытия статистики по уроку"
+                     loading="lazy"
+                     decoding="async">
+
+                <img src="/assets/screenshots/screen51.jpg"
+                     class="screenshot-dark"
+                     alt="Меню урока для управления заметками и открытия статистики по уроку"
+                     loading="lazy"
+                     decoding="async">
+
+                <img src="/assets/screenshots/screen33.jpg"
+                     class="screenshot-light"
+                     alt="Страница оценок ученика"
+                     loading="lazy"
+                     decoding="async">
+
+                <img src="/assets/screenshots/screen39.jpg"
+                     class="screenshot-dark"
+                     alt="Страница оценок ученика"
+                     loading="lazy"
+                     decoding="async">
+
+                <img src="/assets/screenshots/screen34.jpg"
+                     class="screenshot-light"
+                     alt="Итоговые оценки по учебным предметам"
+                     loading="lazy"
+                     decoding="async">
+
+                <img src="/assets/screenshots/screen40.jpg"
+                     class="screenshot-dark"
+                     alt="Итоговые оценки по учебным предметам"
+                     loading="lazy"
+                     decoding="async">
+
+                <img src="/assets/screenshots/screen35.jpg"
+                     class="screenshot-light"
+                     alt="Общий рейтинг по классу"
+                     loading="lazy"
+                     decoding="async">
+
+                <img src="/assets/screenshots/screen48.jpg"
+                     class="screenshot-dark"
+                     alt="Общий рейтинг по классу"
+                     loading="lazy"
+                     decoding="async">
+
+                <img src="/assets/screenshots/screen54.jpg"
+                     class="screenshot-light"
+                     alt="Страница Актив с публикациями"
+                     loading="lazy"
+                     decoding="async">
+
+                <img src="/assets/screenshots/screen55.jpg"
+                     class="screenshot-dark"
+                     alt="Страница Актив с публикациями"
+                     loading="lazy"
+                     decoding="async">
+
+                <img src="/assets/screenshots/screen36.jpg"
+                     class="screenshot-light"
+                     alt="Верхняя часть настроек (уведомления, профиль, отзыв)"
+                     loading="lazy"
+                     decoding="async">
+
+                <img src="/assets/screenshots/screen41.jpg"
+                     class="screenshot-dark"
+                     alt="Верхняя часть настроек (уведомления, профиль, отзыв)"
+                     loading="lazy"
+                     decoding="async">
+
+                <img src="/assets/screenshots/screen52.jpg"
+                     class="screenshot-light"
+                     alt="Нижняя часть настроек (реферальная программа, аккаунт, о приложении)"
+                     loading="lazy"
+                     decoding="async">
+
+                <img src="/assets/screenshots/screen53.jpg"
+                     class="screenshot-dark"
+                     alt="Нижняя часть настроек (реферальная программа, аккаунт, о приложении)"
+                     loading="lazy"
+                     decoding="async">
+            </div>
+        </section>
+
+        <!-- Платформы -->
+        <section id="platforms"
+                 class="content-section"
+                 aria-labelledby="platforms-title">
+            <div class="section-heading">
+                <span class="kicker">Платформы</span>
+                <h2 id="platforms-title">Выберите удобный способ использования</h2>
+                <p class="muted">
+                    {{ project_name }} доступен как приложение для Android
+                    и как Web-приложение в браузере с возможностью установки на главный экран.
+                </p>
+            </div>
+
+            <div class="platforms-grid">
+
+                <article class="box platform-card">
+                    <div class="platform-heading">
+                        <div class="platform-icon" aria-hidden="true">📱</div>
+                        <div>
+                            <h3>{{ project_name }} для Android</h3>
+                            <span class="pill">Android 10+</span>
+                        </div>
+                    </div>
+
+                    <div class="platform-version">
+                        <span class="small muted">Текущая версия</span>
+                        <strong>{{ version }}</strong>
+                    </div>
+
+                    <p class="small muted">
+                        Дата выпуска: {{ date }}
+                    </p>
+
+                    <p class="small muted">
+                        Статус: {{ version_status }}
+                    </p>
+
+                    <p>
+                        Установите приложение на Android-смартфон,
+                        чтобы пользоваться основными возможностями
+                        {{ project_name }}.
+                    </p>
+
+                    <a class="btn-primary platform-button"
+                       id="downloadApkPlatform"
+                       href="/apk/activium_v{{ version }}.apk">
+                        Скачать APK
+                    </a>
+                </article>
+
+                <article class="box platform-card">
+                    <div class="platform-heading">
+                        <div class="platform-icon" aria-hidden="true">🌐</div>
+                        <div>
+                            <h3>{{ project_name }} Web</h3>
+                            <span class="pill">В браузере с установкой</span>
+                        </div>
+                    </div>
+
+                    <div class="platform-version">
+                        <span class="small muted">Текущая версия</span>
+                        <strong>{{ web_version }}</strong>
+                    </div>
+
+                    <p class="small muted">
+                        Дата выпуска: {{ web_date }}
+                    </p>
+
+                    <p class="small muted">
+                        Статус: {{ web_version_status }}
+                    </p>
+
+                    <p>
+                        Используйте {{ project_name }} на компьютере, планшете
+                        или смартфоне с установкой при необходимости
+                    </p>
+
+                    <a class="btn-outline platform-button"
+                       href="/app/"
+                       target="_blank"
+                       rel="noopener">
+                        Открыть Web-приложение
+                    </a>
+                </article>
+
+            </div>
+        </section>
+
+        <!-- Помощник учителю -->
+        <section id="teacher"
+                 class="box content-section teacher-promo"
+                 aria-labelledby="teacher-title">
+            <div class="teacher-promo-content">
+                <span class="kicker">Для учителей</span>
+                <h2 id="teacher-title">Дополнительные инструменты для работы с классом</h2>
+
+                <p>
+                    Помощник учителю позволяет сформировать таблицу
+                    с оценками учеников выбранного класса. Подготовленный
+                    документ можно использовать для просмотра и печати.
+                    В будущем могут появиться другие полезные инструменты
+                </p>
+
+                <a class="btn-primary" href="/teacher">
+                    Перейти к помощнику учителю
+                </a>
+            </div>
+
+            <div class="teacher-promo-icon" aria-hidden="true">📊</div>
+        </section>
+
+        <!-- Открытость и конфиденциальность -->
+        <section class="columns content-section"
+                 id="opensource"
+                 aria-label="Открытая разработка и информация о данных">
+
+            <article class="box">
+                <span class="kicker">Открытая разработка</span>
+                <h2>{{ project_name }} — открытый проект</h2>
+
+                <p class="muted">
+                    Исходный код проекта доступен на GitHub.
+                    Вы можете ознакомиться с реализацией Android-приложения
+                    и серверной части, в том числе Web-версии, изучить устройство проекта
+                    и предложить собственные улучшения.
+                </p>
+
+                <div class="source-links">
+                    <a href="{{ github }}"
+                       target="_blank"
+                       rel="noopener noreferrer">
+                        Исходный код Android-приложения
+                    </a>
+
+                    <a href="{{ github_server }}"
+                       target="_blank"
+                       rel="noopener noreferrer">
+                        Исходный код сервера и Web-приложения
+                    </a>
+                </div>
+            </article>
+
+            <article class="box">
+                <span class="kicker">Ваши данные</span>
+                <h2>Информация о конфиденциальности</h2>
+
+                <p class="muted">
+                    Для работы с {{ project_name }} используется авторизация
+                    через «Дневник.ру». Мы подготовим отдельный документ,
+                    в котором подробно опишем, какие данные обрабатываются,
+                    для чего они нужны и как используются.
+                </p>
+
+                <a href="/privacy" class="btn-outline">
+                    Политика конфиденциальности
+                </a>
+            </article>
+        </section>
+
+
+        <!-- Разработчик -->
+        <section class="box developer-section" id="developer">
+            <div class="dev-card">
+                <img src="/assets/index/avatar.jpg?v=3"
+                     alt="Разработчик {{ project_name }}"
+                     class="avatar"
+                     width="72"
+                     height="72"
+                     loading="lazy">
+
+                <div>
+                    <h2>Дрючин Максим</h2>
+                    <p class="muted">Разработчик {{ project_name }}</p>
+                    <p class="small muted">
+                        Контакт:
+                        <a href="https://t.me/tgmaksim_company"
+                           target="_blank"
+                           rel="noopener noreferrer">
+                            @tgmaksim_company
+                        </a>
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Telegram-канала -->
+        <section class="telegram-section">
+            <div class="telegram-card">
+                <div class="telegram-icon">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M21.9 4.6 18.7 20c-.2 1.1-.9 1.4-1.8.9l-5-3.7-2.4 2.3c-.3.3-.5.5-1 .5l.4-5.1 9.3-8.4c.4-.4-.1-.6-.6-.2L6.1 13.6l-5-1.6c-1.1-.3-1.1-1.1.2-1.6L20.8 3c1-.4 1.8.2 1.1 1.6Z"/>
+                    </svg>
+                </div>
+
+                <div class="telegram-content">
+                    <span class="kicker">Оставайтесь на связи</span>
+                    <h2>{{ project_name }} в Telegram</h2>
+                    <p>
+                        Подписывайтесь на наш Telegram-канал, чтобы следить
+                        за новостями проекта, обновлениями и важными объявлениями.
+                    </p>
+
+                    <a class="btn-primary telegram-button"
+                       href="https://t.me/tgmaksim_ru"
+                       target="_blank"
+                       rel="noopener noreferrer">
+                        Перейти в Telegram
+                        <span aria-hidden="true">↗</span>
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <!-- Отзывы -->
+        <section class="box content-section"
+                 id="reviews"
+                 aria-labelledby="reviews-title">
+            <div class="reviews-header">
+                <div>
+                    <span class="kicker">Мнение пользователей</span>
+                    <h2 id="reviews-title">Отзывы об {{ project_name }}</h2>
+                    <p class="muted">
+                        Если вы уже пользовались приложением,
+                        поделитесь впечатлениями. Ваш отзыв поможет
+                        определить, что стоит улучшить. Все отзывы
+                        написаны реальными пользователями
+                    </p>
+                </div>
+
+                <select id="reviewSort"
+                        onchange="changeSort(this.value)"
+                        aria-label="Сортировка отзывов">
+                    <option value="likes"
+                            {% if likes_sort == 'likes' %}selected{% endif %}>
+                        По популярности
+                    </option>
+                    <option value="max_stars"
+                            {% if likes_sort == 'max_stars' %}selected{% endif %}>
+                        Наибольшая оценка
+                    </option>
+                    <option value="min_stars"
+                            {% if likes_sort == 'min_stars' %}selected{% endif %}>
+                        Наименьшая оценка
+                    </option>
                 </select>
             </div>
 
             <div id="reviewsList">
                 {% for r in reviews %}
-                <div class="review" data-review-id="{{ r.id }}">
+                <article class="review" data-review-id="{{ r.id }}">
                     <div class="review-header">
                         <div class="review-meta">
                             <strong>{{ r.author }}</strong>
+
                             <span class="review-date">
                                 {{ r.created_at }}
                                 {% if r.is_edited %}
@@ -224,12 +701,13 @@
                         </div>
                     </div>
 
-                    <div class="review-stars">
+                    <div class="review-stars"
+                         aria-label="Оценка: {{ r.stars }} из 5">
                         {% for i in range(1, 6) %}
                             {% if i <= r.stars %}
-                                <span class="star filled">★</span>
+                                <span class="star filled" aria-hidden="true">★</span>
                             {% else %}
-                                <span class="star">☆</span>
+                                <span class="star" aria-hidden="true">☆</span>
                             {% endif %}
                         {% endfor %}
                     </div>
@@ -240,110 +718,299 @@
 
                     <div class="review-footer">
                         <button class="like-btn{% if r.has_my_like %} active{% endif %}"
-                                onclick="toggleLike({{ r.id }}, this)">
+                                onclick="toggleLike({{ r.id }}, this)"
+                                aria-label="Поставить отметку полезности отзыву">
                             👍 <span class="like-count">{{ r.reactions }}</span>
                         </button>
                     </div>
-                </div>
+                </article>
                 {% endfor %}
             </div>
 
             {% if next_likes_offset %}
-                <button class="btn-outline" onclick="loadMoreReviews()" data-next-offset="{{ next_likes_offset }}">
+                <button class="btn-outline"
+                        onclick="loadMoreReviews()"
+                        data-next-offset="{{ next_likes_offset }}">
                     Показать ещё
                 </button>
             {% endif %}
         </section>
 
-        <section class="box" id="changelog" style="margin-top:28px">
-            <details>
-                <summary>
-                    <h3 style="display:inline">История версий</h3>
-                    <span class="muted small">({{ previous_versions|length }})</span>
-                </summary>
+        <!-- Последние обновления -->
+        <section class="box content-section"
+                 id="updates"
+                 aria-labelledby="updates-title">
+            <div class="section-heading">
+                <span class="kicker">Развитие проекта</span>
+                <h2 id="updates-title">Последние обновления</h2>
+                <p class="muted">
+                    {{ project_name }} развивается: мы исправляем ошибки,
+                    улучшаем существующие функции и добавляем новые. Все благодаря Вам!
+                </p>
+            </div>
 
-                {% for v in previous_versions %}
-                    <details class="version-details" {% if loop.first %}open{% endif %}>
-                        <summary>
-                            <span>
-                                Версия <strong>{{ v.version }}</strong>
-                                <span class="muted">· {{ v.date }}</span>
-                            </span>
-                            <span class="pill small">{{ v.status }}</span>
-                        </summary>
+            <div class="updates-grid">
 
-                        <div class="small muted" id="{{ v.version_number }}">
-                            {% for item in v.update_log %}
-                                {{ item }}<br>
-                            {% endfor %}
-                        </div>
-                    </details>
-                {% endfor %}
-            </details>
+                <article class="update-card">
+                    <h3>Android</h3>
+
+                    <div class="update-version">
+                        <strong>{{ version }}</strong>
+                        <span class="small muted">{{ date }}</span>
+                    </div>
+
+                    <p class="small muted">
+                        {{ version_status }}
+                    </p>
+
+                    <div class="small muted">
+                        {% for item in update_log %}
+                            {{ item }}<br>
+                        {% endfor %}
+                    </div>
+                </article>
+
+
+                <article class="update-card">
+                    <h3>Web</h3>
+
+                    <div class="update-version">
+                        <strong>{{ web_version }}</strong>
+                        <span class="small muted">
+                            {{ web_date }}
+                        </span>
+                    </div>
+
+                    <p class="small muted">
+                        {{ web_version_status }}
+                    </p>
+
+                    <div class="small muted">
+                        {% for item in web_update_log %}
+                            {{ item }}<br>
+                        {% endfor %}
+                    </div>
+                </article>
+
+            </div>
+
+            <a href="/changelog" class="btn-outline updates-link">
+                Посмотреть историю всех обновлений
+            </a>
         </section>
 
-        <section class="box" id="support" style="margin-top:28px">
-            <h3>Поддержка</h3>
+
+        <!-- FAQ -->
+        <section class="box content-section"
+                 id="support"
+                 aria-labelledby="support-title">
+            <div class="section-heading">
+                <span class="kicker">Помощь</span>
+                <h2 id="support-title">Частые вопросы</h2>
+            </div>
 
             <div class="faq">
                 <details>
-                    <summary>Как установить приложение?</summary>
-                    <p>Скачайте APK-файл по кнопке сверху, подтвердите установку из браузера и запустите приложение.</p>
+                    <summary>Что такое {{ project_name }}?</summary>
+                    <p>
+                        {{ project_name }} — сервис с приложением для учеников и их родителей
+                        и инструментами автоматизации отчетов для учителей. Он объединяет расписание, оценки,
+                        домашние задания, школьные новости и дополнительные
+                        инструменты для работы с учебной информацией.
+                    </p>
                 </details>
 
-                <details id="faq-ios">
-                    <summary>У меня iOS, что делать?</summary>
-                    <p><span style="text-decoration: line-through;">К сожалению, выход на рынок Apple не представляется возможным</span> Сейчас Web-приложение Активиум, которое будет доступно на iOS и мало чем будет отличаться от полноценного приложения, находится в стадии тестирования. Вы можете попробовать ее прямой сейчас, нажав на кнопку iOS</p>
+                <details>
+                    <summary>Доступен ли {{ project_name }} не в школе?</summary>
+                    <p>
+                        {{ project_name }} практически не зависит от Вашей образовательной
+                        организации: обучающиеся школы, гимназии, лицея, колледжа, университета
+                        могут зарегистрироваться, если у них есть действующий аккаунта в «Дневнике.ру».
+                    </p>
+                </details>
+
+                <details>
+                    <summary>Чем {{ project_name }} отличается от «Дневника.ру»?</summary>
+                    <p>
+                        {{ project_name }} использует данные Дневник.ру и предоставляет
+                        собственный бесплатный интерфейс для работы с расписанием,
+                        оценками и другими возможностями. В приложении
+                        также доступны дополнительные функции, которых
+                        может не быть в стандартном интерфейсе портала.
+                        Самое главное - никаких подписок: все бесплатно!
+                    </p>
+                </details>
+
+                <details>
+                    <summary>Как установить приложение на Android?</summary>
+                    <p>
+                        Скачайте APK-файл с этого сайта, откройте его
+                        на устройстве и подтвердите установку.
+                        Для работы требуется Android 10 или новее.
+                    </p>
+                </details>
+
+                <details>
+                    <summary>Можно ли пользоваться {{ project_name }} на iPhone и iPad?</summary>
+                    <p>
+                        Да. Для этого предназначена Web-версия {{ project_name }}:
+                        откройте её в браузере на устройстве. После авторизации
+                        будет предложено установить на главный экран для быстрого
+                        открытия, доступа без интернета и работы уведомлений.
+                    </p>
+                </details>
+
+                <details>
+                    <summary>Нужно ли устанавливать Web-приложение?</summary>
+                    <p>
+                        По вашему желанию. Web-версия начинает работу после
+                        авторизации в браузере. Но для получения уведомлений,
+                        стабильной работы офлайн-доступа необходима установка
+                    </p>
                 </details>
 
                 <details>
                     <summary>Как происходит авторизация?</summary>
-                    <p>Все данные приложение получает из Вашего аккаунта на портале dnevnik.ru. При запуске потребуется разрешение на данные об образовательном процессе.</p>
+                    <p>
+                        Для входа используется учётная запись «Дневника.ру».
+                        При авторизации необходимо предоставить разрешение
+                        на доступ к данным об образовательном процессе.
+                    </p>
                 </details>
 
                 <details>
-                    <summary>Требуется ли интернет?</summary>
-                    <p>Расписание и оценки доступны автономно. Для обновления данных нужен интернет.</p>
+                    <summary>Можно ли пользоваться приложением без интернета?</summary>
+                    <p>
+                        Большинство ранее загруженных данных, в том числе
+                        расписание, доступно автономно. Для получения
+                        актуальной информации и синхронизации требуется
+                        подключение к интернету.
+                    </p>
                 </details>
 
                 <details>
-                    <summary>Возникает ошибка в приложении</summary>
-                    <p>Если Вы столкнулись с уведомлением об ошибке, то напишите в чат поддержки, чтобы проблема была исправлена. В своем сообщении детально опишите, как и когда происходит ошибка</p>
+                    <summary>Что делать, если возникла ошибка?</summary>
+                    <p>
+                        Опишите проблему в Telegram-поддержке.
+                        Укажите, в каком разделе возникла ошибка,
+                        какие действия к ней привели и когда она появилась.
+                        Если возможно, приложите скриншот.
+                    </p>
                 </details>
 
                 <details>
-                    <summary>Как написать отзыв?</summary>
-                    <p>Чтобы написать отзыв, перейдите в настройки приложения и нажмите на соответствующую кнопку. Если у Вас возникла проблема, сначала напишите в чат поддержки</p>
+                    <summary>Как оставить отзыв?</summary>
+                    <p>
+                        Перейдите в настройки приложения и воспользуйтесь
+                        соответствующей функцией. Если вы хотите сообщить
+                        об ошибке, лучше сначала написать в поддержку.
+                    </p>
                 </details>
 
                 <details>
-                    <summary>Как связаться с поддержкой?</summary>
-                    <p>По любым интересующим Вас вопросам или предложениям напишите в Telegram. Ссылка доступна <a href="#developer">выше</a></p>
+                    <summary>Где посмотреть исходный код?</summary>
+                    <p>
+                        Исходный код Android-приложения и серверной части
+                        с Web-приложением опубликован на GitHub.
+                        Ссылки доступны в разделе «Открытая разработка» выше.
+                    </p>
+                </details>
+
+                <details>
+                    <summary>Как используются мои данные?</summary>
+                    <p>
+                        Информация об обработке данных будет опубликована
+                        в <a href="/privacy">политике конфиденциальности</a>.
+                    </p>
                 </details>
             </div>
         </section>
-    </div>
 
-    <div id="downloadToast" class="download-toast" hidden>
-        <div class="toast-content">
-            <div class="toast-icon">🚀</div>
+    </main>
 
-            <div class="toast-text">
-                <strong>Скачивание началось</strong>
-                <p class="muted">Пока файл загружается, посмотрите, что умеет {{ project_name }}</p>
+    <!-- Подвал -->
+    <footer class="site-footer">
+        <div class="footer-main">
+            <div class="footer-brand">
+                <strong>{{ project_name }}</strong>
+                <p class="small muted">
+                    Школьная жизнь — под рукой.
+                </p>
+            </div>
+
+            <nav class="footer-links" aria-label="Навигация в подвале">
+                <a href="/">Главная</a>
+                <a href="/teacher">Помощник учителю</a>
+                <a href="/changelog">История обновлений</a>
+                <a href="/privacy">Политика конфиденциальности</a>
+                <a href="/terms">Условия использования</a>
+            </nav>
+
+            <div class="footer-external-links">
+                <a href="{{ github }}"
+                   target="_blank"
+                   rel="noopener noreferrer">
+                    GitHub Android
+                </a>
+
+                <a href="{{ github_server }}"
+                   target="_blank"
+                   rel="noopener noreferrer">
+                    GitHub Server
+                </a>
+
+                <a href="https://t.me/tgmaksim_company"
+                   target="_blank"
+                   rel="noopener noreferrer">
+                    Telegram контакт
+                </a>
+
+                <a href="https://t.me/tgmaksim_ru"
+                   target="_blank"
+                   rel="noopener noreferrer">
+                    Telegram-канал
+                </a>
             </div>
         </div>
 
-        <div class="toast-actions">
-            <button class="btn-primary" id="toastGoSite">Посмотреть</button>
-            <button class="toast-close" id="toastClose">✕</button>
+        <div class="footer-bottom small muted">
+            <span>{{ project_name }}</span>
+            <span>Разработчик: Дрючин Максим</span>
+        </div>
+    </footer>
+
+</div>
+
+<!-- Уведомление о скачивании -->
+<div id="downloadToast" class="download-toast" hidden>
+    <div class="toast-content">
+        <div class="toast-icon" aria-hidden="true">🚀</div>
+
+        <div class="toast-text">
+            <strong>Скачивание началось</strong>
+            <p class="muted">
+                Пока файл загружается, посмотрите возможности {{ project_name }}.
+            </p>
         </div>
     </div>
 
-    <script src="/js/theme.js?v=1"></script>
-    <script src="/js/screenshots.js?v=1"></script>
-    <script src="/js/ios.js?v=2"></script>
-    <script src="/js/reviews.js"></script>
-    <script src="/js/download-toast.js?v=7"></script>
+    <div class="toast-actions">
+        <button class="btn-primary" id="toastGoSite">
+            Посмотреть
+        </button>
+
+        <button class="toast-close"
+                id="toastClose"
+                aria-label="Закрыть уведомление">
+            ✕
+        </button>
+    </div>
+</div>
+
+<script src="/js/theme.js?v=1"></script>
+<script src="/js/screenshots.js?v=1"></script>
+<script src="/js/reviews.js"></script>
+<script src="/js/download-toast.js?v=7"></script>
+
 </body>
 </html>

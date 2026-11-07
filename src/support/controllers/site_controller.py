@@ -6,7 +6,6 @@ from fastapi import APIRouter, Depends, Request, Query, status
 
 from ..services.site_service import SiteService
 
-from ...dependencies.templates import get_templates
 from ...dependencies.services import get_site_service
 
 
@@ -57,4 +56,58 @@ async def _root(
 
 @public_router.head("/")
 async def _head_root():
+    return HTMLResponse()
+
+
+@public_router.get("/changelog")
+async def _changelog(
+        request: Request,
+        sessionId: Annotated[Optional[str], Query(description="Идентификатор сессия для статистики и пользовательских взаимодействий на сайте")] = None,
+        service: SiteService = Depends(get_site_service)
+):
+    session_id = sessionId or request.cookies.get('session_id')
+    request.state.session_id = session_id
+
+    template_params = await service.get_changelog(session_id)
+
+    return template_params.to_response(request)
+
+@public_router.head("/changelog")
+async def _head_changelog():
+    return HTMLResponse()
+
+
+@public_router.get("/privacy")
+async def _privacy(
+        request: Request,
+        sessionId: Annotated[Optional[str], Query(description="Идентификатор сессия для статистики и пользовательских взаимодействий на сайте")] = None,
+        service: SiteService = Depends(get_site_service)
+):
+    session_id = sessionId or request.cookies.get('session_id')
+    request.state.session_id = session_id
+
+    template_params = await service.get_privacy(session_id)
+
+    return template_params.to_response(request)
+
+@public_router.head("/privacy")
+async def _head_privacy():
+    return HTMLResponse()
+
+
+@public_router.get("/terms")
+async def _terms(
+        request: Request,
+        sessionId: Annotated[Optional[str], Query(description="Идентификатор сессия для статистики и пользовательских взаимодействий на сайте")] = None,
+        service: SiteService = Depends(get_site_service)
+):
+    session_id = sessionId or request.cookies.get('session_id')
+    request.state.session_id = session_id
+
+    template_params = await service.get_terms(session_id)
+
+    return template_params.to_response(request)
+
+@public_router.head("/terms")
+async def _head_changelog():
     return HTMLResponse()

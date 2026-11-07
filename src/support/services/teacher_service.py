@@ -125,7 +125,7 @@ class TeacherService(BaseService[AppUnitOfWork]):
                 {
                     'key': 'csrf_token',
                     'value': csrf_token,
-                    'max_age': 30 * 24 * 60 * 60,  # 30 дней
+                    'max_age': 5 * 60,  # 5 минут
                     'httponly': False,
                     'samesite': 'lax'
                 }
@@ -209,7 +209,7 @@ class TeacherService(BaseService[AppUnitOfWork]):
                 {
                     'key': 'csrf_token',
                     'value': csrf_token,
-                    'max_age': 30 * 24 * 60 * 60,
+                    'max_age': 5 * 60,
                     'httponly': False,
                     'samesite': 'lax'
                 }
