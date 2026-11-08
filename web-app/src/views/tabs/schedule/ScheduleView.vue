@@ -34,6 +34,8 @@
             @praise="openPraiseDialog"
             @rating="openRating"
             @menu="openLessonMenu"
+            @post-click="openSchoolPost"
+            @post-see="(postId) => scheduleViewModel.seePost(postId)"
         />
 
         <PraiseDialog
@@ -78,6 +80,13 @@
             @cancel="cancelDeleteNote"
         />
     </div>
+
+    <SchoolPostView
+        v-if="selectedSchoolPost"
+        :post="selectedSchoolPost"
+        @close="closeSchoolPost"
+        @update-post-result="onSchoolPostResult"
+    />
 </template>
 
 <script setup lang="ts">
@@ -92,7 +101,7 @@ import { useRoute, useRouter } from "vue-router";
 import { strings } from "@/constants/strings";
 import { Utilities } from "@/utils/utils";
 import { useSettingsStore } from "@/stores/settings";
-import { setShownError } from "@/ui-core/state-utils";
+import { resetMapSuccess, setShownError } from "@/ui-core/state-utils";
 import { LoadState } from "@/ui-core/load-state";
 
 import CalendarStrip from "./components/CalendarStrip.vue";
@@ -104,6 +113,7 @@ import AppDialog from "@/components/AppDialog.vue";
 import LessonMenu from "./components/LessonMenu.vue";
 import NoteEditorDialog from "./components/NoteEditorDialog.vue";
 import AdBanner from "@/components/AdBanner.vue";
+import SchoolPostView from "../../school-posts/SchoolPostView.vue";
 
 import { ScheduleViewModel } from "./schedule-view-model";
 import { appViewModelKey } from "@/views/app/app-view-model";
@@ -123,6 +133,10 @@ import type {
     UiScheduleLesson,
 } from "./types";
 import type { Ad } from "@/api/ads";
+import type {
+    SchoolPost,
+    MarkSchoolPostResult,
+} from "@/api/school";
 
 import {
     useConfetti,
@@ -264,6 +278,44 @@ const scheduleDays = computed<SchedulePagerDay[]>(() => {
             },
         };
     });
+});
+
+/**
+ * Идентификатор публикации, открытой поверх расписания.
+ *
+ * Хранится в query, чтобы системная кнопка «Назад»
+ * закрывала просмотр публикации.
+ */
+const selectedSchoolPostId = computed<number | null>(() => {
+    const value = route.query.schedulePostId;
+
+    if (typeof value !== "string") {
+        return null;
+    }
+
+    const postId = Number(value);
+
+    return Number.isSafeInteger(postId) && postId > 0
+        ? postId
+        : null;
+});
+
+/**
+ * Публикация, открытая в просмотрщике.
+ *
+ * Источник данных — расписание, поэтому после обновления
+ * поста в ScheduleViewModel компонент получит актуальные данные.
+ */
+const selectedSchoolPost = computed<SchoolPost | null>(() => {
+    const postId = selectedSchoolPostId.value;
+
+    if (postId === null) {
+        return null;
+    }
+
+    return scheduleData.value?.schedule
+        .flatMap(day => day?.schoolPosts ?? [])
+        .find(post => post.postId === postId) ?? null;
 });
 
 const showPraiseDialog = ref(false);
@@ -466,6 +518,57 @@ function openRating(lessonKey: string): void {
     showRatingSheet.value = true;
 }
 
+/**
+ * Открыть публикацию из расписания.
+ */
+function openSchoolPost(postId: number): void {
+    const post = scheduleData.value?.schedule
+        .flatMap(day => day?.schoolPosts ?? [])
+        .find(item => item.postId === postId);
+
+    if (!post) {
+        return;
+    }
+
+    // Регистрация нажатия на публикацию.
+    scheduleViewModel.clickPost(postId);
+
+    // Добавляем отдельную запись истории браузера.
+    void router.push({
+        query: {
+            ...route.query,
+            schedulePostId: String(postId),
+        },
+    });
+}
+
+/**
+ * Закрыть просмотр публикации.
+ */
+function closeSchoolPost(): void {
+    if (selectedSchoolPostId.value === null) {
+        return;
+    }
+
+    const query = { ...route.query };
+    delete query.schedulePostId;
+
+    void router.replace({ query });
+}
+
+/**
+ * Обработка результата просмотра публикации.
+ */
+function onSchoolPostResult(
+    result: MarkSchoolPostResult,
+): void {
+    scheduleViewModel.updatePostResult(result);
+
+    appViewModel?.updateSchoolPostsCount(
+        result.countPostsWithoutVision,
+    );
+}
+
 watch(
     () => route.query.notificationPageAction,
     async (action) => {
@@ -561,6 +664,8 @@ watch(
             showNoteEditor.value = false;
             showDeleteNoteDialog.value = false;
             selectedLessonKey.value = null;
+
+            closeSchoolPost();
 
             return;
         }
@@ -702,6 +807,101 @@ watch(
 
             scheduleViewModel.noteStates.value = updatedStates;
         }
+    },
+);
+
+/**
+ * Результаты регистрации нажатия на публикацию.
+ */
+watch(
+    () => scheduleViewModel.clickPostStates.value,
+    (states) => {
+        for (const [postId, state] of states) {
+            if (state.type === "success") {
+                appViewModel?.updateSchoolPostsCount(
+                    state.data.countPostsWithoutVision,
+                );
+
+                resetMapSuccess(
+                    scheduleViewModel.clickPostStates,
+                    postId,
+                );
+
+                continue;
+            }
+
+            if (state.type !== "error") {
+                continue;
+            }
+
+            Utilities.showUiMessage(state.message);
+
+            const updatedStates = new Map(
+                scheduleViewModel.clickPostStates.value,
+            );
+
+            updatedStates.set(
+                postId,
+                setShownError(state),
+            );
+
+            scheduleViewModel.clickPostStates.value = updatedStates;
+        }
+    },
+);
+
+/**
+ * Результаты регистрации просмотра карточки публикации.
+ */
+watch(
+    () => scheduleViewModel.seePostStates.value,
+    (states) => {
+        for (const [postId, state] of states) {
+            if (state.type === "success") {
+                appViewModel?.updateSchoolPostsCount(
+                    state.data.countPostsWithoutVision,
+                );
+
+                resetMapSuccess(
+                    scheduleViewModel.seePostStates,
+                    postId,
+                );
+
+                continue;
+            }
+
+            if (state.type !== "error") {
+                continue;
+            }
+
+            Utilities.showUiMessage(state.message);
+
+            const updatedStates = new Map(
+                scheduleViewModel.seePostStates.value,
+            );
+
+            updatedStates.set(
+                postId,
+                setShownError(state),
+            );
+
+            scheduleViewModel.seePostStates.value = updatedStates;
+        }
+    },
+);
+
+watch(
+    [selectedSchoolPostId, scheduleData],
+    ([postId, data]) => {
+        if (
+            postId === null ||
+            data === null ||
+            selectedSchoolPost.value !== null
+        ) {
+            return;
+        }
+
+        closeSchoolPost();
     },
 );
 

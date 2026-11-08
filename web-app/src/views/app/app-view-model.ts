@@ -34,6 +34,10 @@ export class AppViewModel extends UiViewModel {
 
     private studyTimer: ReturnType<typeof setTimeout> | null = null;
 
+    readonly schoolPostsCount: Ref<number | null> = ref(null);
+
+    private schoolPostsCountRevision = 0;
+
     private readonly settings = useSettingsStore();
 
     checkInfoNotifications(): void {
@@ -51,17 +55,43 @@ export class AppViewModel extends UiViewModel {
     }
 
     checkNewSchoolPosts(): void {
+        const revision = ++this.schoolPostsCountRevision;
+
         void this.executeRequest(
             this.schoolPostsState,
             "newSchoolPosts",
             "errorNewSchoolPosts" as StringResourceKey,
             () => School.checkNewPosts(),
-            (response) => response.answer,
+            (response) => {
+                const result = response.answer;
+
+                // Не перезаписываем более актуальное значение,
+                // если за время запроса оно уже обновилось через seePost.
+                if (revision === this.schoolPostsCountRevision) {
+                    this.schoolPostsCount.value = result.countPosts;
+                }
+
+                return result;
+            },
             {
                 key: "schoolPosts",
                 cancelPrevious: true,
             },
         );
+    }
+
+    /**
+     * Обновляет количество неувиденных постов.
+     */
+    updateSchoolPostsCount(count: number): void {
+        if (!Number.isFinite(count)) {
+            return;
+        }
+
+        // Инвалидируем результат ранее запущенной проверки.
+        this.schoolPostsCountRevision++;
+
+        this.schoolPostsCount.value = Math.max(0, Math.trunc(count));
     }
 
     checkAccessibleAd(): void {

@@ -1,11 +1,19 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, inject } from "vue";
 import { useRoute } from "vue-router";
 
 import scheduleIcon from "@/assets/menu/schedule.svg?raw";
 import marksIcon from "@/assets/menu/marks.svg?raw";
 import schoolIcon from "@/assets/menu/school.svg?raw";
 import settingsIcon from "@/assets/menu/settings.svg?raw";
+
+import { appViewModelKey } from "@/views/app/app-view-model";
+
+const appViewModel = inject(appViewModelKey);
+
+const schoolPostsCount = computed(
+    () => appViewModel?.schoolPostsCount.value ?? 0,
+);
 
 const route = useRoute();
 
@@ -45,10 +53,20 @@ function getIconSvg(svg: string): string {
             }"
             :aria-current="current === item.name ? 'page' : undefined"
         >
-            <span
-                class="navigation-item__icon"
-                v-html="getIconSvg(item.icon)"
-            />
+            <span class="navigation-item__icon">
+                <span
+                    class="navigation-item__icon-svg"
+                    v-html="getIconSvg(item.icon)"
+                />
+
+                <span
+                    v-if="item.name === 'school' && schoolPostsCount > 0"
+                    class="navigation-item__badge"
+                    :aria-label="`Неувиденных постов: ${schoolPostsCount}`"
+                >
+                    {{ schoolPostsCount > 99 ? "99+" : schoolPostsCount }}
+                </span>
+            </span>
 
             <span
                 v-if="current === item.name"
@@ -114,10 +132,55 @@ function getIconSvg(svg: string): string {
     height: 40px;
 }
 
-.navigation-item__icon :deep(svg) {
+.navigation-item__icon-svg :deep(svg) {
     display: block;
     width: 100%;
     height: 100%;
+}
+
+.navigation-item__icon {
+    position: relative;
+    display: flex;
+    flex: 0 0 40px;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+}
+
+.navigation-item__icon-svg {
+    display: flex;
+    width: 100%;
+    height: 100%;
+    align-items: center;
+    justify-content: center;
+}
+
+.navigation-item__badge {
+    position: absolute;
+    top: -4px;
+    right: -6px;
+    z-index: 1;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    min-width: 20px;
+    height: 20px;
+    padding: 0 5px;
+    box-sizing: border-box;
+
+    border: 2px solid var(--bg-bottom-menu);
+    border-radius: 999px;
+
+    background: var(--bg-school-badge);
+    color: var(--text-primary);
+
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1;
+    white-space: nowrap;
 }
 
 @media (max-width: 480px) {

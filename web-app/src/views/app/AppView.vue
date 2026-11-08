@@ -131,6 +131,15 @@ watch(
     },
 );
 
+watch(
+    () => settings.activeChildId,
+    (newChildId, oldChildId) => {
+        if (newChildId !== oldChildId) {
+            appViewModel.checkNewSchoolPosts();
+        }
+    },
+);
+
 /**
  * Показывает следующее информационное оповещение.
  */
@@ -336,6 +345,9 @@ onMounted(() => {
 
     // Первоначальная проверка информационных оповещений.
     appViewModel.checkInfoNotifications();
+
+    // Первоначальная проверка неувиденных постов.
+    appViewModel.checkNewSchoolPosts();
 
     // Первоначальная проверка обучающих подсказок.
     appViewModel.checkStudy(() => route.name);

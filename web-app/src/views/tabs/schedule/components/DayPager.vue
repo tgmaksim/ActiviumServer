@@ -50,6 +50,14 @@
                             @rating="emit('rating', $event)"
                             @menu="emit('menu', $event)"
                         />
+
+                        <SchoolPostCard
+                            v-for="post in day.data.schoolPosts"
+                            :key="post.postId"
+                            :post="post"
+                            @click="emit('post-click', $event)"
+                            @see="emit('post-see', $event)"
+                        />
                     </div>
                 </div>
             </SwiperSlide>
@@ -74,6 +82,7 @@ import weekendImage from "@/assets/schedule/weekend.png";
 
 import DaySkeleton from "../skeleton/DaySkeleton.vue";
 import LessonCard from "./LessonCard.vue";
+import SchoolPostCard from "@/components/SchoolPostCard.vue";
 
 import type {
     SchedulePagerDay,
@@ -95,6 +104,8 @@ const emit = defineEmits<{
     praise: [lessonKey: string, confettiOptions: ConfettiOptions];
     rating: [lessonKey: string];
     menu: [lessonKey: string];
+    "post-click": [postId: number];
+    "post-see": [postId: number];
 }>();
 
 const swiperInstance = shallowRef<SwiperInstance | null>(null);
@@ -116,14 +127,12 @@ function onSwiper(swiper: SwiperInstance): void {
 
 /**
  * Проверяем, является ли день выходным.
- *
- * Школьные посты здесь намеренно не учитываются:
- * их отображение пока не входит в текущую задачу.
  */
 function isWeekend(day: UiScheduleDay): boolean {
     return (
         day.lessons.length === 0 &&
-        day.ea.length === 0
+        day.ea.length === 0 &&
+        day.schoolPosts.length === 0
     );
 }
 

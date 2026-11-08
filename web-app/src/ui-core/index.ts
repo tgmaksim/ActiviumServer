@@ -2,7 +2,6 @@ export { default as UiViewModel, CacheNullException } from "./ui-view-model";
 
 export {
     LoadState,
-    isLoadError,
 } from "./load-state";
 
 export type {

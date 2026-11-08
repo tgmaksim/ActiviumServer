@@ -64,6 +64,17 @@ export class ScheduleViewModel extends UiViewModel {
 
         this.scheduleState.value = CacheDataLoadState.empty();
         this.scheduleData.value = null;
+
+        for (const postId of this.clickPostStates.value.keys()) {
+            this.cancelRequest(`clickPost:${postId}`);
+        }
+
+        for (const postId of this.seePostStates.value.keys()) {
+            this.cancelRequest(`seePost:${postId}`);
+        }
+
+        this.clickPostStates.value = new Map();
+        this.seePostStates.value = new Map();
     }
 
     emptyStates(): void {
@@ -435,29 +446,57 @@ export class ScheduleViewModel extends UiViewModel {
         }
     }
 
+    /**
+     * Отметить пост увиденным.
+     */
     seePost(postId: number): void {
+        const post = this.scheduleData.value?.schedule
+            .flatMap(day => day?.schoolPosts ?? [])
+            .find(item => item.postId === postId);
+
+        if (!post || post.isSaw) {
+            return;
+        }
+
+        const childId = this.settingsStore.activeChildId;
+
         void this.executeRequest(
             this.seePostStates,
             postId,
             "seePost",
             "errorMarkSchoolPost" as StringResourceKey,
             () => School.seePost(postId),
-            (response) => response.answer,
+            response => response.answer,
+            result => {
+                this.updatePostResult(result, childId);
+            },
+            {
+                key: `seePost:${postId}`,
+                cancelPrevious: true,
+            },
         );
     }
 
+    /**
+     * Отметить пост нажатым.
+     */
     clickPost(postId: number): void {
+        const childId = this.settingsStore.activeChildId;
+
         void this.executeRequest(
             this.clickPostStates,
             postId,
             "clickPost",
             "errorMarkSchoolPost" as StringResourceKey,
             () => School.clickPost(postId),
-            (response) => response.answer,
-            (postResult) => this.onSuccessUpdatePost(
-                postId,
-                postResult,
-            ),
+            response => response.answer,
+            result => {
+                this.updatePostResult(result, childId);
+            },
+            {
+                key: `clickPost:${postId}`,
+                cancelPrevious: true,
+            },
         );
     }
 
@@ -490,6 +529,22 @@ export class ScheduleViewModel extends UiViewModel {
                 };
             }),
         };
+    }
+
+    /**
+     * Применить результат операции с постом.
+     *
+     * Обновляет пост в расписании и локальном кэше.
+     */
+    updatePostResult(
+        result: MarkSchoolPostResult,
+        childId: number = this.settingsStore.activeChildId,
+    ): void {
+        if (childId !== this.settingsStore.activeChildId) {
+            return;
+        }
+
+        this.updatePost(result.post.postId, result);
     }
 
     private async onSuccessUpdatePost(
