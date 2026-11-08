@@ -99,7 +99,7 @@ class TeacherService(BaseService[AppUnitOfWork]):
                         for school_id, school_groups in groups_by_school.items() for group in school_groups
                     ]
 
-        if not authorized:
+        if not authorized:  # Если сессии нет или сессия не работает
             login_url = AioDnevnikruApi.build_login_url(
                 dnevnikru_client_id=settings.DNEVNIK_CLIENT_ID,
                 scope=["EducationalInfo", "CommonInfo", "FriendsAndRelatives"],
@@ -186,8 +186,9 @@ class TeacherService(BaseService[AppUnitOfWork]):
                 {
                     'key': 'teacher_session_id',
                     'value': teacher_session.session_id,
-                    'max_age': 30 * 24 * 60 * 60,
+                    'max_age': 90 * 24 * 60 * 60,
                     'httponly': True,
+                    'secure': True,
                     'samesite': 'lax'
                 }
             ]
@@ -238,14 +239,21 @@ class TeacherService(BaseService[AppUnitOfWork]):
                 return root_result
             raise
 
-        persons = {person['id']: person['shortName'] for person in _persons}
-        subjects = {subject['id']: subject['name'] for subject in _subjects}
+        persons: dict[int, str] = {person['id']: person['shortName'] for person in _persons}
+        subjects: dict[int, str] = {subject['id']: subject['name'] for subject in _subjects}
 
         periods = sorted(periods, key=lambda p: datetime.fromisoformat(p['start']))
         active_period = CacheService.get_active_period(periods, datetime.now(UTC).date())
 
-        marks = await dnr.get_group_marks(group_id, active_period['start'], active_period['finish'])
-        marks_by_person_id_subject: dict[int, dict[str, list[str]]] = {}
+        marks, avg_marks = await gather(
+            dnr.get_group_marks(group_id, active_period['start'], active_period['finish']),
+            dnr.get_group_avg_marks(group_id, active_period['start'], active_period['finish'])
+        )
+
+        # Первый ключ по ученику, второй по названию предмета.
+        # Данные в виде кортежа: первый элемент - список оценок,
+        # второй элемент - список из одного элемента - среднего балла по предмету (оценка или пустая строка)
+        marks_by_person_id_subject: dict[int, dict[str, tuple[list[str], list[str]]]] = {}
 
         works_ids = {mark['work'] for mark in marks}
         _works = await dnr.get_works(list(works_ids))
@@ -253,17 +261,52 @@ class TeacherService(BaseService[AppUnitOfWork]):
 
         for mark in marks:
             if marks_by_person_id_subject.get(mark['person']) is None:
-                marks_by_person_id_subject[mark['person']] = {subject: [] for subject in subjects.values()}
+                marks_by_person_id_subject[mark['person']] = {subject: ([], ['']) for subject in subjects.values()}
 
             subject = subjects[works[mark['work']]['subjectId']]
-            marks_by_person_id_subject[mark['person']][subject].append(mark['textValue'])
+            marks_by_person_id_subject[mark['person']][subject][0].append(mark['textValue'])
 
-        marks_by_person_subject: list[tuple[str, dict[str, list[str]]]] = [
-            (person_name, marks_by_person_id_subject.get(person_id, {subject: [] for subject in subjects.values()}))
+        class_rating: list[tuple[float, str]] = []
+
+        for person in avg_marks:
+            if marks_by_person_id_subject.get(person['person']) is None:
+                marks_by_person_id_subject[person['person']] = {subject: ([], ['']) for subject in subjects.values()}
+
+            for avg_mark in person['per-subject-averages']:
+                subject = subjects[avg_mark['subject']]
+                marks_by_person_id_subject[person['person']][subject][1][0] = avg_mark['avg-mark-value']
+
+            if (count := len(person['per-subject-averages'])) == 0:
+                continue
+
+            sum_marks = sum(float(mark['avg-mark-value'].replace(',', '.')) for mark in person['per-subject-averages'])
+            avg_mark = round(sum_marks / count, 2)
+
+            class_rating.append((avg_mark, persons.get(person['person'], "Неизвестный ученик")))
+
+        class_rating.sort(reverse=True)
+
+        class_rating_with_positions: list[tuple[int, str, float]] = []
+        last_position = 1
+        last_avg = None
+        for i, (avg_mark, person_name) in enumerate(class_rating):
+            if avg_mark != last_avg:
+                last_position = i + 1
+            class_rating_with_positions.append((last_position, person_name, avg_mark))
+            last_avg = avg_mark
+
+        marks_by_person_subject: list[tuple[str, dict[str, tuple[list[str], list[str]]]]] = [
+            (
+                person_name,
+                marks_by_person_id_subject.get(
+                    person_id,
+                    {subject: ([], ['']) for subject in subjects.values()}
+                ),
+            )
             for person_id, person_name in persons.items()
         ]
 
-        pdf = self._create_pdf(session.teacher_id, marks_by_person_subject)
+        pdf = self._create_pdf(session.teacher_id, marks_by_person_subject, class_rating_with_positions)
 
         async with self.uow_factory() as uow:
             await uow.statistic_repository.add_statistic(session.teacher_id, StatName.teacherCreateReport)
@@ -271,7 +314,7 @@ class TeacherService(BaseService[AppUnitOfWork]):
         return pdf, group['fullName']
 
     @staticmethod
-    def _create_pdf(teacher_id: int, data: list[tuple[str, dict[str, list[str]]]]) -> Path:
+    def _create_pdf(teacher_id: int, data: list[tuple[str, dict[str, tuple[list[str], list[str]]]]], rating: list[tuple[int, str, float]]) -> Path:
         pdfmetrics.registerFont(
             TTFont("DejaVuSans", f"{settings.RESOURCES_PATH}/DejaVuSans.ttf")
         )
@@ -324,7 +367,7 @@ class TeacherService(BaseService[AppUnitOfWork]):
 
         def make_student_table(
             student_name: str,
-            subjects: dict[str, list[str]],
+            mark_by_subjects: dict[str, tuple[list[str], list[str]]],
         ) -> Table:
             # Заголовок таблицы
             title = Paragraph(
@@ -336,10 +379,11 @@ class TeacherService(BaseService[AppUnitOfWork]):
                 [
                     Paragraph("<b>Предмет</b>", cell_style),
                     Paragraph("<b>Оценки</b>", cell_style),
+                    Paragraph("<b>Ср. балл</b>", cell_style),
                 ]
             ]
 
-            for subject, marks in subjects.items():
+            for subject, (marks, avg_mark) in mark_by_subjects.items():
                 # Оценки в одну строку
                 marks_text = ", ".join(str(mark) for mark in marks)
 
@@ -353,21 +397,41 @@ class TeacherService(BaseService[AppUnitOfWork]):
                             marks_text,
                             cell_style,
                         ),
+                        Paragraph(
+                            str(avg_mark[0]),
+                            cell_style
+                        )
                     ]
                 )
 
             # Ширина столбцов
-            # Первый столбец немного шире, чтобы названия предметов реже переносились
-            subject_width = table_width * 0.42
+            subject_width = table_width * 0.32
             marks_width = table_width * 0.58
+            avg_mark_width = table_width * 0.1
 
             table = Table(
                 rows,
-                colWidths=[subject_width, marks_width],
+                colWidths=[subject_width, marks_width, avg_mark_width],
                 repeatRows=1,
                 hAlign="LEFT",
             )
 
+            setup_table_style(table)
+
+            # Заголовок ученика и сама таблица
+            result = Table(
+                [
+                    [title],
+                    [table],
+                ],
+                colWidths=[table_width],
+            )
+
+            setup_table_with_title_style(result)
+
+            return result
+
+        def setup_table_style(table: Table):
             table.setStyle(
                 TableStyle(
                     [
@@ -433,16 +497,8 @@ class TeacherService(BaseService[AppUnitOfWork]):
                 )
             )
 
-            # Заголовок ученика и сама таблица
-            result = Table(
-                [
-                    [title],
-                    [table],
-                ],
-                colWidths=[table_width],
-            )
-
-            result.setStyle(
+        def setup_table_with_title_style(table: Table):
+            table.setStyle(
                 TableStyle(
                     [
                         (
@@ -473,7 +529,71 @@ class TeacherService(BaseService[AppUnitOfWork]):
                 )
             )
 
-            return result
+        def make_rating_table() -> KeepTogether:
+            # Заголовок таблицы
+            title = Paragraph(
+                "Общий рейтинг в классе",
+                title_style,
+            )
+
+            rows = [
+                [
+                    Paragraph("<b>Место</b>", cell_style),
+                    Paragraph("<b>Обучающийся</b>", cell_style),
+                    Paragraph("<b>Ср. балл</b>", cell_style),
+                ]
+            ]
+
+            for position, student_name, avg_mark in rating:
+                rows.append(
+                    [
+                        Paragraph(
+                            str(position),
+                            subject_style,
+                        ),
+                        Paragraph(
+                            student_name,
+                            cell_style,
+                        ),
+                        Paragraph(
+                            str(avg_mark).replace('.', ','),
+                            cell_style
+                        )
+                    ]
+                )
+
+            # Ширина столбцов
+            position_width = table_width * 0.12
+            student_width = table_width * 0.58
+            avg_mark_width = table_width * 0.3
+
+            table = Table(
+                rows,
+                colWidths=[position_width, student_width, avg_mark_width],
+                repeatRows=1,
+                hAlign="LEFT",
+            )
+
+            setup_table_style(table)
+
+            rating_block = Table(
+                [[title], [table]],
+                colWidths=[available_width],
+                hAlign="CENTER",
+            )
+
+            rating_block.setStyle(
+                TableStyle([
+                    ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                    ("LEFTPADDING", (0, 0), (-1, -1), 0),
+                    ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+                    ("TOPPADDING", (0, 0), (-1, -1), 0),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
+                ])
+            )
+
+            # Заголовок таблицы и сама таблица
+            return KeepTogether([rating_block])
 
         doc = BaseDocTemplate(
             str(output_path),
@@ -508,11 +628,11 @@ class TeacherService(BaseService[AppUnitOfWork]):
 
             tables = []
 
-            for student_name, subjects in pair:
+            for student_name, mark_by_subjects in pair:
                 tables.append(
                     make_student_table(
                         student_name,
-                        subjects,
+                        mark_by_subjects,
                     )
                 )
 
@@ -576,6 +696,8 @@ class TeacherService(BaseService[AppUnitOfWork]):
                     ]
                 )
             )
+
+        story.append(make_rating_table())
 
         doc.build(story)
 

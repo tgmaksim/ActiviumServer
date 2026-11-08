@@ -50,14 +50,15 @@ class SiteService(BaseService[AppUnitOfWork]):
                     'value': csrf_token,
                     'max_age': 5 * 60,  # 5 минут
                     'httponly': False,
-                    'samesite': 'lax'
+                    'samesite': 'lax',
                 },
                 {
                     'key': 'session_id',
                     'value': session_id,
-                    'max_age': 30 * 24 * 60 * 60,  # 30 дней
-                    'httponly': False,
-                    'secure': True
+                    'max_age': 90 * 24 * 60 * 60,  # 90 дней
+                    'httponly': True,
+                    'secure': True,
+                    'samesite': 'lax',
                 }
             ]
 
@@ -114,14 +115,15 @@ class SiteService(BaseService[AppUnitOfWork]):
                     'value': csrf_token,
                     'max_age': 5 * 60,  # 5 минут
                     'httponly': False,
-                    'samesite': 'lax'
+                    'samesite': 'lax',
                 },
                 {
                     'key': 'session_id',
                     'value': session_id,
-                    'max_age': 30 * 24 * 60 * 60,  # 30 дней
-                    'httponly': False,
-                    'secure': True
+                    'max_age': 90 * 24 * 60 * 60,  # 90 дней
+                    'httponly': True,
+                    'secure': True,
+                    'samesite': 'lax',
                 }
             ]
 

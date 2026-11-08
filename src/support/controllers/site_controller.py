@@ -37,7 +37,7 @@ async def _root(
             url=request.url.remove_query_params('sessionId'),
             status_code=status.HTTP_303_SEE_OTHER
         )
-        response.set_cookie('session_id', session_id, max_age=30 * 24 * 60 * 60, secure=True, httponly=True)
+        response.set_cookie('session_id', session_id, max_age=90 * 24 * 60 * 60, secure=True, httponly=True, samesite='lax')
         return response
 
     # Query-параметры записываются в cookies и убираются из запроса
@@ -46,7 +46,7 @@ async def _root(
             url=request.url.remove_query_params('referral'),
             status_code=status.HTTP_303_SEE_OTHER
         )
-        response.set_cookie('referral', referral, max_age=30 * 24 * 60 * 60, secure=True, httponly=True)
+        response.set_cookie('referral', referral, max_age=24 * 60 * 60, secure=True, httponly=True, samesite='lax')
         return response
 
     template_params = await service.get_root(session_id, likes_offset, likesSort)

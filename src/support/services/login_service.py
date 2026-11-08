@@ -217,9 +217,10 @@ class LoginService(BaseService[AppUnitOfWork]):
                 cookies=[{
                     'key': 'session_id',
                     'value': session_id,
-                    'max_age': 30 * 24 * 60 * 60,  # 30 дней
+                    'max_age': 90 * 24 * 60 * 60,  # 90 дней
                     'httponly': True,
-                    'secure': True
+                    'secure': True,
+                    'samesite': 'lax',
                 }]
             )
 
@@ -630,9 +631,10 @@ class LoginService(BaseService[AppUnitOfWork]):
                 {
                     'key': 'session_id',
                     'value': web_session.session_id,
-                    'max_age': 30 * 24 * 60 * 60,  # 30 дней
+                    'max_age': 90 * 24 * 60 * 60,  # 90 дней
                     'httponly': True,
-                    'secure': True
+                    'secure': True,
+                    'samesite': 'lax',
                 },
                 {
                     'key': 'webSessionId',
@@ -640,13 +642,16 @@ class LoginService(BaseService[AppUnitOfWork]):
                     'path': settings.API_PREFIX,
                     'max_age': 90 * 24 * 60 * 60,  # 90 дней
                     'httponly': True,
-                    'secure': True
+                    'secure': True,
+                    'samesite': 'lax',
                 },
                 {
                     'key': 'authorized',
                     'value': "true",
                     'path': '/app',
                     'max_age': 90 * 24 * 60 * 60,  # 90 дней
+                    'httponly': False,
+                    'samesite': 'lax',
                 }
             ]
         )
