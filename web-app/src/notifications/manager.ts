@@ -36,8 +36,7 @@ export class NotificationManager {
         const notificationId = crypto.randomUUID();
         await registration.showNotification(payload.title, {
             body: payload.body,
-            icon: `${routes.home}icons/logo.png`,
-            ...(payload.imageUrl ? { image: payload.imageUrl } : {}),
+            ...({ icon: payload.imageUrl ? payload.imageUrl : `${routes.home}icons/logo.png` }),
             ...(payload.time !== undefined
                 ? { timestamp: payload.time }
                 : {}),

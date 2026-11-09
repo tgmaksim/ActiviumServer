@@ -44,7 +44,7 @@
                             v-for="item in getDisplayLessons(day.data)"
                             :key="item.key"
                             :lesson="item.lesson"
-                            :number="item.number"
+                            :number="item.lesson.number + 1"
                             :menu-enabled="item.lesson.lessonKey !== null"
                             @praise="emit('praise', $event)"
                             @rating="emit('rating', $event)"
