@@ -35,6 +35,7 @@ from ...utils.auth import check_session
 from ...models.parent_model import Parent
 from ...models.session_model import Session
 from ...schemas.error_schema import ApiError
+from ...utils.exception import format_exception
 from ...repositories.statistic_repository import StatName
 
 from ...services.log_service import LogService
@@ -79,8 +80,16 @@ class ReviewsService(BaseService[AppUnitOfWork]):
             else:
                 review = await uow.review_repository.update_review(parent.parent_id, name, stars, text, is_open=False)
 
-            # Отправка отзыва на модерацию
-            await self.check_review(review)
+            try:
+                # Отправка отзыва на модерацию
+                await self.check_review(review)
+            except Exception as e:
+                await uow.log_repository.add_log(
+                    ip='tgbot',
+                    path='tgbot',
+                    status=False,
+                    value=format_exception(e)
+                )
 
             await uow.statistic_repository.add_statistic(parent.parent_id, StatName.createReview)
 
