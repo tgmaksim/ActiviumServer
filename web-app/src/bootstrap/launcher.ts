@@ -2,7 +2,7 @@ import { routes } from "@/constants/routes";
 
 const AUTHORIZED_COOKIE = "authorized";
 
-function isAuthorized(): boolean {
+export function isAuthorized(): boolean {
     return document.cookie
         .split(";")
         .some((cookie) => {

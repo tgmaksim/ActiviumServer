@@ -64,7 +64,7 @@
             >
                 <img
                     class="dnevnik-logo"
-                    :src="`${routes.home}icons/dnevnik_ru.svg`"
+                    :src=dnevnikRuImage
                     alt=""
                 />
 
@@ -90,6 +90,8 @@
 import { ref } from "vue";
 import { routes } from "../constants/routes";
 import { strings } from "../constants/strings";
+
+import dnevnikRuImage from "@/assets/dnevnik_ru.svg";
 
 import {
     APP_VERSION,

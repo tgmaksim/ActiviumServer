@@ -1,6 +1,8 @@
 import { API_KEY, API_DOMAIN, CHECK_INTERNET_DOMAIN } from "../constants/app";
 import type { ApiResponse } from "./base";
 
+import { isAuthorized } from "@/bootstrap/launcher.ts";
+
 /**
  * Базовый адрес API.
  *
@@ -35,6 +37,10 @@ async function get<TRes extends ApiResponse>(
     path: string,
     params: Record<string, string | number | boolean> = {},
 ): Promise<TRes> {
+    if (!isAuthorized()) {
+        throw new Error("Приложение переходит на страницу авторизации...");
+    }
+
     const url = new URL(getUrl(path));
 
     for (const [key, value] of Object.entries(params)) {
@@ -65,6 +71,10 @@ async function post<TRes extends ApiResponse>(
     params: Record<string, string | number | boolean> = {},
     body?: unknown,
 ): Promise<TRes> {
+    if (!isAuthorized()) {
+        throw new Error("Приложение переходит на страницу авторизации...");
+    }
+
     const url = new URL(getUrl(path));
 
     for (const [key, value] of Object.entries(params)) {
@@ -99,6 +109,10 @@ async function put<TRes extends ApiResponse>(
     params: Record<string, string | number | boolean> = {},
     body?: unknown,
 ): Promise<TRes> {
+    if (!isAuthorized()) {
+        throw new Error("Приложение переходит на страницу авторизации...");
+    }
+
     const url = new URL(getUrl(path));
 
     for (const [key, value] of Object.entries(params)) {
@@ -131,6 +145,10 @@ async function del<TRes extends ApiResponse>(
     path: string,
     params: Record<string, string | number | boolean> = {},
 ): Promise<TRes> {
+    if (!isAuthorized()) {
+        throw new Error("Приложение переходит на страницу авторизации...");
+    }
+
     const url = new URL(getUrl(path));
 
     for (const [key, value] of Object.entries(params)) {

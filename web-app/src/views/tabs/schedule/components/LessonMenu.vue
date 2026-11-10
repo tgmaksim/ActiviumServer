@@ -84,7 +84,7 @@
                     >
                         <img
                             class="lesson-menu-icon"
-                            :src="`${routes.home}icons/dnevnik_ru.svg`"
+                            :src=dnevnikRuImage
                         />
                         <span>{{ strings.openLessonDnevnikru }}</span>
                     </button>
@@ -101,6 +101,8 @@ import { strings } from "@/constants/strings";
 import { routes } from "@/constants/routes";
 
 import LessonCard from "./LessonCard.vue";
+
+import dnevnikRuImage from "@/assets/dnevnik_ru.svg";
 
 import type { UiScheduleLesson } from "../types";
 
