@@ -146,7 +146,7 @@ class SchoolService(BaseService[AppUnitOfWork]):
 
         result.append(escape(cls._remove_surogate(surogate_text[last_pos:])))
 
-        return ''.join(result)
+        return ''.join(result).replace('\n', '<br>\n')
 
     async def getPosts(self, session_id: str, offset: int) -> SchoolPostsApiResponse:
         async with self.uow_factory() as uow:
