@@ -230,7 +230,7 @@ class SettingsService(BaseService[AppUnitOfWork]):
 
             try:
                 active_period = await CacheService.get_period(uow.cache_repository, dnr, session, child, datetime.now(UTC).date())
-                marks = await dnr.get_person_marks(session.parent_id, child.group_id, active_period['start'], active_period['finish'])
+                marks = await dnr.get_person_marks(child_id, child.group_id, active_period['start'], active_period['finish'])
             except BaseDnevnikruException as e:
                 if not await uow.session_repository.check_session_auth(session.session_id, dnr):
                     raise SessionError(session_id=session.session_id) from e
