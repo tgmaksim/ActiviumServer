@@ -7,13 +7,17 @@ from typing import Optional, Callable, Union
 
 from yarl import URL
 from httpx import AsyncClient
+from starlette.status import HTTP_404_NOT_FOUND
 
 from dnevnikru import AioDnevnikruApi, DnevnikruApiException
 
+from ...schemas.error_schema import ApiError
 from ...config.project_config import settings
 from ...repositories.log_uow import LogUnitOfWork
 from ...services.html_response import HtmlResponse
 from ...repositories.statistic_repository import StatName
+
+from ..schemas.teacher_schemas import SubjectsList, Subject
 
 from ...services.log_service import LogService
 from ...services.base_service import BaseService
@@ -194,7 +198,36 @@ class TeacherService(BaseService[AppUnitOfWork]):
             ]
         )
 
-    async def create_report(self, session_id: str, group_id: int) -> Union[tuple[Path, str], HtmlResponse]:
+    async def list_subjects(self, session_id: str, group_id: int) -> Optional[SubjectsList]:
+        async with self.uow_factory() as uow:
+            session = await uow.teacher_session_repository.get_session(session_id)
+
+        if session is None:
+            return None
+
+        dnr = AioDnevnikruApi(self.httpx_client, session.dnevnik_token)
+
+        try:
+            subjects = await dnr.get_subjects(group_id)
+        except DnevnikruApiException as e:
+            if not await uow.teacher_session_repository.check_session_auth(session_id, dnr):
+                return None
+            if e.type == 'parameterInvalid':
+                raise ApiError(
+                    type="GroupNotFoundError",
+                    errorMessage="Учебная группа не найдена"
+                ).exception(HTTP_404_NOT_FOUND)
+            raise
+
+        return [Subject(
+            id=str(subject['id']),
+            name=subject['name']
+        ) for subject in subjects]
+
+    async def create_report(
+            self, session_id: str, group_id: int,
+            without_marks: bool, average: bool, rating: bool, list_subjects: Optional[list[int]]
+    ) -> Union[tuple[Path, str], HtmlResponse]:
         async with self.uow_factory() as uow:
             session = await uow.teacher_session_repository.get_session(session_id)
 
@@ -240,7 +273,10 @@ class TeacherService(BaseService[AppUnitOfWork]):
             raise
 
         persons: dict[int, str] = {person['id']: person['shortName'] for person in _persons}
-        subjects: dict[int, str] = {subject['id']: subject['name'] for subject in _subjects}
+        subjects: dict[int, str] = {
+            subject['id']: subject['name'] for subject in _subjects
+            if list_subjects is None or subject['id'] in list_subjects
+        }
 
         periods = sorted(periods, key=lambda p: datetime.fromisoformat(p['start']))
         active_period = CacheService.get_active_period(periods, datetime.now(UTC).date())
@@ -263,7 +299,10 @@ class TeacherService(BaseService[AppUnitOfWork]):
             if marks_by_person_id_subject.get(mark['person']) is None:
                 marks_by_person_id_subject[mark['person']] = {subject: ([], ['']) for subject in subjects.values()}
 
-            subject = subjects[works[mark['work']]['subjectId']]
+            subject = subjects.get(works[mark['work']]['subjectId'])
+            if subject is None:
+                continue
+
             marks_by_person_id_subject[mark['person']][subject][0].append(mark['textValue'])
 
         class_rating: list[tuple[float, str]] = []
@@ -273,7 +312,10 @@ class TeacherService(BaseService[AppUnitOfWork]):
                 marks_by_person_id_subject[person['person']] = {subject: ([], ['']) for subject in subjects.values()}
 
             for avg_mark in person['per-subject-averages']:
-                subject = subjects[avg_mark['subject']]
+                subject = subjects.get(avg_mark['subject'])
+                if subject is None:
+                    continue
+
                 marks_by_person_id_subject[person['person']][subject][1][0] = avg_mark['avg-mark-value']
 
             if (count := len(person['per-subject-averages'])) == 0:
@@ -306,7 +348,10 @@ class TeacherService(BaseService[AppUnitOfWork]):
             for person_id, person_name in persons.items()
         ]
 
-        pdf = self._create_pdf(session.teacher_id, marks_by_person_subject, class_rating_with_positions)
+        pdf = self._create_pdf(
+            session.teacher_id, marks_by_person_subject,
+            class_rating_with_positions if rating else None, without_marks, average
+        )
 
         async with self.uow_factory() as uow:
             await uow.statistic_repository.add_statistic(session.teacher_id, StatName.teacherCreateReport)
@@ -314,7 +359,13 @@ class TeacherService(BaseService[AppUnitOfWork]):
         return pdf, group['fullName']
 
     @staticmethod
-    def _create_pdf(teacher_id: int, data: list[tuple[str, dict[str, tuple[list[str], list[str]]]]], rating: list[tuple[int, str, float]]) -> Path:
+    def _create_pdf(
+            teacher_id: int,
+            data: list[tuple[str, dict[str, tuple[list[str], list[str]]]]],
+            rating: Optional[list[tuple[int, str, float]]],
+            without_marks: bool,
+            average: bool
+    ) -> Path:
         pdfmetrics.registerFont(
             TTFont("DejaVuSans", f"{settings.RESOURCES_PATH}/DejaVuSans.ttf")
         )
@@ -365,6 +416,40 @@ class TeacherService(BaseService[AppUnitOfWork]):
             fontName="DejaVuSans-Bold",
         )
 
+        title_rating_style = ParagraphStyle(
+            "RatingTitle",
+            parent=title_style,
+            fontSize=13.5,
+            leading=16
+        )
+        rating_style = ParagraphStyle(
+            "Rating",
+            parent=cell_style,
+            fontSize=12,
+            leading=14.5,
+        )
+        person_in_rating_style = ParagraphStyle(
+            "PersonInRating",
+            parent=rating_style,
+            fontName="DejaVuSans-Bold",
+        )
+
+        class WatermarkedTable(Table):
+            def draw(self):
+                super().draw()
+
+                self.canv.saveState()
+                self.canv.setFont("DejaVuSans", 7)
+                self.canv.setFillColor(colors.HexColor("#C8C8C8"))
+
+                self.canv.drawRightString(
+                    self._width - 3,
+                    3,
+                    settings.PROJECT_NAME_RU,
+                )
+
+                self.canv.restoreState()
+
         def make_student_table(
             student_name: str,
             mark_by_subjects: dict[str, tuple[list[str], list[str]]],
@@ -379,11 +464,14 @@ class TeacherService(BaseService[AppUnitOfWork]):
                 [
                     Paragraph("<b>Предмет</b>", cell_style),
                     Paragraph("<b>Оценки</b>", cell_style),
-                    Paragraph("<b>Ср. балл</b>", cell_style),
+                    *((Paragraph("<b>Ср. балл</b>", cell_style), ) if average else ()),
                 ]
             ]
 
             for subject, (marks, avg_mark) in mark_by_subjects.items():
+                if not without_marks and not marks:
+                    continue
+
                 # Оценки в одну строку
                 marks_text = ", ".join(str(mark) for mark in marks)
 
@@ -397,10 +485,12 @@ class TeacherService(BaseService[AppUnitOfWork]):
                             marks_text,
                             cell_style,
                         ),
-                        Paragraph(
-                            str(avg_mark[0]),
-                            cell_style
-                        )
+                        *((
+                              Paragraph(
+                                str(avg_mark[0]),
+                                cell_style
+                              )
+                        ,) if average else ())
                     ]
                 )
 
@@ -409,9 +499,12 @@ class TeacherService(BaseService[AppUnitOfWork]):
             marks_width = table_width * 0.58
             avg_mark_width = table_width * 0.1
 
-            table = Table(
+            if not average:
+                marks_width += avg_mark_width
+
+            table = WatermarkedTable(
                 rows,
-                colWidths=[subject_width, marks_width, avg_mark_width],
+                colWidths=[subject_width, marks_width, *((avg_mark_width,) if average else ())],
                 repeatRows=1,
                 hAlign="LEFT",
             )
@@ -533,14 +626,14 @@ class TeacherService(BaseService[AppUnitOfWork]):
             # Заголовок таблицы
             title = Paragraph(
                 "Общий рейтинг в классе",
-                title_style,
+                title_rating_style,
             )
 
             rows = [
                 [
-                    Paragraph("<b>Место</b>", cell_style),
-                    Paragraph("<b>Обучающийся</b>", cell_style),
-                    Paragraph("<b>Ср. балл</b>", cell_style),
+                    Paragraph("<b>Место</b>", rating_style),
+                    Paragraph("<b>Обучающийся</b>", rating_style),
+                    Paragraph("<b>Ср. балл</b>", rating_style),
                 ]
             ]
 
@@ -549,25 +642,25 @@ class TeacherService(BaseService[AppUnitOfWork]):
                     [
                         Paragraph(
                             str(position),
-                            subject_style,
+                            person_in_rating_style,
                         ),
                         Paragraph(
                             student_name,
-                            cell_style,
+                            rating_style,
                         ),
                         Paragraph(
                             str(avg_mark).replace('.', ','),
-                            cell_style
+                            rating_style
                         )
                     ]
                 )
 
             # Ширина столбцов
-            position_width = table_width * 0.12
-            student_width = table_width * 0.58
-            avg_mark_width = table_width * 0.3
+            position_width = available_width * 0.1
+            student_width = available_width * 0.75
+            avg_mark_width = available_width * 0.15
 
-            table = Table(
+            table = WatermarkedTable(
                 rows,
                 colWidths=[position_width, student_width, avg_mark_width],
                 repeatRows=1,
@@ -697,7 +790,8 @@ class TeacherService(BaseService[AppUnitOfWork]):
                 )
             )
 
-        story.append(make_rating_table())
+        if rating is not None:
+            story.append(make_rating_table())
 
         doc.build(story)
 

@@ -29,7 +29,7 @@
     <link rel="icon" type="image/x-icon" sizes="32x32" href="/assets/icons/favicon.ico?v=2">
 
     <link href="/css/main.css?v=20" rel="stylesheet">
-    <link href="/css/teacher.css?v=5" rel="stylesheet">
+    <link href="/css/teacher.css?v=9" rel="stylesheet">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
@@ -139,29 +139,110 @@
                 </div>
 
                 <form id="reportForm" class="teacher-report-form" action="/teacher/report" method="post">
-                    <div class="teacher-select-wrap">
-                        <label for="classSelect">Класс</label>
-                        <select id="classSelect" name="groupId" required>
-                            <option value="" selected disabled>Выберите класс</option>
-                            {% for class in classes %}
-                                <option value="{{ class.groupId }}">{{ class.name }}</option>
-                            {% endfor %}
-                        </select>
+
+                    <!-- Правая колонка: класс и кнопка -->
+                    <div class="teacher-report-right">
+                        <div class="teacher-select-wrap teacher-class-select">
+                            <label for="classSelect">Класс</label>
+                            <select id="classSelect" required>
+                                <option value="" selected disabled>Выберите класс</option>
+                                {% for class in classes %}
+                                    <option value="{{ class.groupId }}">{{ class.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <button type="submit" class="btn-primary teacher-report-button"
+                                id="reportButton">
+                            <span class="button-content">
+                                <span>Сформировать PDF-отчёт</span>
+                            </span>
+                            <span class="button-loading">
+                                <span class="teacher-spinner"></span>
+                                Формирование отчёта…
+                            </span>
+                        </button>
                     </div>
 
-                    <button type="submit" class="btn-primary teacher-report-button" id="reportButton">
-                        <span class="button-content">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                                <path d="M6 3h9l4 4v14H6V3z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>
-                                <path d="M14 3v5h5M9 13h6M9 17h6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
-                            </svg>
-                            Сформировать PDF-отчёт
-                        </span>
-                        <span class="button-loading" aria-hidden="true">
-                            <span class="teacher-spinner"></span>
-                            Формирование отчёта…
-                        </span>
-                    </button>
+                    <!-- Левая колонка: настройки и предметы -->
+                    <div class="teacher-report-left">
+
+                        <div class="teacher-report-options">
+
+                            <label class="teacher-setting">
+                                <input type="checkbox" id="withoutMarks" checked>
+                                <span class="teacher-setting-checkbox"></span>
+                                <span class="teacher-setting-copy">
+                                    <span class="teacher-setting-title">Предметы без оценок</span>
+                                    <span class="teacher-setting-description">
+                                        Включать в отчёт предметы, по которым пока нет оценок.
+                                    </span>
+                                </span>
+                            </label>
+
+                            <label class="teacher-setting">
+                                <input type="checkbox" id="average" checked>
+                                <span class="teacher-setting-checkbox"></span>
+                                <span class="teacher-setting-copy">
+                                    <span class="teacher-setting-title">Средний балл</span>
+                                    <span class="teacher-setting-description">
+                                        Показывать средний балл ученика по каждому предмету.
+                                    </span>
+                                </span>
+                            </label>
+
+                            <label class="teacher-setting">
+                                <input type="checkbox" id="rating" checked>
+                                <span class="teacher-setting-checkbox"></span>
+                                <span class="teacher-setting-copy">
+                                    <span class="teacher-setting-title">Рейтинг класса</span>
+                                    <span class="teacher-setting-description">
+                                        Добавлять общий рейтинг учащихся в конце отчёта.
+                                    </span>
+                                </span>
+                            </label>
+
+                        </div>
+
+                        <!-- Выбор предметов -->
+                        <div class="teacher-subjects">
+                            <button type="button" class="teacher-subjects-toggle"
+                                    id="subjectsToggle"
+                                    aria-expanded="false"
+                                    aria-controls="subjectsPanel">
+
+                                <span class="teacher-subjects-toggle-label">
+                                    Выбрать предметы
+                                </span>
+
+                                <span class="teacher-subjects-selection" id="subjectsSelection">
+                                    Все предметы
+                                </span>
+
+                                <svg class="teacher-subjects-chevron" viewBox="0 0 20 20"
+                                     fill="none" aria-hidden="true">
+                                    <path d="m5 7.5 5 5 5-5" stroke="currentColor"
+                                          stroke-width="1.7" stroke-linecap="round"
+                                          stroke-linejoin="round"/>
+                                </svg>
+                            </button>
+
+                            <div class="teacher-subjects-panel" id="subjectsPanel" hidden>
+                                <div class="teacher-subjects-status" id="subjectsStatus">
+                                    Выберите класс, чтобы загрузить предметы.
+                                </div>
+                                <div class="teacher-subjects-list" id="subjectsList"></div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- Параметры отправки -->
+                    <input type="hidden" name="withoutMarks" id="withoutMarksValue" value="false">
+                    <input type="hidden" name="average" id="averageValue" value="true">
+                    <input type="hidden" name="rating" id="ratingValue" value="true">
+
+                    <div id="selectedSubjectsInputs" hidden></div>
                 </form>
             {% endif %}
 
@@ -307,5 +388,6 @@
 </div>
 
 <script src="/js/theme.js"></script>
+<script src="/js/teacher.js?v=3" defer></script>
 </body>
 </html>

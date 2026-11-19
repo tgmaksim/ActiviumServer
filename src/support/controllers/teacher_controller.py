@@ -9,6 +9,7 @@ from starlette.responses import RedirectResponse
 from fastapi import APIRouter, Depends, Request, Query
 from fastapi.responses import HTMLResponse, FileResponse
 
+from ..schemas.teacher_schemas import SubjectsList
 from ..services.teacher_service import TeacherService
 from ...config.project_config import settings
 
@@ -99,12 +100,16 @@ async def _auth(
 async def _create_report(
         request: Request,
         teacher_session_id: Annotated[str, Cookie(description="Идентификатор сессии учителя")],
-        groupId: Annotated[int, Form(description="Идентификатор учебной группы (класса)")],
+        groupId: Annotated[int, Query(description="Идентификатор учебной группы (класса)")],
+        withoutMarks: Annotated[bool, Form(description="Добавлять предметы без оценок")] = True,
+        average: Annotated[bool, Form(description="Добавлять колонку средний балл в таблицы")] = True,
+        rating: Annotated[bool, Form(description="Сформировать рейтинг по классу")] = True,
+        listSubjects: Annotated[Optional[list[int]], Form(description="Список предметов выборочного составления отчета")] = None,
         service: TeacherService = Depends(get_teacher_service)
 ):
     request.state.session_id = teacher_session_id
 
-    result = await service.create_report(teacher_session_id, groupId)
+    result = await service.create_report(teacher_session_id, groupId, withoutMarks, average, rating, listSubjects)
     if isinstance(result, tuple):
         file, group_name = result
         return FileResponse(
@@ -130,3 +135,20 @@ async def _create_report(
             response.delete_cookie(**cookie)
 
     return response
+
+
+@public_router.get(
+    "/listSubjects",
+    summary="Получение доступных предметов класса",
+    description="Получение доступных предметов класса, чтобы можно было исключить ненужные при составлении отчета",
+    response_model=SubjectsList, include_in_schema=True
+)
+async def _listSubjects(
+        request: Request,
+        teacher_session_id: Annotated[str, Cookie(description="Идентификатор сессии учителя")],
+        groupId: Annotated[int, Query(description="Идентификатор учебной группы (класса)")],
+        service: TeacherService = Depends(get_teacher_service)
+):
+    request.state.session_id = teacher_session_id
+
+    return await service.list_subjects(teacher_session_id, groupId)
