@@ -1,7 +1,7 @@
 from typing import Optional
 from datetime import timedelta
 
-from sqlalchemy.sql import select, or_
+from sqlalchemy.sql import select, or_, not_
 from sqlalchemy.sql.functions import func
 
 from ...models.ad_model import Ad
@@ -41,7 +41,36 @@ class AdRepository(SqlAlchemyRepository[Ad]):
                 or_(Ad.school_id == school_id, Ad.school_id.is_(None)),
                 or_(Ad.group_id == group_id, Ad.group_id.is_(None)),
                 Ad.balance > 0,
+                not_(Ad.is_developer_birthday),
                 or_(AdViewingModel.last_viewing.is_(None), last_viewing_delta > min_last_viewing_delta)
+            )
+        )
+
+        res = await self.queue.execute(statement)
+        return res.all()
+
+    async def get_accessible_ads_with_birthday(self, parent_id: int, school_id: int, group_id: int) -> list[tuple[int, Optional[timedelta]]]:
+        """
+        Получение идентификаторов и времени от последнего просмотра доступных для пользователя рекламных объявлений
+        со статусом рекламы в день рождения разработчика
+
+        :param parent_id: идентификатор пользователя
+        :param school_id: идентификатор образовательной организации
+        :param group_id: идентификатор учебной группы (класса)
+        :return: список идентификаторов рекламных объявлений
+        """
+
+        statement = (
+            select(Ad.ad_id, (func.now() - AdViewingModel.last_viewing).label('last_viewing_delta'))
+            .outerjoin(
+                AdViewingModel,
+                (AdViewingModel.ad_id == Ad.ad_id) & (AdViewingModel.parent_id == parent_id)
+            )
+            .where(
+                or_(Ad.school_id == school_id, Ad.school_id.is_(None)),
+                or_(Ad.group_id == group_id, Ad.group_id.is_(None)),
+                Ad.balance > 0,
+                Ad.is_developer_birthday
             )
         )
 

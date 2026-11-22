@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, Query
 
 from ..schemas.ads_schemas import (
     AdApiResponse,
+    AdApiResponse0x63,
     ClickAdApiResponse
 )
 
@@ -22,9 +23,23 @@ router = APIRouter(prefix='/ads', tags=["Ads"])
     "/checkAccessibleAd/0",
     summary="Получение доступной рекламы",
     description="Проверка наличия и получение рекламного объявления",
-    response_model=AdApiResponse
+    response_model=AdApiResponse0x63,
+    deprecated=True  # Устарела с версии API 2.3.0
 )
 async def _checkAccessibleAd0(
+        sessionId: str = Depends(get_session_id),
+        service: AdsService = Depends(get_ads_service)
+) -> AdApiResponse0x63:
+    return await service.check_accessible_ad(sessionId, api=0)
+
+
+@router.post(
+    "/checkAccessibleAd/1",  # Начиная с версии 2.4.0
+    summary="Получение доступной рекламы",
+    description="Проверка наличия и получение рекламного объявления",
+    response_model=AdApiResponse
+)
+async def _checkAccessibleAd1(
         sessionId: str = Depends(get_session_id),
         service: AdsService = Depends(get_ads_service)
 ) -> AdApiResponse:

@@ -117,6 +117,8 @@ class Settings(BaseSettings):
     """Ссылка на профиль в соц. сети автора проекта"""
     ADMIN_TIMEZONE: int = 0
     """Часовой пояс администраторов для оповещений"""
+    DEVELOPER_BIRTHDAY: str
+    """День рождения разработчика"""
 
     # База данных
     DB_SCHEME: str

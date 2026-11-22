@@ -22,6 +22,7 @@
                 v-else
                 :dates="dates"
                 :selected-date="selectedDate"
+                :birthday-date="ad?.isDeveloperBirthday ? today : null"
                 @select="onCalendarDateSelect"
             />
         </div>

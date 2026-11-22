@@ -227,9 +227,9 @@ class BaseDnevnikruApi:
         :except DnevnikruApiError: Ошибка в API-запросе от дневника.ру
         """
 
-        content_type: str = response.headers.get('content-type').split(';')[0]
+        content_type: str = response.headers.get('content-type', '').split(';')[0]
         if content_type != 'application/json':
-            raise InvalidResponseException(f"Content type is {content_type}, not application/json")
+            raise InvalidResponseException(f"Content type is '{content_type}', not application/json")
 
         try:
             json = response.json()

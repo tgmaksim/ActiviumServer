@@ -50,6 +50,11 @@ class Ad(BaseModel):
         String(1024),
         comment="URL, на который будет перенаправлен пользователь при открытии рекламы"
     )
+    is_developer_birthday: Mapped[bool] = mapped_column(
+        Boolean,
+        server_default=sql_text('false'),
+        comment="Связана ли реклама с днем рождения разработчика"
+    )
     balance: Mapped[int] = mapped_column(
         Integer,
         comment="Количество доступных показов"

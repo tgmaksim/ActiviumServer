@@ -12,6 +12,7 @@
             class="calendar-day"
             :class="{
                 'calendar-day-selected': date === selectedDate,
+                'calendar-day-birthday': date === birthdayDate,
             }"
             type="button"
             :aria-pressed="date === selectedDate"
@@ -24,6 +25,20 @@
             <span class="calendar-day-number">
                 {{ getDayNumber(date) }}
             </span>
+
+            <template v-if="date === birthdayDate">
+                <span class="birthday-balloon" aria-hidden="true">
+                    🎈
+                </span>
+
+                <span class="birthday-star-one" aria-hidden="true">
+                    ⭐
+                </span>
+
+                <span class="birthday-star-two" aria-hidden="true">
+                    ✦
+                </span>
+            </template>
         </button>
     </div>
 </template>
@@ -41,6 +56,7 @@ import type { ScheduleDate } from "../types";
 const props = defineProps<{
     dates: readonly ScheduleDate[];
     selectedDate: ScheduleDate;
+    birthdayDate: ScheduleDate | null;
 }>();
 
 const emit = defineEmits<{
@@ -197,5 +213,39 @@ onMounted(() => {
     font-size: 24px;
     font-weight: 500;
     line-height: 25px;
+}
+
+.calendar-day-birthday {
+    position: relative;
+    overflow: hidden;
+}
+
+.birthday-balloon {
+    position: absolute;
+    top: 2px;
+    right: 3px;
+
+    font-size: 10px;
+    line-height: 1;
+}
+
+.birthday-star-one {
+    position: absolute;
+    bottom: 2px;
+    left: 3px;
+
+    font-size: 9px;
+    line-height: 1;
+}
+
+.birthday-star-two {
+    position: absolute;
+    right: 3px;
+    bottom: 2px;
+
+    color: #F5B942;
+
+    font-size: 12px;
+    line-height: 1;
 }
 </style>

@@ -9,19 +9,20 @@ import { Request } from "./request";
  * Рекламное объявление.
  */
 export interface Ad extends ApiBase {
-    classId: 0x61;
+    classId: 0x66;
     adId: number;
     title: string;
     text: string;
     imageUrl: string;
     url: string;
+    isDeveloperBirthday: boolean;
 }
 
 /**
  * Результат запроса получения рекламного объявления.
  */
 export interface AdResult extends ApiBase {
-    classId: 0x62;
+    classId: 0x67;
     ad: Ad | null;
 }
 
@@ -30,7 +31,7 @@ export interface AdResult extends ApiBase {
  */
 export interface AdApiResponse
     extends ApiResponse<AdResult | null> {
-    classId: 0x63 | 0x2;
+    classId: 0x68 | 0x2;
 }
 
 /**
@@ -45,7 +46,7 @@ const PATH_ADS = "ads";
 const PATH_CHECK_ACCESSIBLE_AD = "checkAccessibleAd";
 const PATH_CLICK_AD = "clickAd";
 
-const CHECK_ACCESSIBLE_AD_VERSION = 0;
+const CHECK_ACCESSIBLE_AD_VERSION = 1;
 const CLICK_AD_VERSION = 0;
 
 /**

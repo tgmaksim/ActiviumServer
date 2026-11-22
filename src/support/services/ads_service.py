@@ -1,7 +1,7 @@
 import random
 
-from datetime import timedelta
-from typing import Callable, Optional
+from typing import Callable, Optional, Union
+from datetime import timedelta, datetime, timezone
 
 from yarl import URL
 from httpx import AsyncClient
@@ -17,8 +17,11 @@ from ...repositories.statistic_repository import StatName
 
 from ..schemas.ads_schemas import (
     Ad,
+    Ad0x61,
     AdResult,
+    AdResult0x62,
     AdApiResponse,
+    AdApiResponse0x63,
     ClickAdApiResponse
 )
 
@@ -35,7 +38,23 @@ class AdsService(BaseService[AppUnitOfWork]):
         super().__init__(uow_factory)
         self.httpx_client = httpx_client
 
-    async def check_accessible_ad(self, session_id: str) -> AdApiResponse:
+    @staticmethod
+    def check_developer_birthday() -> bool:
+        now = datetime.now(timezone(timedelta(hours=settings.ADMIN_TIMEZONE)))
+        birthday = tuple(map(int, settings.DEVELOPER_BIRTHDAY.split('-')))
+
+        return (now.day, now.month) == birthday
+
+    async def check_accessible_ad(self, session_id: str, api: int = None) -> Union[AdApiResponse0x63, AdApiResponse]:
+        if api == 0:
+            answer_type = AdApiResponse0x63
+            result_type = AdResult0x62
+            ad_type = Ad0x61
+        else:
+            answer_type = AdApiResponse
+            result_type = AdResult
+            ad_type = Ad
+
         async with self.uow_factory() as uow:
             session = await check_session(session_id, uow.session_repository)  # Проверка и получение сессии
             parent: Parent = session.parent
@@ -43,7 +62,10 @@ class AdsService(BaseService[AppUnitOfWork]):
             school_id = session.active_child.school_id
             group_id = session.active_child.group_id
 
-            ads = await uow.ad_repository.get_accessible_ads(parent.parent_id, school_id, group_id, MIN_LAST_VIEWING_DELTA)
+            if self.check_developer_birthday():
+                ads = await uow.ad_repository.get_accessible_ads_with_birthday(parent.parent_id, school_id, group_id)
+            else:
+                ads = await uow.ad_repository.get_accessible_ads(parent.parent_id, school_id, group_id, MIN_LAST_VIEWING_DELTA)
 
             new_ads_ids: list[int] = []  # Еще не увиденные рекламные объявления
             seen_ads: list[tuple[int, timedelta]] = []  # Когда-то увиденные рекламные объявления
@@ -92,14 +114,15 @@ class AdsService(BaseService[AppUnitOfWork]):
 
             await uow.statistic_repository.add_statistic(session.parent_id, StatName.checkAccessibleAd)
 
-            return AdApiResponse(
-                answer=AdResult(
-                    ad=Ad(
+            return answer_type(
+                answer=result_type(
+                    ad=ad_type(
                         adId=chosen_ad.ad_id,
                         title=chosen_ad.title,
                         text=chosen_ad.text,
                         imageUrl=image_url,
-                        url=chosen_ad.url
+                        url=chosen_ad.url,
+                        isDeveloperBirthday=chosen_ad.is_developer_birthday
                     ) if chosen_ad else None,
                 )
             )
