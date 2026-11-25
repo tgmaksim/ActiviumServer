@@ -29,7 +29,7 @@
     <link rel="icon" type="image/x-icon" sizes="32x32" href="/assets/icons/favicon.ico?v=2">
 
     <link href="/css/main.css?v=20" rel="stylesheet">
-    <link href="/css/teacher.css?v=9" rel="stylesheet">
+    <link href="/css/teacher.css?v=10" rel="stylesheet">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
@@ -76,8 +76,9 @@
                 <h1 id="teacher-title">Отчёт об оценках класса — в одном PDF-документе</h1>
                 <p class="teacher-hero-lead">
                     Помощник учителю {{ project_name }} собирает оценки учеников выбранного класса
-                    в компактные таблицы. В документе также отображаются средний балл
-                    и рейтинг в том виде, в каком его видят пользователи приложения.
+                    в компактные таблицы. В документе также отображаются средний балл,
+                    итоговая оценка за отчетный период и рейтинг в том виде,
+                    в каком его видят пользователи приложения.
                 </p>
                 <div class="teacher-hero-points" aria-label="Основные свойства отчёта">
                     <span><span aria-hidden="true">✓</span> Данные из «Дневника.ру»</span>
@@ -175,7 +176,7 @@
                                 <span class="teacher-setting-copy">
                                     <span class="teacher-setting-title">Предметы без оценок</span>
                                     <span class="teacher-setting-description">
-                                        Включать в отчёт предметы, по которым пока нет оценок.
+                                        Включать предметы, по которым пока нет оценок.
                                     </span>
                                 </span>
                             </label>
@@ -186,7 +187,7 @@
                                 <span class="teacher-setting-copy">
                                     <span class="teacher-setting-title">Средний балл</span>
                                     <span class="teacher-setting-description">
-                                        Показывать средний балл ученика по каждому предмету.
+                                        Показывать средний балл по каждому предмету.
                                     </span>
                                 </span>
                             </label>
@@ -198,6 +199,28 @@
                                     <span class="teacher-setting-title">Рейтинг класса</span>
                                     <span class="teacher-setting-description">
                                         Добавлять общий рейтинг учащихся в конце отчёта.
+                                    </span>
+                                </span>
+                            </label>
+
+                            <label class="teacher-setting">
+                                <input type="checkbox" id="periodMarks">
+                                <span class="teacher-setting-checkbox"></span>
+                                <span class="teacher-setting-copy">
+                                    <span class="teacher-setting-title">Оценка за период</span>
+                                    <span class="teacher-setting-description">
+                                        Показывать итоговую оценку за отчетный период.
+                                    </span>
+                                </span>
+                            </label>
+
+                            <label class="teacher-setting">
+                                <input type="checkbox" id="signatureLines">
+                                <span class="teacher-setting-checkbox"></span>
+                                <span class="teacher-setting-copy">
+                                    <span class="teacher-setting-title">Места для подписей</span>
+                                    <span class="teacher-setting-description">
+                                        Добавлять строки для подписей родителя и классного руководителя.
                                     </span>
                                 </span>
                             </label>
@@ -231,6 +254,16 @@
                                 <div class="teacher-subjects-status" id="subjectsStatus">
                                     Выберите класс, чтобы загрузить предметы.
                                 </div>
+
+                                <button
+                                    type="button"
+                                    class="teacher-subjects-select-all"
+                                    id="subjectsSelectAll"
+                                    hidden
+                                >
+                                    Выбрать все
+                                </button>
+
                                 <div class="teacher-subjects-list" id="subjectsList"></div>
                             </div>
                         </div>
@@ -241,6 +274,8 @@
                     <input type="hidden" name="withoutMarks" id="withoutMarksValue" value="false">
                     <input type="hidden" name="average" id="averageValue" value="true">
                     <input type="hidden" name="rating" id="ratingValue" value="true">
+                    <input type="hidden" name="periodMarks" id="periodMarksValue" value="false">
+                    <input type="hidden" name="signatureLines" id="signatureLinesValue" value="false">
 
                     <div id="selectedSubjectsInputs" hidden></div>
                 </form>
@@ -292,6 +327,7 @@
                     <li>имена учащихся;</li>
                     <li>предметы и оценки по каждому ученику;</li>
                     <li>средний балл;</li>
+                    <li>итоговая оценка;</li>
                     <li>рейтинг в представлении приложения {{ project_name }}.</li>
                 </ul>
                 <p class="teacher-note">
@@ -344,7 +380,7 @@
             <div class="teacher-faq">
                 <details>
                     <summary>Какие данные будут в PDF?</summary>
-                    <p>В документе представлены имена учащихся, предметы, оценки, средний балл и рейтинг в том виде, в каком он отображается пользователям {{ project_name }}.</p>
+                    <p>В документе представлены имена учащихся, предметы, оценки, средний балл, итоговая оценка и рейтинг в том виде, в каком он отображается пользователям {{ project_name }}.</p>
                 </details>
                 <details>
                     <summary>Откуда берутся оценки?</summary>
@@ -388,6 +424,6 @@
 </div>
 
 <script src="/js/theme.js"></script>
-<script src="/js/teacher.js?v=3" defer></script>
+<script src="/js/teacher.js?v=4" defer></script>
 </body>
 </html>

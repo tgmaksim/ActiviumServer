@@ -103,13 +103,15 @@ async def _create_report(
         groupId: Annotated[int, Query(description="Идентификатор учебной группы (класса)")],
         withoutMarks: Annotated[bool, Form(description="Добавлять предметы без оценок")] = True,
         average: Annotated[bool, Form(description="Добавлять колонку средний балл в таблицы")] = True,
+        periodMarks: Annotated[bool, Form(description="Добавлять колонку оценка за период в таблицы")] = False,
+        signatureLines: Annotated[bool, Form(description="Добавлять строки для подписей родителя и классного руководителя")] = False,
         rating: Annotated[bool, Form(description="Сформировать рейтинг по классу")] = True,
         listSubjects: Annotated[Optional[list[int]], Form(description="Список предметов выборочного составления отчета")] = None,
         service: TeacherService = Depends(get_teacher_service)
 ):
     request.state.session_id = teacher_session_id
 
-    result = await service.create_report(teacher_session_id, groupId, withoutMarks, average, rating, listSubjects)
+    result = await service.create_report(teacher_session_id, groupId, withoutMarks, average, periodMarks, signatureLines, rating, listSubjects)
     if isinstance(result, tuple):
         file, group_name = result
         return FileResponse(

@@ -215,3 +215,8 @@ class AioDnevnikruApi(BaseAioDnevnikruApi):
         """Список классов в образовательной организации"""
 
         return await self.get(f"schools/{school}/edu-groups")
+
+    async def get_group_final_marks(self, group: int) -> list[dict]:
+        """Итоговые оценки учебной группы (класса) за отчетные периоды"""
+
+        return await self.get(f"edu-groups/{group}/final-marks")

@@ -215,3 +215,8 @@ class DnevnikruApi(BaseDnevnikruApi):
         """Список классов в образовательной организации"""
 
         return self.get(f"schools/{school}/edu-groups")
+
+    def get_group_final_marks(self, group: int) -> list[dict]:
+        """Итоговые оценки учебной группы (класса) за отчетные периоды"""
+
+        return self.get(f"edu-groups/{group}/final-marks")

@@ -511,7 +511,38 @@
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 10px;
-    min-width: 0;
+}
+
+/* Кнопка массового выбора предметов */
+.teacher-subjects-select-all {
+    display: block;
+    width: 100%;
+    padding: 10px 12px;
+    border: none;
+    border-radius: 10px;
+    background: var(--main-bg);
+    color: var(--accent);
+    font: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.teacher-subjects-select-all:hover {
+    background: var(--menu-bg);
+}
+
+.teacher-subjects-select-all[hidden] {
+    display: none !important;
+}
+
+/* Адаптация настроек */
+@media (max-width: 900px) {
+    .teacher-report-options {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
 }
 
 .teacher-setting {
@@ -1129,6 +1160,10 @@
         max-height: 280px;
     }
 
+    .teacher-report-options {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
     .teacher-header {
         margin-bottom: 21px;
     }
@@ -1199,7 +1234,8 @@
         flex-direction: column;
         gap: 11px;
     }
-.teacher-about {
+
+    .teacher-about {
         align-items: flex-start;
         padding: 20px;
     }

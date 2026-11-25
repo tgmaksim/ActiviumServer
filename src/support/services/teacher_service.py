@@ -226,7 +226,8 @@ class TeacherService(BaseService[AppUnitOfWork]):
 
     async def create_report(
             self, session_id: str, group_id: int,
-            without_marks: bool, average: bool, rating: bool, list_subjects: Optional[list[int]]
+            without_marks: bool, average: bool, period_marks: bool, signature_lines: bool,
+            rating: bool, list_subjects: Optional[list[int]]
     ) -> Union[tuple[Path, str], HtmlResponse]:
         async with self.uow_factory() as uow:
             session = await uow.teacher_session_repository.get_session(session_id)
@@ -261,11 +262,12 @@ class TeacherService(BaseService[AppUnitOfWork]):
         dnr = AioDnevnikruApi(self.httpx_client, session.dnevnik_token)
 
         try:
-            group, periods, _persons, _subjects = await gather(
+            group, periods, _persons, _subjects, final_marks = await gather(
                 dnr.get_group(group_id),
                 dnr.get_reporting_periods(group_id),
                 dnr.get_group_persons(group_id),
-                dnr.get_subjects(group_id)
+                dnr.get_subjects(group_id),
+                dnr.get_group_final_marks(group_id)
             )
         except DnevnikruApiException:
             if not await uow.teacher_session_repository.check_session_auth(session_id, dnr):
@@ -281,15 +283,22 @@ class TeacherService(BaseService[AppUnitOfWork]):
         periods = sorted(periods, key=lambda p: datetime.fromisoformat(p['start']))
         active_period = CacheService.get_active_period(periods, datetime.now(UTC).date())
 
-        marks, avg_marks = await gather(
+        final_marks_by_work_id = {
+            final_mark['final-mark']['work']: final_mark['final-mark']
+            for person in final_marks for final_mark in person['per-subject-final-marks']
+        }
+
+        marks, avg_marks, final_works = await gather(
             dnr.get_group_marks(group_id, active_period['start'], active_period['finish']),
-            dnr.get_group_avg_marks(group_id, active_period['start'], active_period['finish'])
+            dnr.get_group_avg_marks(group_id, active_period['start'], active_period['finish']),
+            dnr.get_works(list(final_marks_by_work_id))
         )
 
         # Первый ключ по ученику, второй по названию предмета.
         # Данные в виде кортежа: первый элемент - список оценок,
-        # второй элемент - список из одного элемента - среднего балла по предмету (оценка или пустая строка)
-        marks_by_person_id_subject: dict[int, dict[str, tuple[list[str], list[str]]]] = {}
+        # второй элемент - список из одного элемента - среднего балла по предмету (оценка или пустая строка),
+        # третий элемент - список из одного элемента - итоговой оценки за период по предмету (оценка или пустая строка)
+        marks_by_person_id_subject: dict[int, dict[str, tuple[list[str], list[str], list[str]]]] = {}
 
         works_ids = {mark['work'] for mark in marks}
         _works = await dnr.get_works(list(works_ids))
@@ -297,7 +306,7 @@ class TeacherService(BaseService[AppUnitOfWork]):
 
         for mark in marks:
             if marks_by_person_id_subject.get(mark['person']) is None:
-                marks_by_person_id_subject[mark['person']] = {subject: ([], ['']) for subject in subjects.values()}
+                marks_by_person_id_subject[mark['person']] = {subject: ([], [''], ['']) for subject in subjects.values()}
 
             subject = subjects.get(works[mark['work']]['subjectId'])
             if subject is None:
@@ -309,7 +318,7 @@ class TeacherService(BaseService[AppUnitOfWork]):
 
         for person in avg_marks:
             if marks_by_person_id_subject.get(person['person']) is None:
-                marks_by_person_id_subject[person['person']] = {subject: ([], ['']) for subject in subjects.values()}
+                marks_by_person_id_subject[person['person']] = {subject: ([], [''], ['']) for subject in subjects.values()}
 
             for avg_mark in person['per-subject-averages']:
                 subject = subjects.get(avg_mark['subject'])
@@ -326,6 +335,20 @@ class TeacherService(BaseService[AppUnitOfWork]):
 
             class_rating.append((avg_mark, persons.get(person['person'], "Неизвестный ученик")))
 
+        for work in final_works:
+            if work['periodNumber'] != active_period['number']:
+                continue
+
+            final_mark = final_marks_by_work_id[work['id']]
+            subject = subjects.get(work['subjectId'])
+            if subject is None:
+                continue
+
+            if marks_by_person_id_subject.get(final_mark['person']) is None:
+                marks_by_person_id_subject[final_mark['person']] = {subject: ([], [''], ['']) for subject in subjects.values()}
+
+            marks_by_person_id_subject[final_mark['person']][subject][2][0] = final_mark['textValue']
+
         class_rating.sort(reverse=True)
 
         class_rating_with_positions: list[tuple[int, str, float]] = []
@@ -337,462 +360,331 @@ class TeacherService(BaseService[AppUnitOfWork]):
             class_rating_with_positions.append((last_position, person_name, avg_mark))
             last_avg = avg_mark
 
-        marks_by_person_subject: list[tuple[str, dict[str, tuple[list[str], list[str]]]]] = [
+        marks_by_person_subject: list[tuple[str, dict[str, tuple[list[str], list[str], list[str]]]]] = [
             (
                 person_name,
                 marks_by_person_id_subject.get(
                     person_id,
-                    {subject: ([], ['']) for subject in subjects.values()}
+                    {subject: ([], [''], ['']) for subject in subjects.values()}
                 ),
             )
             for person_id, person_name in persons.items()
         ]
 
-        pdf = self._create_pdf(
+        report_creator = ReportCreator(
             session.teacher_id, marks_by_person_subject,
-            class_rating_with_positions if rating else None, without_marks, average
+            class_rating_with_positions if rating else None, without_marks, average, period_marks, signature_lines
         )
+        pdf = report_creator.create_pdf()
 
         async with self.uow_factory() as uow:
             await uow.statistic_repository.add_statistic(session.teacher_id, StatName.teacherCreateReport)
 
         return pdf, group['fullName']
 
-    @staticmethod
-    def _create_pdf(
-            teacher_id: int,
-            data: list[tuple[str, dict[str, tuple[list[str], list[str]]]]],
-            rating: Optional[list[tuple[int, str, float]]],
-            without_marks: bool,
-            average: bool
-    ) -> Path:
+
+class ReportCreator:
+    class WatermarkedTable(Table):
+        def draw(self):
+            super().draw()
+
+            self.canv.saveState()
+            self.canv.setFont("DejaVuSans", 9)
+            self.canv.setFillColor(colors.HexColor("#C8C8C8"))
+            self.canv.drawRightString(
+                self._width - 3,
+                3,
+                settings.PROJECT_NAME_RU,
+            )
+            self.canv.restoreState()
+
+    def __init__(
+        self,
+        teacher_id: int,
+        data: list[tuple[str, dict[str, tuple[list[str], list[str], list[str]]]]],
+        rating: Optional[list[tuple[int, str, float]]],
+        without_marks: bool,
+        average: bool,
+        period_marks: bool,
+        signature_lines: bool
+    ):
+        self.teacher_id = teacher_id
+        self.data = data
+        self.rating = rating
+        self.without_marks = without_marks
+        self.average = average
+        self.period_marks = period_marks
+        self.signature_lines = signature_lines
+
+        # Параметры страницы
+        self.page_width, self.page_height = A4
+        self.margin_x = 10 * mm
+        self.margin_y = 10 * mm
+        self.column_gap = 4 * mm
+
+        self.available_width = self.page_width - 2 * self.margin_x
+        self.table_width = (self.available_width - self.column_gap) / 2
+
+        # Пути
+        self.output_path = Path(
+            settings.WWW_PATH,
+            "temp",
+            "teacher-reports",
+            f"{self.teacher_id}.pdf",
+        )
+
+        # Регистрация шрифтов
         pdfmetrics.registerFont(
             TTFont("DejaVuSans", f"{settings.RESOURCES_PATH}/DejaVuSans.ttf")
         )
-
         pdfmetrics.registerFont(
             TTFont("DejaVuSans-Bold", f"{settings.RESOURCES_PATH}/DejaVuSans-Bold.ttf")
         )
 
-        output_path = Path(settings.WWW_PATH, 'temp', 'teacher-reports', f"{teacher_id}.pdf")
-
-        # Размер страницы A4
-        page_width, page_height = A4
-
-        # Отступы страницы
-        margin_x = 10 * mm
-        margin_y = 10 * mm
-
-        # Между двумя таблицами в одном ряду
-        column_gap = 4 * mm
-
-        # Доступная ширина
-        available_width = page_width - 2 * margin_x
-
-        # Ширина одной таблицы
-        table_width = (available_width - column_gap) / 2
-
-        title_style = ParagraphStyle(
+        # Стили
+        self.title_style = ParagraphStyle(
             "StudentTitle",
             fontName="DejaVuSans-Bold",
             fontSize=8.5,
             leading=10,
             alignment=TA_CENTER,
-            spaceAfter=0,
         )
 
-        cell_style = ParagraphStyle(
+        self.cell_style = ParagraphStyle(
             "Cell",
             fontName="DejaVuSans",
             fontSize=7.5,
             leading=9,
-            spaceAfter=0,
-            spaceBefore=0,
         )
 
-        subject_style = ParagraphStyle(
+        self.subject_style = ParagraphStyle(
             "Subject",
-            parent=cell_style,
+            parent=self.cell_style,
             fontName="DejaVuSans-Bold",
         )
 
-        title_rating_style = ParagraphStyle(
+        self.title_rating_style = ParagraphStyle(
             "RatingTitle",
-            parent=title_style,
+            parent=self.title_style,
             fontSize=13.5,
-            leading=16
+            leading=16,
         )
-        rating_style = ParagraphStyle(
+
+        self.rating_style = ParagraphStyle(
             "Rating",
-            parent=cell_style,
+            parent=self.cell_style,
             fontSize=12,
             leading=14.5,
         )
-        person_in_rating_style = ParagraphStyle(
+
+        self.person_in_rating_style = ParagraphStyle(
             "PersonInRating",
-            parent=rating_style,
+            parent=self.rating_style,
             fontName="DejaVuSans-Bold",
         )
 
-        class WatermarkedTable(Table):
-            def draw(self):
-                super().draw()
+    def _setup_table_style(self, table: Table):
+        table.setStyle(TableStyle([
+            ("GRID", (0, 0), (-1, -1), 0.4, colors.grey),
+            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#E8E8E8")),
+            ("LEFTPADDING", (0, 0), (-1, -1), 3),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 3),
+            ("TOPPADDING", (0, 0), (-1, -1), 2),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 2),
+            ("VALIGN", (0, 0), (-1, -1), "TOP"),
+            ("ALIGN", (0, 0), (-1, 0), "CENTER"),
+        ]))
 
-                self.canv.saveState()
-                self.canv.setFont("DejaVuSans", 7)
-                self.canv.setFillColor(colors.HexColor("#C8C8C8"))
+    @staticmethod
+    def _setup_container_style(table: Table):
+        table.setStyle(TableStyle([
+            ("LEFTPADDING", (0, 0), (-1, -1), 0),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+            ("TOPPADDING", (0, 0), (-1, -1), 0),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
+        ]))
 
-                self.canv.drawRightString(
-                    self._width - 3,
-                    3,
-                    settings.PROJECT_NAME_RU,
-                )
+    def _make_student_table(
+        self,
+        student_name: str,
+        mark_by_subjects: dict[str, tuple[list[str], list[str], list[str]]],
+    ) -> Table:
+        title = Paragraph(student_name, self.title_style)
 
-                self.canv.restoreState()
+        rows = [[
+            Paragraph("Предмет", self.subject_style),
+            Paragraph("Оценки", self.subject_style),
+            *([Paragraph("Ср. балл", self.subject_style)] if self.average else []),
+            *([Paragraph("Итог", self.subject_style)] if self.period_marks else []),
+        ]]
 
-        def make_student_table(
-            student_name: str,
-            mark_by_subjects: dict[str, tuple[list[str], list[str]]],
-        ) -> Table:
-            # Заголовок таблицы
-            title = Paragraph(
-                student_name,
-                title_style,
-            )
+        for subject, (marks, avg_mark, period_mark) in mark_by_subjects.items():
+            if not self.without_marks and not marks:
+                continue
 
-            rows = [
-                [
-                    Paragraph("<b>Предмет</b>", cell_style),
-                    Paragraph("<b>Оценки</b>", cell_style),
-                    *((Paragraph("<b>Ср. балл</b>", cell_style), ) if average else ()),
-                ]
-            ]
+            rows.append([
+                Paragraph(str(subject), self.subject_style),
+                Paragraph(", ".join(str(mark) for mark in marks), self.cell_style),
+                *([Paragraph(str(avg_mark[0]), self.cell_style)] if self.average else []),
+                *([Paragraph(str(period_mark[0]), self.cell_style)] if self.period_marks else []),
+            ])
 
-            for subject, (marks, avg_mark) in mark_by_subjects.items():
-                if not without_marks and not marks:
-                    continue
+        if self.signature_lines:
+            rows.extend([
+                [Paragraph("Подпись классного руководителя: ____________________", self.cell_style)],
+                [Paragraph("Подпись родителя: ____________________", self.cell_style)],
+            ])
 
-                # Оценки в одну строку
-                marks_text = ", ".join(str(mark) for mark in marks)
+        subject_width = self.table_width * 0.3
+        marks_width = self.table_width * 0.49
+        avg_mark_width = self.table_width * 0.11
+        period_mark_width = self.table_width * 0.1
 
-                rows.append(
-                    [
-                        Paragraph(
-                            str(subject),
-                            subject_style,
-                        ),
-                        Paragraph(
-                            marks_text,
-                            cell_style,
-                        ),
-                        *((
-                              Paragraph(
-                                str(avg_mark[0]),
-                                cell_style
-                              )
-                        ,) if average else ())
-                    ]
-                )
+        if not self.average:
+            marks_width += avg_mark_width
+        if not self.period_marks:
+            marks_width += period_mark_width
 
-            # Ширина столбцов
-            subject_width = table_width * 0.32
-            marks_width = table_width * 0.58
-            avg_mark_width = table_width * 0.1
+        table = self.WatermarkedTable(
+            rows,
+            colWidths=[
+                subject_width,
+                marks_width,
+                *([avg_mark_width] if self.average else []),
+                *([period_mark_width] if self.period_marks else []),
+            ],
+            repeatRows=1,
+            hAlign="LEFT",
+        )
 
-            if not average:
-                marks_width += avg_mark_width
+        self._setup_table_style(table)
 
-            table = WatermarkedTable(
-                rows,
-                colWidths=[subject_width, marks_width, *((avg_mark_width,) if average else ())],
-                repeatRows=1,
-                hAlign="LEFT",
-            )
+        if self.signature_lines:
+            table.setStyle(TableStyle([
+                ("SPAN", (0, -2), (-1, -2)),
+                ("SPAN", (0, -1), (-1, -1)),
+            ]))
 
-            setup_table_style(table)
+        result = Table(
+            [[title], [table]],
+            colWidths=[self.table_width],
+        )
 
-            # Заголовок ученика и сама таблица
-            result = Table(
-                [
-                    [title],
-                    [table],
-                ],
-                colWidths=[table_width],
-            )
+        self._setup_container_style(result)
 
-            setup_table_with_title_style(result)
+        return result
 
-            return result
+    def _make_student_row(self, pair: list[tuple[str, dict]]) -> Table:
+        left = self._make_student_table(*pair[0])
 
-        def setup_table_style(table: Table):
-            table.setStyle(
-                TableStyle(
-                    [
-                        # Границы
-                        (
-                            "GRID",
-                            (0, 0),
-                            (-1, -1),
-                            0.4,
-                            colors.grey,
-                        ),
+        right = (
+            self._make_student_table(*pair[1])
+            if len(pair) > 1
+            else ""
+        )
 
-                        # Фон заголовка
-                        (
-                            "BACKGROUND",
-                            (0, 0),
-                            (-1, 0),
-                            colors.HexColor("#E8E8E8"),
-                        ),
+        row = Table(
+            [[left, Spacer(self.column_gap, 0), right]],
+            colWidths=[
+                self.table_width,
+                self.column_gap,
+                self.table_width,
+            ],
+        )
 
-                        # Отступы внутри ячеек
-                        (
-                            "LEFTPADDING",
-                            (0, 0),
-                            (-1, -1),
-                            3,
-                        ),
-                        (
-                            "RIGHTPADDING",
-                            (0, 0),
-                            (-1, -1),
-                            3,
-                        ),
-                        (
-                            "TOPPADDING",
-                            (0, 0),
-                            (-1, -1),
-                            2,
-                        ),
-                        (
-                            "BOTTOMPADDING",
-                            (0, 0),
-                            (-1, -1),
-                            2,
-                        ),
+        self._setup_container_style(row)
 
-                        # Вертикальное выравнивание
-                        (
-                            "VALIGN",
-                            (0, 0),
-                            (-1, -1),
-                            "TOP",
-                        ),
+        row.setStyle(TableStyle([
+            ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ]))
 
-                        # Выравнивание заголовков
-                        (
-                            "ALIGN",
-                            (0, 0),
-                            (-1, 0),
-                            "CENTER",
-                        ),
-                    ]
-                )
-            )
+        return row
 
-        def setup_table_with_title_style(table: Table):
-            table.setStyle(
-                TableStyle(
-                    [
-                        (
-                            "LEFTPADDING",
-                            (0, 0),
-                            (-1, -1),
-                            0,
-                        ),
-                        (
-                            "RIGHTPADDING",
-                            (0, 0),
-                            (-1, -1),
-                            0,
-                        ),
-                        (
-                            "TOPPADDING",
-                            (0, 0),
-                            (-1, -1),
-                            0,
-                        ),
-                        (
-                            "BOTTOMPADDING",
-                            (0, 0),
-                            (-1, -1),
-                            0,
-                        ),
-                    ]
-                )
-            )
+    def _make_rating_table(self) -> KeepTogether:
+        title = Paragraph(
+            "Общий рейтинг в классе",
+            self.title_rating_style,
+        )
 
-        def make_rating_table() -> KeepTogether:
-            # Заголовок таблицы
-            title = Paragraph(
-                "Общий рейтинг в классе",
-                title_rating_style,
-            )
+        rows = [[
+            Paragraph("Место", self.person_in_rating_style),
+            Paragraph("Обучающийся", self.person_in_rating_style),
+            Paragraph("Ср. балл", self.person_in_rating_style),
+        ]]
 
-            rows = [
-                [
-                    Paragraph("<b>Место</b>", rating_style),
-                    Paragraph("<b>Обучающийся</b>", rating_style),
-                    Paragraph("<b>Ср. балл</b>", rating_style),
-                ]
-            ]
+        for position, student_name, avg_mark in self.rating:
+            rows.append([
+                Paragraph(str(position), self.person_in_rating_style),
+                Paragraph(student_name, self.rating_style),
+                Paragraph(str(avg_mark).replace(".", ","), self.rating_style),
+            ])
 
-            for position, student_name, avg_mark in rating:
-                rows.append(
-                    [
-                        Paragraph(
-                            str(position),
-                            person_in_rating_style,
-                        ),
-                        Paragraph(
-                            student_name,
-                            rating_style,
-                        ),
-                        Paragraph(
-                            str(avg_mark).replace('.', ','),
-                            rating_style
-                        )
-                    ]
-                )
+        table = self.WatermarkedTable(
+            rows,
+            colWidths=[
+                self.available_width * 0.1,
+                self.available_width * 0.75,
+                self.available_width * 0.15,
+            ],
+            repeatRows=1,
+            hAlign="LEFT",
+        )
 
-            # Ширина столбцов
-            position_width = available_width * 0.1
-            student_width = available_width * 0.75
-            avg_mark_width = available_width * 0.15
+        self._setup_table_style(table)
 
-            table = WatermarkedTable(
-                rows,
-                colWidths=[position_width, student_width, avg_mark_width],
-                repeatRows=1,
-                hAlign="LEFT",
-            )
+        rating_block = Table(
+            [[title], [table]],
+            colWidths=[self.available_width],
+            hAlign="CENTER",
+        )
 
-            setup_table_style(table)
+        self._setup_container_style(rating_block)
 
-            rating_block = Table(
-                [[title], [table]],
-                colWidths=[available_width],
-                hAlign="CENTER",
-            )
+        rating_block.setStyle(TableStyle([
+            ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+        ]))
 
-            rating_block.setStyle(
-                TableStyle([
-                    ("ALIGN", (0, 0), (-1, -1), "CENTER"),
-                    ("LEFTPADDING", (0, 0), (-1, -1), 0),
-                    ("RIGHTPADDING", (0, 0), (-1, -1), 0),
-                    ("TOPPADDING", (0, 0), (-1, -1), 0),
-                    ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
-                ])
-            )
+        return KeepTogether([rating_block])
 
-            # Заголовок таблицы и сама таблица
-            return KeepTogether([rating_block])
+    def create_pdf(self) -> Path:
+        self.output_path.parent.mkdir(parents=True, exist_ok=True)
 
         doc = BaseDocTemplate(
-            str(output_path),
+            str(self.output_path),
             pagesize=A4,
-            leftMargin=margin_x,
-            rightMargin=margin_x,
-            topMargin=margin_y,
-            bottomMargin=margin_y,
+            leftMargin=self.margin_x,
+            rightMargin=self.margin_x,
+            topMargin=self.margin_y,
+            bottomMargin=self.margin_y,
         )
 
         frame = Frame(
-            margin_x,
-            margin_y,
-            page_width - 2 * margin_x,
-            page_height - 2 * margin_y,
+            self.margin_x,
+            self.margin_y,
+            self.available_width,
+            self.page_height - 2 * self.margin_y,
             id="normal",
         )
 
-        doc.addPageTemplates(
-            [
-                PageTemplate(
-                    id="A4",
-                    frames=[frame],
-                )
-            ]
-        )
+        doc.addPageTemplates([
+            PageTemplate(id="A4", frames=[frame]),
+        ])
 
         story = []
 
-        for i in range(0, len(data), 2):
-            pair = data[i:i + 2]
-
-            tables = []
-
-            for student_name, mark_by_subjects in pair:
-                tables.append(
-                    make_student_table(
-                        student_name,
-                        mark_by_subjects,
-                    )
-                )
-
-            tables.insert(1, Spacer(10, 0))
-
-            # Если в последнем ряду только один ученик, вторая половина пустая
-            if len(tables) == 1:
-                tables.append("")
-
-            row = Table(
-                [tables],
-                colWidths=[
-                    table_width,
-                    10,
-                    table_width,
-                ],
-            )
-
-            row.setStyle(
-                TableStyle(
-                    [
-                        (
-                            "LEFTPADDING",
-                            (0, 0),
-                            (-1, -1),
-                            0,
-                        ),
-                        (
-                            "RIGHTPADDING",
-                            (0, 0),
-                            (-1, -1),
-                            0,
-                        ),
-                        (
-                            "TOPPADDING",
-                            (0, 0),
-                            (-1, -1),
-                            0,
-                        ),
-                        (
-                            "BOTTOMPADDING",
-                            (0, 0),
-                            (-1, -1),
-                            0,
-                        ),
-                        (
-                            "VALIGN",
-                            (0, 0),
-                            (-1, -1),
-                            "TOP",
-                        ),
-                    ]
-                )
-            )
+        for i in range(0, len(self.data), 2):
+            pair = self.data[i:i + 2]
 
             story.append(
-                KeepTogether(
-                    [
-                        row,
-                        Spacer(1, 3 * mm),
-                    ]
-                )
+                KeepTogether([
+                    self._make_student_row(pair),
+                    Spacer(1, 3 * mm),
+                ])
             )
 
-        if rating is not None:
-            story.append(make_rating_table())
+        if self.rating is not None:
+            story.append(self._make_rating_table())
 
         doc.build(story)
 
-        return output_path
+        return self.output_path

@@ -17,12 +17,17 @@ document.addEventListener("DOMContentLoaded", () => {
     const withoutMarks = document.getElementById("withoutMarks");
     const average = document.getElementById("average");
     const rating = document.getElementById("rating");
+    const periodMarks = document.getElementById("periodMarks");
+    const signatureLines = document.getElementById("signatureLines");
 
     const withoutMarksValue = document.getElementById("withoutMarksValue");
     const averageValue = document.getElementById("averageValue");
     const ratingValue = document.getElementById("ratingValue");
+    const periodMarksValue = document.getElementById("periodMarksValue");
+    const signatureLinesValue = document.getElementById("signatureLinesValue");
 
     const selectedSubjectsInputs = document.getElementById("selectedSubjectsInputs");
+    const subjectsSelectAll = document.getElementById("subjectsSelectAll");
 
     let loadedGroupId = null;
     let requestController = null;
@@ -45,9 +50,13 @@ document.addEventListener("DOMContentLoaded", () => {
         } else if (selected === 0) {
             subjectsSelection.textContent = "Предметы не выбраны";
         } else {
-            subjectsSelection.textContent =
-                `Выбрано: ${selected} из ${total}`;
+            subjectsSelection.textContent = `Выбрано: ${selected} из ${total}`;
         }
+
+        // Меняем действие кнопки в зависимости от текущего выбора.
+        subjectsSelectAll.hidden = total === 0;
+        subjectsSelectAll.textContent =
+            selected === total ? "Снять все" : "Выбрать все";
     }
 
     // Создание элемента списка предметов.
@@ -192,6 +201,23 @@ document.addEventListener("DOMContentLoaded", () => {
         await loadSubjects(groupId);
     });
 
+    // Выбрать все предметы или снять все отметки.
+    subjectsSelectAll.addEventListener("click", () => {
+        const checkboxes = subjectsList.querySelectorAll(
+            'input[type="checkbox"]'
+        );
+
+        const allSelected = Array.from(checkboxes).every(
+            checkbox => checkbox.checked
+        );
+
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = !allSelected;
+        });
+
+        updateSelectionLabel();
+    });
+
     // При смене класса сбрасываем загруженный список.
     classSelect.addEventListener("change", () => {
         if (requestController) {
@@ -203,6 +229,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         subjectsList.replaceChildren();
         subjectsPanel.hidden = true;
+        subjectsSelectAll.hidden = true;
         subjectsToggle.setAttribute("aria-expanded", "false");
 
         subjectsStatus.hidden = false;
@@ -221,6 +248,8 @@ document.addEventListener("DOMContentLoaded", () => {
         withoutMarksValue.value = String(withoutMarks.checked);
         averageValue.value = String(average.checked);
         ratingValue.value = String(rating.checked);
+        periodMarksValue.value = String(periodMarks.checked);
+        signatureLinesValue.value = String(signatureLines.checked);
 
         // Указываем groupId именно в query string.
         const params = new URLSearchParams({ groupId });
